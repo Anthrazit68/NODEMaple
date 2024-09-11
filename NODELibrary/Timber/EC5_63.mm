@@ -92,15 +92,20 @@ EC5_63 := proc(WhateverYouNeed::table)
 
 	# 6.3.3
 	# Beams subjected to either bending or combined bending and compression
-	sigma_mcrity := Pi * sqrt(E_m0k * I_z * G_005 * I_t) / (l_efy * W_y);		# 6.31
-	sigma_mcritz := Pi * sqrt(E_m0k * I_y * G_005 * I_t) / (l_efz * W_z);		# 6.31
-	
+	# sigma_mcrity := Pi * sqrt(E_m0k * I_z * G_005 * I_t) / (l_efy * W_y);		# 6.31
+	# sigma_mcritz := Pi * sqrt(E_m0k * I_y * G_005 * I_t) / (l_efz * W_z);		# 6.31
+
+	# alternative formula for softwood with solid rectangular cross-section
+	sigma_mcrity := 0.78 * b^2 / (h * l_efy) * E_m0k;		# (6.32)
+	sigma_mcritz := 0.78 * h^2 / (b * l_efz) * E_m0k;		# (6.32)
+
 	# sigma_mcrity := 0.78 * b^2 / (h * l_efy) * E_m0k;					# 6.32
 	# sigma_mcritz := 0.78 * h^2 / (b * l_efz) * E_m0k;					# 6.32, extended for moment around z-axis
 	
 	lambda_relmy := evalf(sqrt(f_mk / sigma_mcrity));						# 6.30
 	lambda_relmz := evalf(sqrt(f_mk / sigma_mcritz));						# 6.30, extended for moment around z-axis
 
+	# (6.34)
 	if lambda_relmy <= 0.75 then
 		# ingen fare for vipping
 		k_crity := 1

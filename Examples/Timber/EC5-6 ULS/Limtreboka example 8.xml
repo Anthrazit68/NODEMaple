@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- (c) NODE radgivende ingenioerer AS 2020, https://www.node.no -->
+<database version = '2023.02' source_software = 'NODE common file format, generated via Maple'>
+  <projectdata projecttitle = 'Limtreboka Beregningseksempler' projectnumber = '0320.03' client = 'NODE rådgivende ingeniører AS'/>
+  <materials>
+    <timber>
+      <material material = 'timber' name = 'GL 30c / Service class 2 / Short-term' timbertype = 'Glued laminated timber' strengthclass = 'GL 30c' serviceclass = '2' loaddurationclass = 'Short-term' gamma_M = '1.15' k_mod = '.90'>
+        <values_c f_mk = '30.0*Units:-Unit(N/mm^2)' f_t0k = '19.5*Units:-Unit(N/mm^2)' f_t90k = '.5*Units:-Unit(N/mm^2)' f_c0k = '24.5*Units:-Unit(N/mm^2)' f_c90k = '2.5*Units:-Unit(N/mm^2)' f_vk = '3.5*Units:-Unit(N/mm^2)' f_rk = '1.2*Units:-Unit(N/mm^2)' E_m0mean = '13000.0*Units:-Unit(N/mm^2)' E_m0k = '10800.0*Units:-Unit(N/mm^2)' E_m90mean = '300.0*Units:-Unit(N/mm^2)' E_9005 = '250.0*Units:-Unit(N/mm^2)' G_mean = '650.0*Units:-Unit(N/mm^2)' G_005 = '540.0*Units:-Unit(N/mm^2)' G_rmean = '65.0*Units:-Unit(N/mm^2)' G_r05 = '54.0*Units:-Unit(N/mm^2)' rho_k = '390.0*Units:-Unit(kg/m^3)' rho_mean = '430.0*Units:-Unit(kg/m^3)'/>
+        <values_d f_md = '23.47826087*Units:-Unit(N/mm^2)' f_t0d = '15.26086957*Units:-Unit(N/mm^2)' f_t90d = '.3913043478*Units:-Unit(N/mm^2)' f_c0d = '19.17391304*Units:-Unit(N/mm^2)' f_c90d = '1.956521739*Units:-Unit(N/mm^2)' f_vd = '2.739130435*Units:-Unit(N/mm^2)' f_rd = '.9391304348*Units:-Unit(N/mm^2)'/>
+      </material>
+      <material material = 'timber' name = 'GL 30c / Service class 2 / Instantaneous' timbertype = 'Glued laminated timber' strengthclass = 'GL 30c' serviceclass = '2' loaddurationclass = 'Instantaneous' gamma_M = '1.15' k_mod = '1.10'>
+        <values_c f_mk = '30.0*Units:-Unit(N/mm^2)' f_t0k = '19.5*Units:-Unit(N/mm^2)' f_t90k = '.5*Units:-Unit(N/mm^2)' f_c0k = '24.5*Units:-Unit(N/mm^2)' f_c90k = '2.5*Units:-Unit(N/mm^2)' f_vk = '3.5*Units:-Unit(N/mm^2)' f_rk = '1.2*Units:-Unit(N/mm^2)' E_m0mean = '13000.0*Units:-Unit(N/mm^2)' E_m0k = '10800.0*Units:-Unit(N/mm^2)' E_m90mean = '300.0*Units:-Unit(N/mm^2)' E_9005 = '250.0*Units:-Unit(N/mm^2)' G_mean = '650.0*Units:-Unit(N/mm^2)' G_005 = '540.0*Units:-Unit(N/mm^2)' G_rmean = '65.0*Units:-Unit(N/mm^2)' G_r05 = '54.0*Units:-Unit(N/mm^2)' rho_k = '390.0*Units:-Unit(kg/m^3)' rho_mean = '430.0*Units:-Unit(kg/m^3)'/>
+        <values_d f_md = '28.69565217*Units:-Unit(N/mm^2)' f_t0d = '18.65217391*Units:-Unit(N/mm^2)' f_t90d = '.4782608696*Units:-Unit(N/mm^2)' f_c0d = '23.43478261*Units:-Unit(N/mm^2)' f_c90d = '2.391304348*Units:-Unit(N/mm^2)' f_vd = '3.347826087*Units:-Unit(N/mm^2)' f_rd = '1.147826087*Units:-Unit(N/mm^2)'/>
+      </material>
+    </timber>
+  </materials>
+  <sections>
+    <timber>
+      <section name = 'Rectangular / 215x1575' sectiontype = 'Rectangular'>
+        <geometry h = '1575*Units:-Unit(mm)' b = '215*Units:-Unit(mm)'/>
+        <cross_section_properties A = '338625*Units:-Unit(mm^2)' I_y = '.7000013672e11*Units:-Unit(mm^4)' I_z = '1304411719.*Units:-Unit(mm^4)' I_t = '4768929244.*Units:-Unit(mm^4)' W_y = '88889062.50*Units:-Unit(mm^3)' W_z = '12134062.50*Units:-Unit(mm^3)' i_y = '454.6633370*Units:-Unit(mm)' i_z = '62.06515394*Units:-Unit(mm)'/>
+      </section>
+    </timber>
+  </sections>
+  <calculations>
+    <calculation calculationtype = 'NS-EN 1995-1-1, Section 6: Ultimate limit state design principles'>
+      <calculation activeloadcase = 'Opplegg' activematerial = 'GL 30c / Service class 2 / Short-term' activesection = 'Rectangular / 215x1575' calculationtype = 'NS-EN 1995-1-1, Section 6: Ultimate limit state design principles' positionnumber = '8' positiontitle = 'Beregningseksempel 8, plankrum bjelke'>
+        <loadcases>
+          <loadcase name = 'Moment' F_xGk = 'false' F_xQk = 'false' F_xd = '0' M_tGk = '0' M_tQk = '0' M_td = '0' M_yGk = 'false' M_yQk = 'false' M_yd = '1235*Units:-Unit(kN*m)' M_zGk = '0' M_zQk = '0' M_zd = '0' V_yGk = 'false' V_yQk = 'false' V_yd = '0' V_zGk = '0' V_zQk = '0' V_zd = '0' alpha = '90.0*Units:-Unit(arcdeg)'/>
+          <loadcase name = 'Opplegg' F_xGk = 'false' F_xQk = 'false' F_xd = '-247*Units:-Unit(kN)' M_tGk = '0' M_tQk = '0' M_td = '0' M_yGk = 'false' M_yQk = 'false' M_yd = '0' M_zGk = '0' M_zQk = '0' M_zd = '0' V_yGk = 'false' V_yQk = 'false' V_yd = '0' V_zGk = '0' V_zQk = '0' V_zd = '0' alpha = '80.0*Units:-Unit(arcdeg)'/>
+          <loadcase name = 'Skjær' F_xGk = 'false' F_xQk = 'false' F_xd = '0' M_tGk = '0' M_tQk = '0' M_td = '0' M_yGk = 'false' M_yQk = 'false' M_yd = '0' M_zGk = '0' M_zQk = '0' M_zd = '0' V_yGk = 'false' V_yQk = 'false' V_yd = '247*Units:-Unit(kN)' V_zGk = '0' V_zQk = '0' V_zd = '0' alpha = '90.0*Units:-Unit(arcdeg)'/>
+        </loadcases>
+        <structure>
+          <code_64 l_curve = '5.9*Units:-Unit(m)' r_in = '18*Units:-Unit(m)' t_lam = '44*Units:-Unit(mm)' alpha_ap = '0' tapered_N = 'false' ConstructionType = 'Curved beam'/>
+          <buckling l_efy = '.6*Units:-Unit(m)' l_efz = '.60*Units:-Unit(m)' l_ky = '20*Units:-Unit(m)' l_kz = '.60*Units:-Unit(m)'/>
+          <code_615 a_615 = '0' l1_615 = '7500*Units:-Unit(mm)' l_615 = '360*Units:-Unit(mm)' type_615 = 'b'/>
+          <code_622 h_622 = '360*Units:-Unit(mm)'/>
+          <code_652 h_ef = '80*Units:-Unit(mm)' l_incl = '100*Units:-Unit(mm)' x_652 = '0' endnotched = 'true' endnotchedType = '6.11(b)'/>
+        </structure>
+      </calculation>
+    </calculation>
+  </calculations>
+</database>
+
