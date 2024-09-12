@@ -58,6 +58,11 @@ ResetSpecific := proc(WhateverYouNeed::table)
 end proc:
 
 
+RunAfterRestoresettings := proc(WhateverYouNeed::table)
+	activateComponents_64();
+end proc:
+
+
 # wrapper for running main calculation routine
 MainWrapper := proc(action::string)
 	description "Run main calculation";
@@ -397,29 +402,34 @@ activateComponents_64 := proc()
 		SetProperty("TextArea_r_in", 'enabled', "false");
 		SetProperty("TextArea_l_curve", 'enabled', "false");
 		SetProperty("TextArea_t_lam", 'enabled', "false");
+
 	elif GetProperty("ComboBox_ConstructionType", 'selectedindex') = 1 then			# Single tapered beam
 		SetProperty("TextArea_alpha_ap", 'enabled', "true");
 		SetProperty("ComboBox_tapered_N", 'enabled', "true");
 		SetProperty("TextArea_r_in", 'enabled', "false");
 		SetProperty("TextArea_l_curve", 'enabled', "false");
 		SetProperty("TextArea_t_lam", 'enabled', "false");
+
 	elif GetProperty("ComboBox_ConstructionType", 'selectedindex') = 2 then			# Double tapered beam
 		SetProperty("TextArea_alpha_ap", 'enabled', "true");
 		SetProperty("ComboBox_tapered_N", 'enabled', "false");
 		SetProperty("TextArea_r_in", 'enabled', "false");
 		SetProperty("TextArea_l_curve", 'enabled', "false");
 		SetProperty("TextArea_t_lam", 'enabled', "false");
+
 	elif GetProperty("ComboBox_ConstructionType", 'selectedindex') = 3 then			# Curved beam
 		SetProperty("TextArea_alpha_ap", 'enabled', "false");
 		SetProperty("ComboBox_tapered_N", 'enabled', "false");
 		SetProperty("TextArea_r_in", 'enabled', "true");
 		SetProperty("TextArea_l_curve", 'enabled', "true");
 		SetProperty("TextArea_t_lam", 'enabled', "true");
+
 	elif GetProperty("ComboBox_ConstructionType", 'selectedindex') = 4 then			# Pitched cambered beam
 		SetProperty("TextArea_alpha_ap", 'enabled', "true");
 		SetProperty("ComboBox_tapered_N", 'enabled', "false");
 		SetProperty("TextArea_r_in", 'enabled', "true");
 		SetProperty("TextArea_l_curve", 'enabled', "true");
 		SetProperty("TextArea_t_lam", 'enabled', "true");
+
 	end if;
 end proc:

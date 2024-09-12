@@ -1,3 +1,7 @@
+# EC5_622
+# EC5_623
+# EC5_624
+
 # 6.2.2 trykkspenninger i vinkel p� fiberretning
 EC5_622 := proc(WhateverYouNeed::table)
 	description "6.2.2 trykkspenninger i vinkel p� fiberretning";

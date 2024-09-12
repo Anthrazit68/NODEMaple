@@ -3,6 +3,7 @@ kernelopts(opaquemodules = false);
 
 # loading necessary libraries
 with(NODEFunctions);
+with(NODETimberEN1995);
 with(DocumentTools);
 with(StringTools);
 with(Units[Simple]);

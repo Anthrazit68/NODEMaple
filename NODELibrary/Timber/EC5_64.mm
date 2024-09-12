@@ -1,3 +1,5 @@
+# EC5_643
+
 # 6.4.2 check is already implemented in 6.1.6 (bending check)
 EC5_643 := proc(WhateverYouNeed::table)
 	description "Beregner utnyttelser i henhold til 6.4.3";

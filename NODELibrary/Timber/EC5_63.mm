@@ -1,3 +1,6 @@
+# EC5_63
+# calculate_k_64
+
 # 6.3.2 columns subjected to either compression or combined compression and bending
 # 6.3.3 beams subjected to either bending or combined bending and compression
 
