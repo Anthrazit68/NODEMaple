@@ -47,8 +47,8 @@ ResetSpecific := proc(WhateverYouNeed::table)
 	description "Reset specific values for calculation";
 
 	# resetting Combobox for materials and sections
-	SetProperty("ComboBox_timbertype", 'selectedindex', 0);		# Solid timber
-	MainCommon("timbertype");								# setting C14, 36x98
+	SetProperty("ComboBox_timbertype", 'selectedindex', 0);			# Solid timber
+	MainCommon("timbertype");										# setting C14, 36x98
 	SetProperty("ComboBox_serviceclass", 'selectedindex', 0);		# Service class 1
 	SetProperty("ComboBox_loaddurationclass", 'selectedindex', 0);	# Load-duration class Permanent
 	SetProperty("ComboBox_materials", 'itemlist', [GetProperty("TextArea_activematerial", value)]);
@@ -59,7 +59,7 @@ end proc:
 
 
 RunAfterRestoresettings := proc(WhateverYouNeed::table)
-	activateComponents_64();
+	activateComponents_64();		# need to activate / deactivate fields according to structural system
 end proc:
 
 
@@ -159,27 +159,27 @@ ReadComponentsSpecific := proc(TypeOfAction::string, WhateverYouNeed::table)
 
 		if ComponentExists("TextArea_a_615") then
 			if GetProperty("TextArea_a_615", 'enabled') = "true" then
-				assign('a_615', parse(GetProperty("TextArea_a_615", value)) * Unit('mm'));		# String, m� konverteres til tall
+				assign('a_615', parse(GetProperty("TextArea_a_615", value)) * Unit('mm'));		# String, needs to be converted to number
 			else
-				assign('a_615', "false");		# String, m� konverteres til tall
+				assign('a_615', "false");		# String, needs to be converted to number
 			end if;
 			code_615["a_615"] := a_615;	
 		end if;
 
 		if ComponentExists("TextArea_l_615") then
 			if GetProperty("TextArea_l_615", 'enabled') = "true" then
-				assign('l_615', parse(GetProperty("TextArea_l_615", value)) * Unit('mm'));		# String, m� konverteres til tall
+				assign('l_615', parse(GetProperty("TextArea_l_615", value)) * Unit('mm'));		# String, needs to be converted to number
 			else
-				assign('l_615', "false");		# String, m� konverteres til tall
+				assign('l_615', "false");		# String, needs to be converted to number
 			end if;
 			code_615["l_615"] := l_615;
 		end if;
 
 		if ComponentExists("TextArea_l1_615") then
 			if GetProperty("TextArea_l1_615", 'enabled') = "true" then
-				assign('l1_615', parse(GetProperty("TextArea_l1_615", value)) * Unit('mm'));		# String, m� konverteres til tall
+				assign('l1_615', parse(GetProperty("TextArea_l1_615", value)) * Unit('mm'));		# String, needs to be converted to number
 			else
-				assign('l1_615', "false");		# String, m� konverteres til tall
+				assign('l1_615', "false");		# String, needs to be converted to number
 			end if;
 			code_615["l1_615"] := l1_615;
 		end if;
@@ -284,7 +284,7 @@ end proc:
 # Main calculation routine
 Main := proc(WhateverYouNeed::table)
 	description "Beregner utnyttelsesgrader for dimensjonering";
-	uses NODETimberEN1995;
+	# uses NODETimberEN1995;	already loaded in GeneralStartup.mm
 	local force, activeloadcase, eta, usedcode, comments, structure, warnings, maxindex, usedcodeDescription;
 	local alpha, F_xd, M_yd, M_zd, V_yd, V_zd, M_td;
 
@@ -362,8 +362,8 @@ Main := proc(WhateverYouNeed::table)
 	# 6.1.6 Bending
 	if F_xd = 0 and (M_yd <> 0 or M_zd <> 0) then	
 		# EC5_616()
-		# sender videre til formel som tar med vipping og knekking
-		# denne sjekker mot 6.1.6, 6.2.4 og (6.35)
+		# forward to formula that also checks lateral and lateral torsional buckling
+		# checking 6.1.6, 6.2.4 og (6.35)
 		eta["616"], usedcode["616"], usedcodeDescription["616"] := EC5_63(WhateverYouNeed)
 	end if;
 
@@ -379,7 +379,7 @@ Main := proc(WhateverYouNeed::table)
 
 	# 3. check if there is a special construction
 	if member(structure["code_64"]["ConstructionType"], {"Double tapered beam", "Curved beam", "Pitched cambered beam"}) then
-		eta["643"], usedcode["643"], usedcodeDescription["643"] := EC5_643(WhateverYouNeed);			# sjekker f�rst iht. 6.4.3, deretter med vanlige formler
+		eta["643"], usedcode["643"], usedcodeDescription["643"] := EC5_643(WhateverYouNeed);	# check first 6.4.3, afterwards the usual formulas
 	end if;
 	
 	eta["max"], maxindex := maxIndexTable(eta);

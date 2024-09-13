@@ -26,7 +26,7 @@ EC5_643 := proc(WhateverYouNeed::table)
 	# start calculation
 	sigma_t90d_64 := convert(k_p * M_yd / W_y, 'units', 'MPa');				# (6.54)
 
-	# beregner skj�rspenninger her
+	# check shear
 	if timbertype = "Solid timber" then
 		kcr := 0.67		# for konstruksjonstre
 	elif timbertype = "Glued laminated timber" then
@@ -35,7 +35,7 @@ EC5_643 := proc(WhateverYouNeed::table)
 		kcr := 1
 	end if;
 	
-	# EC5_617();						# beregner skj�rspenninger
+	# EC5_617();						# check shear
 	tau_d_64 := convert(max(evalf(1.5 * V_yd / (kcr * A)), evalf(1.5 * V_zd / (kcr * A))), 'units', 'MPa');	
 
 	eta_643 := evalf(tau_d_64 / f_vd + sigma_t90d_64 / (k_dis * k_vol * f_t90d));

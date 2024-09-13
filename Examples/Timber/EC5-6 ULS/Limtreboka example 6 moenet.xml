@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- (c) NODE radgivende ingenioerer AS 2020, https://www.node.no -->
-<database version = '2023.02' source_software = 'NODE common file format, generated via Maple'>
-  <projectdata projectnumber = '0320.03' projecttitle = 'Limtreboka Beregningseksempler' client = 'NODE rådgivende ingeniører AS'/>
+<database version = '2023.12' source_software = 'NODE common file format, generated via Maple'>
+  <projectdata client = 'NODE rådgivende ingeniører AS' projectnumber = '0320.03' projecttitle = 'Limtreboka Beregningseksempler'/>
   <materials>
     <timber>
       <material material = 'timber' name = 'GL 30c / Service class 2 / Short-term' timbertype = 'Glued laminated timber' strengthclass = 'GL 30c' serviceclass = '2' loaddurationclass = 'Short-term' gamma_M = '1.15' k_mod = '.90'>
@@ -28,7 +28,8 @@
   </sections>
   <calculations>
     <calculation calculationtype = 'NS-EN 1995-1-1, Section 6: Ultimate limit state design principles'>
-      <calculation activeloadcase = 'Opplegg' activematerial = 'GL 30c / Service class 2 / Short-term' activesection = 'Rectangular / 190x1430' calculationtype = 'NS-EN 1995-1-1, Section 6: Ultimate limit state design principles' positionnumber = '6' positiontitle = 'Beregningseksempel 6, saltaksbjelke'>
+      <calculation calculationtype = 'NS-EN 1995-1-1, Section 6: Ultimate limit state design principles' positionnumber = '6' positiontitle = 'Beregningseksempel 6, saltaksbjelke'>
+        <activesettings activeloadcase = 'Moment' activematerial = 'GL 30c / Service class 2 / Short-term' activesection = 'Rectangular / 190x1430'/>
         <loadcases>
           <loadcase name = 'Moment' F_xGk = '0' F_xQk = '0' F_xd = '0' M_tGk = '0' M_tQk = '0' M_td = '0' M_yGk = 'false' M_yQk = 'false' M_yd = '1121*Units:-Unit(kN*m)' M_zGk = '0' M_zQk = '0' M_zd = '0' V_yGk = '0' V_yQk = '0' V_yd = '0' V_zGk = '0' V_zQk = '0' V_zd = '0' alpha = '0.'/>
           <loadcase name = 'Opplegg' F_xGk = 'false' F_xQk = 'false' F_xd = '223*Units:-Unit(kN)' M_tGk = '0' M_tQk = '0' M_td = '0' M_yGk = 'false' M_yQk = 'false' M_yd = '0' M_zGk = '0' M_zQk = '0' M_zd = '0' V_yGk = 'false' V_yQk = 'false' V_yd = '0' V_zGk = '0' V_zQk = '0' V_zd = '0' alpha = '0.'/>
