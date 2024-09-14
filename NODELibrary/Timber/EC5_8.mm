@@ -487,7 +487,7 @@ Main := proc(WhateverYouNeed::table)
 
 		calculateShearplanes(WhateverYouNeed);		# EC5_81	
 		validateConnection(WhateverYouNeed);		# EC5_8_SetVisibilityCombobox
-		calculate_t_total(WhateverYouNeed);		# EC5_81
+		calculate_t_total(WhateverYouNeed);			# EC5_81
 		calculate_t(WhateverYouNeed);				# EC5_83, 8.3.1.1(1), calculate t_eff, t_pen, n_tip
 	
 

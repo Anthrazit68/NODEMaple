@@ -403,7 +403,7 @@ calculate_amin_max := proc(WhateverYouNeed::table)
 	local red_steel, structure, materialdataAll, sectiondataAll, warnings, comments, part, distance, serviceclass;
 
 	# force::table
-DEBUG();
+# DEBUG();
 	# global variables
 	warnings := WhateverYouNeed["warnings"];
 	structure := WhateverYouNeed["calculations"]["structure"];
