@@ -24,7 +24,7 @@ EC5_643 := proc(WhateverYouNeed::table)
 	W_y := WhateverYouNeed["sectiondata"]["W_y"];
 
 	# start calculation
-	sigma_t90d_64 := convert(k_p * M_yd / W_y, 'units', 'MPa');				# (6.54)
+	sigma_t90d_64 := convert(k_p * M_yd / W_y, 'units', 'MPa');				# (6.54), conservative, could be reduced by using (6.55)
 
 	# check shear
 	if timbertype = "Solid timber" then

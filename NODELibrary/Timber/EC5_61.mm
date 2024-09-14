@@ -316,7 +316,7 @@ end proc:
 # code including tapered beams
 EC5_616 := proc(WhateverYouNeed::table, k_crity, k_critz)
 	description "6.1.6 Bending";
-	local k_m_alpha, k_r, k_l;		# faktorer for spesialkonstruksjoner iht. punkt 6.4 (saltaksbjelker, krumme bjelker, osv.)
+	local k_m_alpha, k_r, k_l;		# factors for special constructions 6.4 (tapered and curved beams)
 	local W_y, W_z;
 	local sigma_myd, sigma_mzd, km, eta, usedcode, comments, M_yd, M_zd, f_md, f_myd, f_mzd, loadcase;
 
@@ -330,9 +330,9 @@ EC5_616 := proc(WhateverYouNeed::table, k_crity, k_critz)
 	M_yd := WhateverYouNeed["calculations"]["loadcases"][loadcase]["M_yd"];
 	M_zd := WhateverYouNeed["calculations"]["loadcases"][loadcase]["M_zd"];
 
-	k_m_alpha := WhateverYouNeed["results"]["k_64"]["k_m_alpha"];
-	k_r := WhateverYouNeed["results"]["k_64"]["k_r"];
-	k_l := WhateverYouNeed["results"]["k_64"]["k_l"];
+	k_m_alpha := WhateverYouNeed["results"]["k_64"]["k_m_alpha"];		# 6.4.2 single tapered beam
+	k_r := WhateverYouNeed["results"]["k_64"]["k_r"];					# 6.4.3 curved beam, pitched cambered beam
+	k_l := WhateverYouNeed["results"]["k_64"]["k_l"];					# 6.4.3 double tapered beam
 
 	# start calculation
 	km := 0.7; 	# for konstruksjonstre, glulam og parallelfiner / rektangul�re tverrsnitt
@@ -352,9 +352,18 @@ EC5_616 := proc(WhateverYouNeed::table, k_crity, k_critz)
 		usedcode := "6.4.2";
 		comments := "Bending for single tapered beams";
 		
-	else 
+	elif (k_crity <> 1 or k_critz <> 1) and k_m_alpha = 1 and k_r = 1 then 
 		usedcode := "6.3.3";
 		comments := "(6.33) Beams subjected to either bending or combined bending and compression";
+
+	elif k_r = 1 and k_l = 1 then
+		usedcode := "6.3.3 / 6.4.2";
+		comments := "Single tapered beams subjected to either bending or combined bending and compression";
+
+	else
+		usedcode := "6.3.3 / 6.4.3";
+		comments := "Curved or double tapered beams subjected to either bending or combined bending and compression";
+
 	end if;
 
 	if ComponentExists("TextArea_k_crity") then

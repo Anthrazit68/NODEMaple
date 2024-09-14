@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- (c) NODE radgivende ingenioerer AS 2020, https://www.node.no -->
-<database version = '2023.02' source_software = 'NODE common file format, generated via Maple'>
-  <projectdata projectnumber = '0320.03' projecttitle = 'Limtreboka Beregningseksempler' client = 'NODE rådgivende ingeniører AS'/>
+<database version = '2023.12' source_software = 'NODE common file format, generated via Maple'>
+  <projectdata projecttitle = 'Limtreboka Beregningseksempler' projectnumber = '0320.03' client = 'NODE rådgivende ingeniører AS'/>
   <materials>
     <timber>
       <material material = 'timber' name = 'GL 30c / Service class 2 / Short-term' timbertype = 'Glued laminated timber' strengthclass = 'GL 30c' serviceclass = '2' loaddurationclass = 'Short-term' gamma_M = '1.15' k_mod = '.90'>
@@ -16,6 +16,10 @@
   </materials>
   <sections>
     <timber>
+      <section name = 'Rectangular / 190x1153' sectiontype = 'Rectangular'>
+        <geometry h = '1153*Units:-Unit(mm)' b = '190*Units:-Unit(mm)'/>
+        <cross_section_properties A = '219070*Units:-Unit(mm^2)' I_y = '.2426946914e11*Units:-Unit(mm^4)' I_z = '659035583.3*Units:-Unit(mm^4)' I_t = '2362468233.*Units:-Unit(mm^4)' W_y = '42097951.67*Units:-Unit(mm^3)' W_z = '6937216.667*Units:-Unit(mm^3)' i_y = '332.8424303*Units:-Unit(mm)' i_z = '54.84827557*Units:-Unit(mm)'/>
+      </section>
       <section name = 'Rectangular / 190x1430' sectiontype = 'Rectangular'>
         <geometry h = '1430*Units:-Unit(mm)' b = '190*Units:-Unit(mm)'/>
         <cross_section_properties A = '271700*Units:-Unit(mm^2)' I_y = '.4629994417e11*Units:-Unit(mm^4)' I_z = '817364166.7*Units:-Unit(mm^4)' I_t = '2995782567.*Units:-Unit(mm^4)' W_y = '64755166.67*Units:-Unit(mm^3)' W_z = '8603833.333*Units:-Unit(mm^3)' i_y = '412.8054424*Units:-Unit(mm)' i_z = '54.84827557*Units:-Unit(mm)'/>
@@ -28,17 +32,18 @@
   </sections>
   <calculations>
     <calculation calculationtype = 'NS-EN 1995-1-1, Section 6: Ultimate limit state design principles'>
-      <calculation activeloadcase = 'Opplegg' activematerial = 'GL 30c / Service class 2 / Short-term' activesection = 'Rectangular / 190x800' calculationtype = 'NS-EN 1995-1-1, Section 6: Ultimate limit state design principles' positionnumber = '6' positiontitle = 'Beregningseksempel 6, saltaksbjelke ved opplegg'>
+      <calculation calculationtype = 'NS-EN 1995-1-1, Section 6: Ultimate limit state design principles' positionnumber = '6' positiontitle = 'Beregningseksempel 6, saltaksbjelke, opplegg'>
+        <activesettings activeloadcase = 'Support' activematerial = 'GL 30c / Service class 2 / Short-term' activesection = 'Rectangular / 190x800'/>
         <loadcases>
-          <loadcase name = 'Opplegg' F_xGk = 'false' F_xQk = 'false' F_xd = '-223*Units:-Unit(kN)' M_tGk = '0' M_tQk = '0' M_td = '0' M_yGk = 'false' M_yQk = 'false' M_yd = '0' M_zGk = '0' M_zQk = '0' M_zd = '0' V_yGk = 'false' V_yQk = 'false' V_yd = '0' V_zGk = '0' V_zQk = '0' V_zd = '0' alpha = '90.0*Units:-Unit(arcdeg)'/>
-          <loadcase name = 'Skjaer' F_xGk = '0' F_xQk = '0' F_xd = '0' M_tGk = '0' M_tQk = '0' M_td = '0' M_yGk = 'false' M_yQk = 'false' M_yd = '0' M_zGk = '0' M_zQk = '0' M_zd = '0' V_yGk = 'false' V_yQk = 'false' V_yd = '222*Units:-Unit(kN)' V_zGk = '0' V_zQk = '0' V_zd = '0' alpha = '0.'/>
+          <loadcase name = 'Shear' F_xGk = '0' F_xQk = '0' F_xd = '0' M_tGk = '0' M_tQk = '0' M_td = '0' M_yGk = 'false' M_yQk = 'false' M_yd = '0' M_zGk = '0' M_zQk = '0' M_zd = '0' V_yGk = 'false' V_yQk = 'false' V_yd = '222*Units:-Unit(kN)' V_zGk = '0' V_zQk = '0' V_zd = '0' alpha = '0.'/>
+          <loadcase name = 'Support' F_xGk = 'false' F_xQk = 'false' F_xd = '-223*Units:-Unit(kN)' M_tGk = '0' M_tQk = '0' M_td = '0' M_yGk = 'false' M_yQk = 'false' M_yd = '0' M_zGk = '0' M_zQk = '0' M_zd = '0' V_yGk = 'false' V_yQk = 'false' V_yd = '0' V_zGk = '0' V_zQk = '0' V_zd = '0' alpha = '90.0*Units:-Unit(arcdeg)'/>
         </loadcases>
         <structure>
-          <code_64 l_curve = '0' r_in = '0' t_lam = '0' alpha_ap = '3.6*Units:-Unit(arcdeg)' tapered_N = 'false' ConstructionType = 'Double tapered beam'/>
-          <buckling l_efy = '.6*Units:-Unit(m)' l_efz = '.60*Units:-Unit(m)' l_ky = '20*Units:-Unit(m)' l_kz = '.60*Units:-Unit(m)'/>
-          <code_615 a_615 = '0' l1_615 = '7500*Units:-Unit(mm)' l_615 = '360*Units:-Unit(mm)' type_615 = 'b'/>
+          <code_64 l_curve = '0' r_in = '0' t_lam = '0' alpha_ap = '3.6*Units:-Unit(arcdeg)' tapered_N = 'compression' ConstructionType = 'Single tapered beam'/>
+          <buckling l_efy = '5.*Units:-Unit(m)' l_efz = '.60*Units:-Unit(m)' l_ky = '20*Units:-Unit(m)' l_kz = '.60*Units:-Unit(m)'/>
+          <code_615 a_615 = '0' l1_615 = '20000*Units:-Unit(mm)' l_615 = '360*Units:-Unit(mm)' type_615 = 'b'/>
           <code_622 h_622 = '360*Units:-Unit(mm)'/>
-          <code_652 h_ef = '80*Units:-Unit(mm)' l_incl = '100*Units:-Unit(mm)' x_652 = '0' endnotched = 'true' endnotchedType = '6.11(b)'/>
+          <code_652 h_ef = '80*Units:-Unit(mm)' l_incl = '100*Units:-Unit(mm)' x_652 = '0' endnotched = 'false' endnotchedType = '6.11(b)'/>
         </structure>
       </calculation>
     </calculation>

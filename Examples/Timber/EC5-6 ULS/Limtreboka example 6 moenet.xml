@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- (c) NODE radgivende ingenioerer AS 2020, https://www.node.no -->
 <database version = '2023.12' source_software = 'NODE common file format, generated via Maple'>
-  <projectdata client = 'NODE rådgivende ingeniører AS' projectnumber = '0320.03' projecttitle = 'Limtreboka Beregningseksempler'/>
+  <projectdata projectnumber = '0320.03' client = 'NODE rådgivende ingeniører AS' projecttitle = 'Limtreboka Beregningseksempler'/>
   <materials>
     <timber>
       <material material = 'timber' name = 'GL 30c / Service class 2 / Short-term' timbertype = 'Glued laminated timber' strengthclass = 'GL 30c' serviceclass = '2' loaddurationclass = 'Short-term' gamma_M = '1.15' k_mod = '.90'>
@@ -28,16 +28,14 @@
   </sections>
   <calculations>
     <calculation calculationtype = 'NS-EN 1995-1-1, Section 6: Ultimate limit state design principles'>
-      <calculation calculationtype = 'NS-EN 1995-1-1, Section 6: Ultimate limit state design principles' positionnumber = '6' positiontitle = 'Beregningseksempel 6, saltaksbjelke'>
+      <calculation calculationtype = 'NS-EN 1995-1-1, Section 6: Ultimate limit state design principles' positionnumber = '6' positiontitle = 'Beregningseksempel 6, saltaksbjelke, mønesone'>
         <activesettings activeloadcase = 'Moment' activematerial = 'GL 30c / Service class 2 / Short-term' activesection = 'Rectangular / 190x1430'/>
         <loadcases>
           <loadcase name = 'Moment' F_xGk = '0' F_xQk = '0' F_xd = '0' M_tGk = '0' M_tQk = '0' M_td = '0' M_yGk = 'false' M_yQk = 'false' M_yd = '1121*Units:-Unit(kN*m)' M_zGk = '0' M_zQk = '0' M_zd = '0' V_yGk = '0' V_yQk = '0' V_yd = '0' V_zGk = '0' V_zQk = '0' V_zd = '0' alpha = '0.'/>
-          <loadcase name = 'Opplegg' F_xGk = 'false' F_xQk = 'false' F_xd = '223*Units:-Unit(kN)' M_tGk = '0' M_tQk = '0' M_td = '0' M_yGk = 'false' M_yQk = 'false' M_yd = '0' M_zGk = '0' M_zQk = '0' M_zd = '0' V_yGk = 'false' V_yQk = 'false' V_yd = '0' V_zGk = '0' V_zQk = '0' V_zd = '0' alpha = '0.'/>
-          <loadcase name = 'Skjaer' F_xGk = '0' F_xQk = '0' F_xd = '0' M_tGk = '0' M_tQk = '0' M_td = '0' M_yGk = 'false' M_yQk = 'false' M_yd = '0' M_zGk = '0' M_zQk = '0' M_zd = '0' V_yGk = 'false' V_yQk = 'false' V_yd = '222*Units:-Unit(kN)' V_zGk = '0' V_zQk = '0' V_zd = '0' alpha = '0.'/>
         </loadcases>
         <structure>
           <code_64 l_curve = '0' r_in = '0' t_lam = '0' alpha_ap = '3.6*Units:-Unit(arcdeg)' tapered_N = 'false' ConstructionType = 'Double tapered beam'/>
-          <buckling l_efy = '.6*Units:-Unit(m)' l_efz = '.60*Units:-Unit(m)' l_ky = '20*Units:-Unit(m)' l_kz = '.60*Units:-Unit(m)'/>
+          <buckling l_efy = '5.*Units:-Unit(m)' l_efz = '.60*Units:-Unit(m)' l_ky = '20*Units:-Unit(m)' l_kz = '.60*Units:-Unit(m)'/>
           <code_615 a_615 = '7500*Units:-Unit(mm)' l1_615 = '7500*Units:-Unit(mm)' l_615 = '675*Units:-Unit(mm)' type_615 = 'b'/>
           <code_622 h_622 = '360*Units:-Unit(mm)'/>
           <code_652 h_ef = '80*Units:-Unit(mm)' l_incl = '100*Units:-Unit(mm)' x_652 = '0' endnotched = 'true' endnotchedType = '6.11(b)'/>

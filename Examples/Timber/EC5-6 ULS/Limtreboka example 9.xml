@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- (c) NODE radgivende ingenioerer AS 2020, https://www.node.no -->
-<database version = '2023.02' source_software = 'NODE common file format, generated via Maple'>
+<database version = '2023.12' source_software = 'NODE common file format, generated via Maple'>
   <projectdata projecttitle = 'Limtreboka Beregningseksempler' projectnumber = '0320.03' client = 'NODE rådgivende ingeniører AS'/>
   <materials>
     <timber>
@@ -24,7 +24,8 @@
   </sections>
   <calculations>
     <calculation calculationtype = 'NS-EN 1995-1-1, Section 6: Ultimate limit state design principles'>
-      <calculation activeloadcase = 'Opplegg' activematerial = 'GL 30c / Service class 2 / Instantaneous' activesection = 'Rectangular / 115x360' calculationtype = 'NS-EN 1995-1-1, Section 6: Ultimate limit state design principles' positionnumber = '9' positiontitle = 'Beregningseksempel 9, takåser'>
+      <calculation calculationtype = 'NS-EN 1995-1-1, Section 6: Ultimate limit state design principles' positionnumber = '9' positiontitle = 'Beregningseksempel 9, takåser'>
+        <activesettings activeloadcase = 'Opplegg' activematerial = 'GL 30c / Service class 2 / Short-term' activesection = 'Rectangular / 115x360'/>
         <loadcases>
           <loadcase name = 'Moment' F_xGk = 'false' F_xQk = 'false' F_xd = '0' M_tGk = '0' M_tQk = '0' M_td = '0' M_yGk = 'false' M_yQk = 'false' M_yd = '31.7*Units:-Unit(kN*m)' M_zGk = 'false' M_zQk = 'false' M_zd = '14.2*Units:-Unit(kN*m)' V_yGk = 'false' V_yQk = 'false' V_yd = '0' V_zGk = '0' V_zQk = '0' V_zd = '0' alpha = '90.0*Units:-Unit(arcdeg)'/>
           <loadcase name = 'Opplegg' F_xGk = 'false' F_xQk = 'false' F_xd = '-71.3*Units:-Unit(kN)' M_tGk = '0' M_tQk = '0' M_td = '0' M_yGk = 'false' M_yQk = 'false' M_yd = '0' M_zGk = '0' M_zQk = '0' M_zd = '0' V_yGk = 'false' V_yQk = 'false' V_yd = '0' V_zGk = '0' V_zQk = '0' V_zd = '0' alpha = '90.0*Units:-Unit(arcdeg)'/>
@@ -35,7 +36,7 @@
           <buckling l_efy = '.6*Units:-Unit(m)' l_efz = '.60*Units:-Unit(m)' l_ky = '6.50*Units:-Unit(m)' l_kz = '6.50*Units:-Unit(m)'/>
           <code_615 a_615 = '0' l1_615 = '6500*Units:-Unit(mm)' l_615 = '115*Units:-Unit(mm)' type_615 = 'b'/>
           <code_622 h_622 = '360*Units:-Unit(mm)'/>
-          <code_652 h_ef = '80*Units:-Unit(mm)' l_incl = '100*Units:-Unit(mm)' x_652 = '0' endnotched = 'true' endnotchedType = '6.11(b)'/>
+          <code_652 h_ef = '80*Units:-Unit(mm)' l_incl = '100*Units:-Unit(mm)' x_652 = '0' endnotched = 'false' endnotchedType = '6.11(b)'/>
         </structure>
       </calculation>
     </calculation>

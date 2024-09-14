@@ -388,7 +388,7 @@ Main := proc(WhateverYouNeed::table)
 
 	# find maximum of all loadcases, print results
 	Write_eta(WhateverYouNeed);	
-	
+	PrintAlert(warnings);
 end proc:
 
 
