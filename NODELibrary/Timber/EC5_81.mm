@@ -708,7 +708,7 @@ EC5_62net := proc(WhateverYouNeed::table)
 	if F_hd = 0 and F_vd = 0 then		# special case where either everything is zero, or we just have moments on the connection
 		alphaForce := 0;
 	else
-		alphaForce := arctan(convert(F_vd, 'unit_free'), convert(F_hd, 'unit_free')) * Unit('radians');
+		alphaForce := evalf(arctan(convert(F_vd, 'unit_free'), convert(F_hd, 'unit_free')) * Unit('radians'));
 	end if;
 
 	F_Ed := sqrt(F_vd ^ 2 + F_hd ^ 2);
@@ -828,7 +828,7 @@ EC5_62net := proc(WhateverYouNeed::table)
 	# eta
 	for i in {"1", "2"} do
 		
-		if structure["connection"][cat("connection", part)] = "Timber" then
+		if structure["connection"][cat("connection", i)] = "Timber" then
 			part := i
 		else
 			part := "steel"

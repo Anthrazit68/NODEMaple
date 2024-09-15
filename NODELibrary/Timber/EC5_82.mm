@@ -113,35 +113,40 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 
 		# F_vRk
 		
-		# 1 shearplane, timber outside, steel inside
-		
-		F_vRk["a"] := evalf(0.4 * f_hk["1"] * t_eff["1o"] * d);
+		if connection["connection1"] = "Timber" then						# division by zero if run with steel plate outside
 
-		dummy := 1.15 * sqrt(2 * M_yRk * f_hk["1"] * d);
-		F_vRk["b"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
+			# 1 shearplane, timber outside, steel inside
+			
+			F_vRk["a"] := evalf(0.4 * f_hk["1"] * t_eff["1o"] * d);
 
-		F_vRk["c"] := evalf(f_hk["1"] * t_eff["1o"] * d);
+			dummy := 1.15 * sqrt(2 * M_yRk * f_hk["1"] * d);
+			F_vRk["b"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
 
-		dummy := f_hk["1"] * t_eff["1o"] * d * (sqrt(2 + 4 * M_yRk / (f_hk["1"] * d * t_eff["1o"]^2)) - 1);
-		F_vRk["d"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
+			F_vRk["c"] := evalf(f_hk["1"] * t_eff["1o"] * d);
 
-		dummy := 2.3 * sqrt(M_yRk * f_hk["1"] * d);
-		F_vRk["e"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
+			dummy := f_hk["1"] * t_eff["1o"] * d * (sqrt(2 + 4 * M_yRk / (f_hk["1"] * d * t_eff["1o"]^2)) - 1);
+			F_vRk["d"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
 
-		# 2 shearplanes, timber outside, steel inside
+			dummy := 2.3 * sqrt(M_yRk * f_hk["1"] * d);
+			F_vRk["e"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
 
-		F_vRk["f"] := evalf(f_hk["1"] * t_eff["1"] * d);
+			# 2 shearplanes, timber outside, steel inside
 
-		dummy := evalf(f_hk["1"] * t_eff["1"] * d * (sqrt(2 + 4 * M_yRk / (f_hk["1"] * d * t_eff["1"]^2)) - 1));
-		F_vRk["g"] := eval(dummy + min(dummy * alpha_rope, F_axRk / 4));
+			F_vRk["f"] := evalf(f_hk["1"] * t_eff["1"] * d);
 
-		dummy := evalf(2.3 * sqrt(M_yRk * f_hk["1"] * d));
-		F_vRk["h"] := eval(dummy + min(dummy * alpha_rope, F_axRk / 4));
+			dummy := evalf(f_hk["1"] * t_eff["1"] * d * (sqrt(2 + 4 * M_yRk / (f_hk["1"] * d * t_eff["1"]^2)) - 1));
+			F_vRk["g"] := eval(dummy + min(dummy * alpha_rope, F_axRk / 4));
+
+			dummy := evalf(2.3 * sqrt(M_yRk * f_hk["1"] * d));
+			F_vRk["h"] := eval(dummy + min(dummy * alpha_rope, F_axRk / 4));
+
+		end if;
 
 		# 2 shearplanes, steel outside, timber inside
 		
 		# if connection with >=3 inside layers, t_eff["2"] = 0 (steel inside in connection)
 		# need to calculate j - m with t_eff["1"], calculating capacity of part of the connection
+
 		if t_eff["2"] = 0 and connectionInsideLayers >= 3 then
 			
 			F_vRk["j"] := evalf(0.5 * f_hk["1"] * t_eff["1"] * d);
@@ -174,20 +179,41 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 		
 		# precalculating capacity dependent on steel plate thickness, interpolating values
 		if t_steel < d then			# thin or medium thick steel plate
-				
-			F_vRkmin["1sb"] := min(F_vRk["a"], F_vRk["b"]);		# fig. 8.3, 1 shearplane, thin, bent steel
-			F_vRkmin["2sa"] := F_vRk["j"];					# fig. 8.3, 2 shearplanes, thin, straight steel
-			F_vRkmin["2sb"] := F_vRk["k"];					# fig. 8.3, 2 shearplanes, thin, bent steel
+			
+			if assigned(F_vRk["a"]) and assigned(F_vRk["b"]) then
+				F_vRkmin["1sb"] := min(F_vRk["a"], F_vRk["b"]);		# fig. 8.3, 1 shearplane, thin, bent steel
+			else
+				F_vRkmin["1sb"] := 0
+			end if;
+
+			if assigned(F_vRk["j"]) and assigned(F_vRk["k"]) then
+				F_vRkmin["2sa"] := F_vRk["j"];						# fig. 8.3, 2 shearplanes, thin, straight steel
+				F_vRkmin["2sb"] := F_vRk["k"];						# fig. 8.3, 2 shearplanes, thin, bent steel
+			else
+				F_vRkmin["2sa"] := 0;
+				F_vRkmin["2sb"] := 0;
+			end if;
 			comments["F_vRk_steel"] := "thin plate";
 			
 		end if;
 
 		if t_steel > 0.5 * d then	# medium or thick steel plate
 
-			F_vRkmin["1Sa"] := F_vRk["c"];					# fig. 8.3, 1 shearplane, thick, straight steel
-			F_vRkmin["1Sb"] := min(F_vRk["d"], F_vRk["e"]);		# fig. 8.3, 1 shearplane, thick, bent steel
-			F_vRkmin["2Sa"] := F_vRk["l"];					# fig. 8.3, 2 shearplanes, thick, straight steel
-			F_vRkmin["2Sb"] := F_vRk["m"];					# fig. 8.3, 2 shearplanes, thick, bent steel
+			if assigned(F_vRk["c"]) and assigned(F_vRk["d"]) and assigned(F_vRk["e"]) then
+				F_vRkmin["1Sa"] := F_vRk["c"];					# fig. 8.3, 1 shearplane, thick, straight steel
+				F_vRkmin["1Sb"] := min(F_vRk["d"], F_vRk["e"]);		# fig. 8.3, 1 shearplane, thick, bent steel
+				F_vRkmin["2Sa"] := F_vRk["l"];					# fig. 8.3, 2 shearplanes, thick, straight steel
+			else
+				F_vRkmin["1Sa"] := 0;
+				F_vRkmin["1Sb"] := 0;
+				F_vRkmin["2Sa"] := 0;
+			end if;
+
+			if assigned(F_vRk["m"]) then
+				F_vRkmin["2Sb"] := F_vRk["m"];					# fig. 8.3, 2 shearplanes, thick, bent steel
+			else
+				F_vRkmin["2Sb"] := 0
+			end if;
 			comments["F_vRk_steel"] := "thick plate";
 		end if;
 			
@@ -223,7 +249,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 			if connectionInsideLayers = 0 then		# just indices starting with "1"
 
 				# alternative: https://www.mapleprimes.com/questions/238203-Table-Entries-With-Indices-That-Have#answer301560
-				for i in indices(F_vRkmin) do 
+				for i in indices(F_vRkmin, 'nolist') do 
 					if substring(i, 1..1) = "1" then
 						if F_vRkfin = 0 or F_vRkmin[i] < F_vRkfin then
 							F_vRkfin := F_vRkmin[i];
@@ -234,7 +260,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 				
 			elif connectionInsideLayers = 1 then
 
-				for i in indices(F_vRkmin) do 
+				for i in indices(F_vRkmin, 'nolist') do 
 					if substring(i, 1..1) = "2" then
 						if F_vRkfin = 0 or F_vRkmin[i] < F_vRkfin then
 							F_vRkfin := F_vRkmin[i];
@@ -288,7 +314,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 
 			elif connectionInsideLayers = 1 then		# 2 shearplanes
 
-				for i in indices(F_vRkmin) do 
+				for i in indices(F_vRkmin, 'nolist') do 
 					if substring(i, 1..1) = "2" then
 						if F_vRkfin = 0 or F_vRkmin[i] < F_vRkfin then
 							F_vRkfin := F_vRkmin[i];
