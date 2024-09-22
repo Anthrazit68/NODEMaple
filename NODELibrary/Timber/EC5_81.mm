@@ -376,14 +376,20 @@ EC5_812 := proc(WhateverYouNeed::table)
 			
 				alphaBeam := evalf(structure["connection"][cat("graindirection", part)]);
 				alpha[part] := abs(alphaForce - alphaBeam);			# angle between force and grain direction in fastener
-				if alpha[part] > 90*Unit('arcdeg') then
+
+				# need to check that alpha[part] is between 0 - 90 deg.
+				if alpha[part] > 180*Unit('arcdeg') then
+					alpha[part] := alpha[part] - 180*Unit('arcdeg')
+
+				elif alpha[part] > 90*Unit('arcdeg') then
 					alpha[part] := 180*Unit('arcdeg') - alpha[part]
+
 				end if;
 
 				# reduction factor for fasteners in grain direction, dependent on force to grain
 				eta_n_ef[part] := (90*Unit('arcdeg') - alpha[part]) / (90*Unit('arcdeg'));	# factor interpolation of angle		
 				if eta_n_ef[part] > 1 or eta_n_ef[part] < 0 then			# this should not be possible
-					Alert("EC5_812: eta_n_ef > 1", 3, warnings)
+					Alert("EC5_812: impossible eta_n_ef: 0 > eta_n_ef > 1", warnings, 5)
 				end if;
 				
 				k_n_ef0 := WhateverYouNeed["calculatedvalues"][cat("k_n_ef0", part)];	# reduction factor capacity in grain direction
