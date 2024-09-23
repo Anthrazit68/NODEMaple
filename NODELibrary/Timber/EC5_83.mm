@@ -16,7 +16,7 @@
 calculate_t := proc(WhateverYouNeed::table)
 	description "Calculate t and t_pen / effective part thickness and penetration depth";
 	local shearplanes, t_total, t, t_eff, t_ef_814_NA_DE, t_pen, n_tip, n_head, ls, d, doublesided, chosenFastener, connection, overlap, alphaScrew;
-	local checkPassed, structure, sectiondataAll, warnings, comments, fastenervalues, timberlayers, i;
+	local checkPassed, structure, sectiondataAll, warnings, comments, fastenervalues, timberlayers, i, nailSurface;
 
 	# define local variables
 	structure := WhateverYouNeed["calculations"]["structure"];
@@ -31,6 +31,7 @@ calculate_t := proc(WhateverYouNeed::table)
 	alphaScrew := structure["fastener"]["alphaScrew"];	# inclination of fastener
 	d := structure["fastener"]["fastener_d"];					# diameter
 	doublesided := WhateverYouNeed["calculations"]["structure"]["fastener"]["doublesided"];
+	nailSurface := structure["fastener"]["nailSurface"];
 	
 	# structure / connection
 	connection := structure["connection"];
@@ -70,7 +71,7 @@ calculate_t := proc(WhateverYouNeed::table)
 	if chosenFastener = "Bolt" or chosenFastener = "Dowel" then
 
 		doublesided := false;
-		SetProperty("CheckBox_doublesided", value, "false");
+		SetProperty("CheckBox_doublesided", 'value', "false");
 		SetProperty("CheckBox_doublesided", 'enabled', "false");
 
 		if ls < t_total then		# needs to go through the whole section
@@ -162,25 +163,49 @@ calculate_t := proc(WhateverYouNeed::table)
 			end if;
 						
 		elif shearplanes = 2 then
-			
+	
 			if doublesided = false then
 				
 				if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then	# figure 8.2 g - k
+
 					t_eff["1"] := evalf(min(t["1"], ls  * sin(alphaScrew) - t["2"] - t["1"]));	# 8.4(b)
 					t_eff["2"] := t["2"];
 					t_pen := t_eff["1"] / sin(alphaScrew);
 					n_tip := "1";
 					n_head := "2";
-					
-				else
-					Alert("One sided nail / screw connection with 2 shearplanes not possible with steel", warnings, 5);
-					return
-				end if;	
 
+					if (chosenFastener = "Nail" and nailSurface = "smooth" and t_pen < 8 * d) or t_pen < 6 * d then		# 8.3.1.2
+
+						comments["SingleShearplane"] := cat(chosenFastener, " anchorage length too short for two shearplanes, trying one");
+						fastenervalues["SingleShearplane"] := true;							
+						t_eff["1"] := t["1"];
+						t_eff["2"] := evalf(min(t["2"], ls  * sin(alphaScrew) - t["1"]));	# 8.4(b)
+						t_pen := t_eff["2"] / sin(alphaScrew);
+						n_tip := "2";
+						SetProperty("CheckBox_doublesided", 'value', "true");
+						doublesided := true
+
+					elif assigned(comments["SingleShearplane"]) and assigned(fastenervalues["SingleShearplane"]) then
+
+							comments["SingleShearplane"] := evaln(comments["SingleShearplane"]);
+							fastenervalues["SingleShearplane"] := evaln(fastenervalues["SingleShearplane"]);						
+
+					end if;
+
+				elif connection["connection1"] = "Steel"
+
+					SetProperty("CheckBox_doublesided", 'value', "true");
+					doublesided := true
+
+				end if;
+
+			end if;
+				
 			# doublesided screws or nails could eventually be used with steel and timber
 			# connections with overlap need to be with timber and nail fasteners
 			# otherwise minimum distance between fasteners a1 needs to be fulfilled				
-			else	
+
+			if doublesided = true then
 			
 				if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then		# figure 8.2 g - k
 					# check if screw goes through both shearplanes
@@ -583,13 +608,16 @@ checkAnchorageLength := proc(checkSingleShearplane, WhateverYouNeed::table)
 	materialdataAll := WhateverYouNeed["materialdataAll"];	
 	warnings := WhateverYouNeed["warnings"];
 	comments := WhateverYouNeed["results"]["comments"];
-	t_pen := WhateverYouNeed["calculatedvalues"]["fastenervalues"]["t_pen"];
+	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
+
+	t_pen := fastenervalues["t_pen"];
+	n_tip := fastenervalues["n_tip"];	# number of part for t_pen
+	shearplanes := fastenervalues["shearplanes"];
 
 	timbertype := table();
 	timbertype["1"] := materialdataAll["1"]["timbertype"];
 	timbertype["2"] := materialdataAll["2"]["timbertype"];
-
-	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
+	
 	chosenFastener := structure["fastener"]["chosenFastener"];
 	calculatedFastener := fastenervalues["calculatedFastener"];
 	calculateAsNail := structure["fastener"]["calculateAsNail"];
@@ -601,22 +629,38 @@ checkAnchorageLength := proc(checkSingleShearplane, WhateverYouNeed::table)
 	checkPassed := true;
 
 	if calculatedFastener = "Nail" or (chosenFastener = "Screw" and calculateAsNail = "true") then
-		if connection["connection1"] = "Timber" then
+
+		if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then
+
 			if chosenFastener = "Nail" and nailSurface = "smooth" then			# 8.3.1.2
+
 				if t_pen < 8 * d then
-					if checkSingleShearplane then
-						comments["SingleShearplane"] := cat(chosenFastener, " anchorage length too short for two shearplanes, trying one")
+
+					if checkSingleShearplane and shearplanes = 2 and n_tip = "1" then
+
+						comments["SingleShearplane"] := cat(chosenFastener, " anchorage length too short for two shearplanes, trying one");
+						fastenervalues["SingleShearplane"] := true;
+						t_pen := 
+						
 					else
+
 						if assigned(comments["SingleShearplane"]) then
 							comments["SingleShearplane"] := evaln(comments["SingleShearplane"]);
+							fastenervalues["SingleShearplane"] := evaln(fastenervalues["SingleShearplane"]);
 						end if;
+
 						Alert(cat(chosenFastener, " too short: t_pen = ", round2(t_pen, 0), " < 8 * d"), warnings, 3);
 					end if;
+
 					checkPassed := false
 					# check["8.3.1.2"] := false;
+
 				end if;
+
 			else	# non smooth nail or screw
+
 				if t_pen < 6 * d then
+				
 					if checkSingleShearplane then
 						comments["SingleShearplane"] := cat(chosenFastener, " anchorage length too short for two shearplanes, trying one")
 					else
@@ -638,11 +682,16 @@ checkAnchorageLength := proc(checkSingleShearplane, WhateverYouNeed::table)
 		# if timbertype[n_tip] = "CLT" and axialbelastet and CLT[n_tip] = "kant" and t_pen < 10 * d then		# Rothoblaas side 34, gjelder bare hvis CLT er kant
 		#	returncode := cat("Skrue for kort (CLT): t_pen = ", round2(t_pen, 0), " < 10 * d")
 		if t_pen < 6 * d then
+
 			if checkSingleShearplane then
+
 				comments["SingleShearplane"] := "Screw anchorage length too short for two shearplanes, trying one"
+
 			elif assigned(comments["SingleShearplane"]) then
+
 				comments["SingleShearplane"] := evaln(comments["SingleShearplane"]);
 				Alert(cat("Screw too short: t_pen = ", round2(t_pen, 0), " < 6 * d"), warnings, 3);
+
 			end if;
 	
 			checkPassed := false
