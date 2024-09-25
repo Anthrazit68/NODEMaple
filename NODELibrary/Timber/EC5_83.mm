@@ -30,7 +30,6 @@ calculate_t := proc(WhateverYouNeed::table)
 	ls := structure["fastener"]["fastener_ls"];					# length of fastener
 	alphaScrew := structure["fastener"]["alphaScrew"];	# inclination of fastener
 	d := structure["fastener"]["fastener_d"];					# diameter
-	doublesided := WhateverYouNeed["calculations"]["structure"]["fastener"]["doublesided"];
 	nailSurface := structure["fastener"]["nailSurface"];
 	
 	# structure / connection
@@ -66,13 +65,11 @@ calculate_t := proc(WhateverYouNeed::table)
 	overlap := false;
 	comments["doublesided"] := evaln(comments["doublesided"]);
 	comments["overlap"] := evaln(comments["overlap"]);
+
+	doublesided := false;
 	
 	# t_eff["1"], t_eff["2"]
 	if chosenFastener = "Bolt" or chosenFastener = "Dowel" then
-
-		doublesided := false;
-		SetProperty("CheckBox_doublesided", 'value', "false");
-		SetProperty("CheckBox_doublesided", 'enabled', "false");
 
 		if ls < t_total then		# needs to go through the whole section
 			Alert("Fastener too short", warnings, 5);
@@ -122,9 +119,8 @@ calculate_t := proc(WhateverYouNeed::table)
 		t_pen := 0;
 	
 	elif chosenFastener = "Nail" or chosenFastener = "Screw" then
-		# extending formula for inclined screws
-		SetProperty("CheckBox_doublesided", 'enabled', "true");
 
+		# extending formula for inclined screws
 		if alphaScrew <> 90  * Unit('degree') then
 			comments["alphaScrew"] := cat("screw inclined ", convert(alphaScrew, 'unit_free'), " degrees")
 		elif assigned(comments["alphaScrew"]) then 
@@ -138,73 +134,140 @@ calculate_t := proc(WhateverYouNeed::table)
 
 		if shearplanes = 1 then			# just 2 parts
 			
-			doublesided := false;
-			SetProperty("CheckBox_doublesided", value, "false");
-			SetProperty("CheckBox_doublesided", 'enabled', "false");
-
 			# for timber - timber connections with one shearplane, fastener tip is always considered to be in part 2
 			if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then		# figure 8.2 a - f
+
 				t_eff["1"] := min(t["1"], ls * sin(alphaScrew));						
 				t_eff["2"] := evalf(min(t["2"], ls * sin(alphaScrew) - t["1"]));				# figure 8.4(a)
 				t_pen := t_eff["2"];
 				n_tip := "2";				# number of part with the tip
 				n_head := "1";
-				# t_pen := (ls * sin(alphaScrew) - t_total + t["2"]) / sin(alphaScrew);		# samme som ls - t["1"], utvidet for st�l p� utsiden
+
+				if (chosenFastener = "Nail" and nailSurface = "smooth" and t_pen < 8 * d) or t_pen < 6 * d then		# 8.3.1.2				
+					Alert(cat("calculatet_t: ", chosenFastener, " too short"), warnings(), 5);
+					return
+				end if;
 
 			# for timber - steel connections with one shearplane, fastener tip is always considered to go into part 1 (different from above)
 			elif connection["connection1"] = "Timber" and connection["connection2"] = "Steel" then		# Figur 8.3 a - e
+
 				t_eff["1"] := evalf(min(t["1"], ls * sin(alphaScrew) - t["steel"]));	
 				t_eff["2"] := 0;
 				t_pen := t_eff["1"];
 				n_tip := "1";
 				n_head := 0;
+
+				if (chosenFastener = "Nail" and nailSurface = "smooth" and t_pen < 8 * d) or t_pen < 6 * d then		# 8.3.1.2				
+					Alert(cat("calculatet_t: ", chosenFastener, " too short"), warnings(), 5);
+					return
+				end if;
+
 			else
-				Alert("error during calculation of t_pen", warnings, 3)
+
+				Alert("error during calculation of t_pen", warnings, 5);
+				return
+
 			end if;
 						
 		elif shearplanes = 2 then
 	
-			if doublesided = false then
-				
-				if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then	# figure 8.2 g - k
+			# check if connection should have been doublesided
+			if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then	# figure 8.2 g - k
 
-					t_eff["1"] := evalf(min(t["1"], ls  * sin(alphaScrew) - t["2"] - t["1"]));	# 8.4(b)
+				# check if nail is in part 1, 2 or 3
+
+				if ls * sin(alphaScrew) < t["1"] then		# part 1, too short
+
+					Alert(cat("calculatet_t: ", chosenFastener, " too short"), warnings(), 5);
+					return
+
+				elif ls * sin(alphaScrew) > t["1"] and ls * sin(alphaScrew) < t["1"] + t["2"] then	# part 2
+
+					doublesided := true;
+					fastenervalues["SingleShearplane"] := true;
+					t_eff["1"] := t["1"];
+					t_eff["2"] := evalf(ls * sin(alphaScrew) - t["1"]);
+					t_pen := t_eff["2"] / sin(alphaScrew);
+					n_tip := "2";
+					n_head := "1";
+
+					if t["2"] - t_pen < 4 * d then	# 8.3.1.1(7)
+
+						Alert("Warning: t-t2 < 4d (8.3.1.1(7))", warnings(), 3)
+
+					elif (chosenFastener = "Nail" and nailSurface = "smooth" and t_pen < 8 * d) or t_pen < 6 * d then		# 8.3.1.2				
+
+						Alert(cat("calculatet_t: ", chosenFastener, " too short"), warnings(), 5);
+						return
+
+					end if;					
+
+				elif ls * sin(alphaScrew) > t["1"] + t["2"] + t["1"]		# outside of part 3, too long
+
+					Alert(cat("calculate_t: ", chosenFastener, " too long"), warnings(), 5);
+					return
+
+				else	# in part 3
+
+					t_eff["1"] := evalf(min(t["1"], ls * sin(alphaScrew) - t["2"] - t["1"]));	# 8.4(b)
 					t_eff["2"] := t["2"];
 					t_pen := t_eff["1"] / sin(alphaScrew);
 					n_tip := "1";
 					n_head := "2";
 
+					# might be too short for proper 2 shearplane connection
 					if (chosenFastener = "Nail" and nailSurface = "smooth" and t_pen < 8 * d) or t_pen < 6 * d then		# 8.3.1.2
 
-						comments["SingleShearplane"] := cat(chosenFastener, " anchorage length too short for two shearplanes, trying one");
-						fastenervalues["SingleShearplane"] := true;							
+						doublesided := true;
+						fastenervalues["SingleShearplane"] := true;
 						t_eff["1"] := t["1"];
-						t_eff["2"] := evalf(min(t["2"], ls  * sin(alphaScrew) - t["1"]));	# 8.4(b)
+						t_eff["2"] := evalf(ls * sin(alphaScrew) - t["1"]);
 						t_pen := t_eff["2"] / sin(alphaScrew);
 						n_tip := "2";
-						SetProperty("CheckBox_doublesided", 'value', "true");
-						doublesided := true
+						n_head := "1";
+						
 
-					elif assigned(comments["SingleShearplane"]) and assigned(fastenervalues["SingleShearplane"]) then
+					elif assigned(comments["SingleShearplane"]) and assigned(fastenervalues["SingleShearplane"]) then	# ok, but delete wrong settings leftover
 
-							comments["SingleShearplane"] := evaln(comments["SingleShearplane"]);
-							fastenervalues["SingleShearplane"] := evaln(fastenervalues["SingleShearplane"]);						
+						comments["SingleShearplane"] := evaln(comments["SingleShearplane"]);	
+						fastenervalues["SingleShearplane"] := evaln(fastenervalues["SingleShearplane"]);						
 
 					end if;
 
-				elif connection["connection1"] = "Steel"
+				end if;
 
-					SetProperty("CheckBox_doublesided", 'value', "true");
-					doublesided := true
+			elif connection["connection1"] = "Steel"	# steel - timber - steel / nail screw must always be doublesided
+
+				doublesided := true;
+				# calculate t values in next section
+
+			elif connection["connection2"] = "Steel"	# Rothoblaas Alumini / Alumega
+
+				if ls * sin(alphaScrew) < t["1"] + t["steel"] then		# part 1, too short
+
+					Alert(cat("calculate_t: ", chosenFastener, " too short"), warnings(), 5);
+					return
+
+				else
+
+					t_eff["1"] := evalf(min(t["1"], ls  * sin(alphaScrew) - t["steel"] - t["1"]));	# 8.4(b)
+					t_eff["2"] := 0;
+					t_pen := t_eff["1"] / sin(alphaScrew);
+					n_tip := "1";
+					n_head := "1";
+
+					if (chosenFastener = "Nail" and nailSurface = "smooth" and t_pen < 8 * d) or t_pen < 6 * d then		# 8.3.1.2
+
+						Alert(cat("calculate_t: ", chosenFastener, " too short"), warnings(), 5);
+						return							
+
+					end if;
 
 				end if;
 
 			end if;
 				
-			# doublesided screws or nails could eventually be used with steel and timber
-			# connections with overlap need to be with timber and nail fasteners
-			# otherwise minimum distance between fasteners a1 needs to be fulfilled				
-
+			# doublesided
 			if doublesided = true then
 			
 				if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then		# figure 8.2 g - k
