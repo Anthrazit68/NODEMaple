@@ -14,7 +14,6 @@ calculateShearplanes := proc(WhateverYouNeed::table)
 	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
 	
 	fastenervalues["shearplanes"] := structure["connection"]["connectionInsideLayers"] + 1;
-	fastenervalues["overlap"] := false;
 
 	# https://www.mapleprimes.com/questions/231829-Count-Number-Of-Elements-In-SearchAll#answer277964
 	# snitt := numelems([SearchAll("-", connectiontype)]);
