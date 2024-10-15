@@ -18,9 +18,9 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 	comments := WhateverYouNeed["results"]["comments"];
 	connection := structure["connection"];
 	
-	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];	
+	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
+	shearplanes := fastenervalues["shearplanes"];		# number of shearplanes due to geometry (theoretical, independent of fasteners)
 	M_yRk := fastenervalues["M_yRk"];	
-	shearplanes := fastenervalues["shearplanes"];
 	F_axRk := fastenervalues["F_axRk"];
 	
 	t_steel := sectiondataAll["steel"]["b"];
@@ -45,7 +45,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 		f_hk["2"] := calculate_f_hk(WhateverYouNeed, "2", alpha["2"]);
 		beta := f_hk["2"] / f_hk["1"];			# this will change for each fastener if alpha is different
 			
-		if connectionInsideLayers = 0 then	# connections with single shearplane
+		if shearplanes = 1 or fastenervalues["SingleShearplane"] = true then 				# if connectionInsideLayers = 0 then
 		
 			F_vRk["a"] := evalf(f_hk["1"] * t_eff["1"] * d);
 		
@@ -67,8 +67,9 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 			# To be able to combine the resistance from individual shear planes in a multiple shear plane connection, the governing failure mode of the fasteners in the respective shear planes should
 			# be compatible with each other and should not consist of a combination of failure modes (a), (b), (g) and (h) from Figure 8.2
 
-			F_vRkmin["1ta"] := min(F_vRk["a"], F_vRk["b"]);						# fig. 8.2, 1 shearplane, timber - timber, steel straight
+			F_vRkmin["1ta"] := min(F_vRk["a"], F_vRk["b"]);							# fig. 8.2, 1 shearplane, timber - timber, steel straight
 			F_vRkmin["1tb"] := min(F_vRk["c"], F_vRk["d"], F_vRk["e"], F_vRk["f"]);	# fig. 8.2, 1 shearplane, timber - timber, steel bent
+			
 			if F_vRkmin["1ta"] < F_vRkmin["1tb"] then
 				comments["F_vRkmin"] := "Fv,Rk acc. to 8.2.2 (a-b)"
 			else
@@ -115,30 +116,32 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 		
 		if connection["connection1"] = "Timber" then						# division by zero if run with steel plate outside
 
-			# 1 shearplane, timber outside, steel inside
+			if shearplanes = 1 or fastenervalues["SingleShearplane"] = true then # 1 shearplane, timber outside, steel inside
 			
-			F_vRk["a"] := evalf(0.4 * f_hk["1"] * t_eff["1o"] * d);
+				F_vRk["a"] := evalf(0.4 * f_hk["1"] * t_eff["1o"] * d);
 
-			dummy := 1.15 * sqrt(2 * M_yRk * f_hk["1"] * d);
-			F_vRk["b"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
+				dummy := 1.15 * sqrt(2 * M_yRk * f_hk["1"] * d);
+				F_vRk["b"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
 
-			F_vRk["c"] := evalf(f_hk["1"] * t_eff["1o"] * d);
+				F_vRk["c"] := evalf(f_hk["1"] * t_eff["1o"] * d);
 
-			dummy := f_hk["1"] * t_eff["1o"] * d * (sqrt(2 + 4 * M_yRk / (f_hk["1"] * d * t_eff["1o"]^2)) - 1);
-			F_vRk["d"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
+				dummy := f_hk["1"] * t_eff["1o"] * d * (sqrt(2 + 4 * M_yRk / (f_hk["1"] * d * t_eff["1o"]^2)) - 1);
+				F_vRk["d"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
 
-			dummy := 2.3 * sqrt(M_yRk * f_hk["1"] * d);
-			F_vRk["e"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
+				dummy := 2.3 * sqrt(M_yRk * f_hk["1"] * d);
+				F_vRk["e"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
 
-			# 2 shearplanes, timber outside, steel inside
+			else # 2 shearplanes, timber outside, steel inside
 
-			F_vRk["f"] := evalf(f_hk["1"] * t_eff["1"] * d);
+				F_vRk["f"] := evalf(f_hk["1"] * t_eff["1"] * d);
 
-			dummy := evalf(f_hk["1"] * t_eff["1"] * d * (sqrt(2 + 4 * M_yRk / (f_hk["1"] * d * t_eff["1"]^2)) - 1));
-			F_vRk["g"] := eval(dummy + min(dummy * alpha_rope, F_axRk / 4));
+				dummy := evalf(f_hk["1"] * t_eff["1"] * d * (sqrt(2 + 4 * M_yRk / (f_hk["1"] * d * t_eff["1"]^2)) - 1));
+				F_vRk["g"] := eval(dummy + min(dummy * alpha_rope, F_axRk / 4));
 
-			dummy := evalf(2.3 * sqrt(M_yRk * f_hk["1"] * d));
-			F_vRk["h"] := eval(dummy + min(dummy * alpha_rope, F_axRk / 4));
+				dummy := evalf(2.3 * sqrt(M_yRk * f_hk["1"] * d));
+				F_vRk["h"] := eval(dummy + min(dummy * alpha_rope, F_axRk / 4));
+
+			end if;
 
 		end if;
 
@@ -246,7 +249,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 		
 		if connection["connection1"] = "Timber" and connection["connection2"] = "Steel" then
 		
-			if connectionInsideLayers = 0 then		# just indices starting with "1"
+			if shearplanes = 1 or fastenervalues["SingleShearplane"] = true then		# just indices starting with "1"
 
 				# alternative: https://www.mapleprimes.com/questions/238203-Table-Entries-With-Indices-That-Have#answer301560
 				for i in indices(F_vRkmin, 'nolist') do 
@@ -258,7 +261,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 					end if;
 				end do;
 				
-			elif connectionInsideLayers = 1 then
+			elif connectionInsideLayers = 1 then		# timber - steel - timber with fully anchored fastener
 
 				for i in indices(F_vRkmin, 'nolist') do 
 					if substring(i, 1..1) = "2" then

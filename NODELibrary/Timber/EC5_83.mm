@@ -175,7 +175,7 @@ calculate_t := proc(WhateverYouNeed::table)
 
 			end if;
 						
-		elif shearplanes = 2 then
+		elif shearplanes = 2 then		# 3 parts, 2 outer, 1 inner
 	
 			# check if connection should be doublesided
 			if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then	# figure 8.2 g - k
