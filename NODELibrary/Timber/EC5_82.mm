@@ -100,6 +100,10 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 		end if;
 
 		F_vRkfin := min(entries(F_vRkmin));
+		if fastenervalues["doublesided"] = true and fastenervalues["overlap"] = true then	# overlap situation, double capacity of single connection
+			F_vRkfin := F_vRkfin * 2
+		end if;
+
 		comments["F_vRk_steel"] := evaln(comments["F_vRk_steel"]);
 		
 	else	# (8.2.3) steel either on inside our outside
