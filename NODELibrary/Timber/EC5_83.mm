@@ -812,17 +812,20 @@ end proc:
 # calculating k_n_ef as a reduction factor for capacity due to number of fasteners in a row
 calculate_n_ef := proc(WhateverYouNeed::table)
 	description "calculate reduction factor of capacity of one single fastener";
-	local staggered_90, calculatedFastener, a1, d, chosenFastener, calculateAsNail, part, structure, distance, k_ef, n_ef0, n1, k_n_ef0;
+	local staggered, calculatedFastener, a1, d, chosenFastener, calculateAsNail, part, structure, distance, k_ef, n_ef0, n1, k_n_ef0, comments;
 
 	structure := WhateverYouNeed["calculations"]["structure"];	
 	chosenFastener := structure["fastener"]["chosenFastener"];	
 	calculateAsNail := structure["fastener"]["calculateAsNail"];
 	calculatedFastener := WhateverYouNeed["calculatedvalues"]["fastenervalues"]["calculatedFastener"];
-	staggered_90 := structure["fastener"]["staggered_90"];
 	distance := WhateverYouNeed["calculatedvalues"]["distance"];
-	d := structure["fastener"]["fastener_d"];	
+	d := structure["fastener"]["fastener_d"];
+	comments := WhateverYouNeed["results"]["comments"];
 
 	for part in {"1", "2"} do
+
+		staggered := structure["fastener"][cat("staggered", part)];
+
 		if structure["connection"][cat("connection", part)] = "Timber" then
 
 			if assigned(WhateverYouNeed["calculatedvalues"]["distance"]["a1_nFastenersInRow"][part]) then
@@ -832,10 +835,12 @@ calculate_n_ef := proc(WhateverYouNeed::table)
 			end if;
 			
 			if calculatedFastener = "Nail" or (chosenFastener = "Screw" and calculateAsNail = "true") then
-				if staggered_90 = "false" then
+				if staggered = "false" then		# staggered parallel to grain direction with distance d
+					comments[cat("staggered", part)] := evaln(comments[cat("staggered", part)]);
 					k_ef := calculate_k_ef(part, WhateverYouNeed);
 					n_ef0 := n1^k_ef;			# (8.17)
 				else
+					comments[cat("staggered", part)] := cat("row parallel to grain ", part, " staggered");
 					k_ef := 1;
 					n_ef0 := n1
 				end if;
