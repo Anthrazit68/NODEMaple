@@ -208,12 +208,12 @@ PlotResults := proc(WhateverYouNeed::table)
 
 			# Toothed Plate Connectors
 			if assigned(fastener["ToothedPlateActive"]) and fastener["ToothedPlateActive"] = "true" then
-				# inner circle
-				geometry:-circle(parse(cat("fastener", i,"_bulldogi")), [parse(cat("F", i)), convert(fastenervalues["ToothedPlatedb"] / 2, 'unit_free')]);
-				geometryList := [op(geometryList), parse(cat("fastener", i,"_bulldogi"))('color' = "Niagara DarkOrchid", 'linestyle' = "dash")];
 				# outer circle
 				geometry:-circle(parse(cat("fastener", i,"_bulldogo")), [parse(cat("F", i)), convert(fastener["ToothedPlatedc"] / 2, 'unit_free')]);
 				geometryList := [op(geometryList), parse(cat("fastener", i,"_bulldogo"))('color' = "Niagara DarkOrchid", 'linestyle' = "dash")];
+				# inner circle				
+				geometry:-circle(parse(cat("fastener", i,"_bulldogi")), [parse(cat("F", i)), convert(fastenervalues["ToothedPlated1"] / 2, 'unit_free')]);
+				geometryList := [op(geometryList), parse(cat("fastener", i,"_bulldogi"))('color' = "Niagara DarkOrchid", 'linestyle' = "dash")];
 			end if;
 			
 		end do;

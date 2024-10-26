@@ -398,6 +398,8 @@ EC5_812 := proc(WhateverYouNeed::table)
 			
 		end do;
 
+# do we really need to calculate stuff all the time?
+
 		# calculation of capacity
 		for part in {"1", "2"} do
 

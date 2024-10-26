@@ -1,6 +1,6 @@
 calculate_F_vR_810 := proc(WhateverYouNeed::table)
 	description "Toothed Plate Connectors";
-	local structure, warnings, fastener, platesides, ToothedPlatetype, db, dc, hc, F_vRk, F_vRd, k1, k2, k3, t, a3t, rho_k, rho_k_, k_mod, gamma_M, fastenervalues, comments, d, shearplanes, F_vRkfin;
+	local structure, warnings, fastener, platesides, ToothedPlatetype, dc, hc, F_vRk, F_vRd, k1, k2, k3, t, a3t, rho_k, rho_k_, k_mod, gamma_M, fastenervalues, comments, d, shearplanes, F_vRkfin;
 
 	warnings := WhateverYouNeed["warnings"];
 	comments := WhateverYouNeed["results"]["comments"];
@@ -16,8 +16,7 @@ calculate_F_vR_810 := proc(WhateverYouNeed::table)
 	#	return fastenervalues["F_vRk_810"], fastenervalues["F_vRd_810"]
 	#end if;	
 
-	fastener := WhateverYouNeed["calculations"]["structure"]["fastener"];
-	db := fastenervalues["ToothedPlatedb"];	
+	fastener := WhateverYouNeed["calculations"]["structure"]["fastener"];	
 	d := WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_d"];
 	shearplanes := fastenervalues["shearplanes"];
 
@@ -27,8 +26,7 @@ calculate_F_vR_810 := proc(WhateverYouNeed::table)
 	platesides := fastener["ToothedPlatesides"];
 	ToothedPlatetype := fastener["ToothedPlatetype"];		
 	dc := fastener["ToothedPlatedc"];
-	hc := NODETimberToothedPlateConnectors:-hc[platesides, ToothedPlatetype, db][1];		# height of teeth
-	
+	hc := fastenervalues["ToothedPlatehc"];
 
 	# calculate some values need for calculation
 	t := table();
@@ -61,16 +59,16 @@ calculate_F_vR_810 := proc(WhateverYouNeed::table)
 
 	# check minimum thickness of timber parts 8.9(2)	
 	if assigned(t["1"]) and t["1"] < 2.25 * hc then
-		Alert("Toothed Plate Connector: 8.9(2) t1(outer) < 2.25 * he", warnings, 3);
+		Alert("Toothed Plate Connector: 8.9(2): t1(outer) < 2.25 * he", warnings, 3);
 			
 	elif assigned(t["1outside"]) and t["1outside"] < 2.25 * hc then
-		Alert("Toothed Plate Connector: 8.9(2) t1(outer) < 2.25 * he", warnings, 3);
+		Alert("Toothed Plate Connector: 8.9(2): t1(outer) < 2.25 * he", warnings, 3);
 			
 	elif WhateverYouNeed["calculatedvalues"]["layers"]["1"] > 2 and t["1"] < 3.75 * hc then
-		Alert("Toothed Plate Connector: 8.9(2) t1(inner) < 3.75 * he", warnings, 3);
+		Alert("Toothed Plate Connector: 8.9(2): t1(inner) < 3.75 * he", warnings, 3);
 			
 	elif assigned(t["2"]) and t["2"] < 3.75 * hc then
-		Alert("Toothed Plate Connector: 8.9(2) t2 < 3.75 * he", warnings, 3);
+		Alert("Toothed Plate Connector: 8.9(2): t2 < 3.75 * he", warnings, 3);
 			
 	end if;			
 
@@ -124,7 +122,7 @@ calculate_F_vR_810 := proc(WhateverYouNeed::table)
 	F_vRd := eval(F_vRkfin * min(entries(k_mod, 'nolist')) / gamma_M);
 
 	fastenervalues["F_vRk_810"] := F_vRkfin;
-	fastenervalues["F_vRd_810"] := F_vRd;
+	fastenervalues["F_vRd_810"] := F_vRd;	
 	comments["810"] := "Toothed Plate Connectors";
 
 	# print
