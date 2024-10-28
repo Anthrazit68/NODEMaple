@@ -341,7 +341,7 @@ calculate_amin_alpha := proc(part::string, WhateverYouNeed::table)
 	end if;
 
 	# check if Toothed Plate connection
-	if WhateverYouNeed["calculations"]["structure"]["fastener"]["ToothedPlateActive"] = "true" then
+	if fastener["ShearConnector"] = "Toothed-plate" then
 		local dc, ToothedPlatetype;
 		ToothedPlatetype := WhateverYouNeed["calculations"]["structure"]["fastener"]["ToothedPlatetype"];		
 		dc := WhateverYouNeed["calculations"]["structure"]["fastener"]["ToothedPlatedc"];
@@ -667,7 +667,7 @@ calculate_amin_max := proc(WhateverYouNeed::table)
 		end if;
 
 		# check if Toothed Plate connection
-		if WhateverYouNeed["calculations"]["structure"]["fastener"]["ToothedPlateActive"] = "true" then
+		if fastener["ShearConnector"] = "Toothed-plate" then
 			local dc, ToothedPlatetype;
 			ToothedPlatetype := WhateverYouNeed["calculations"]["structure"]["fastener"]["ToothedPlatetype"];		
 			dc := WhateverYouNeed["calculations"]["structure"]["fastener"]["ToothedPlatedc"];

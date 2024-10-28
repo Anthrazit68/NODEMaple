@@ -350,7 +350,7 @@ end proc:
 EC5_812 := proc(WhateverYouNeed::table)
 	description "8.1.2 Multiple fastener connections";
 	local usedcode, comments, ForcesInConnection, part, alphaForce, alphaBeam, alpha, warnings, structure, k_n_ef0, F_vefRd, fastener, eta_n_ef, eta, etamax, 
-		F_vEd, F_vRd, F_vRk, ind, val, dummy, fastenervalues, i, k_n_efa, F_vRd_810, F_vRk_810;
+		F_vEd, F_vRd, F_vRk, ind, val, dummy, fastenervalues, i, k_n_efa, F_vRd_89_810, F_vRk_89_810;
 
 	warnings := WhateverYouNeed["warnings"];
 	structure := WhateverYouNeed["calculations"]["structure"];	
@@ -405,10 +405,10 @@ EC5_812 := proc(WhateverYouNeed::table)
 
 			if assigned(eta_n_ef[part]) then
 
-				F_vRk, F_vRd := calculate_F_vR(WhateverYouNeed, alpha);		# EC5_82, capacity of fasteners, F_vRk is table with indices a - m
-				F_vRk_810, F_vRd_810 := calculate_F_vR_810(WhateverYouNeed);	# Toothed Plate connector (8.10), F_vRk is value
+				F_vRk, F_vRd := calculate_F_vR(WhateverYouNeed, alpha);					# EC5_82, capacity of fasteners, F_vRk is table with indices a - m
+				F_vRk_89_810, F_vRd_89_810 := calculate_F_vR_89_810(WhateverYouNeed);	# Shear Connectors
 				
-				F_vefRd[part] := F_vRd * k_n_efa[part] + F_vRd_810;			# (8.1), here we also reduce the capacity of bulldogs for connections in a row, NTNU example does not do that (take full effekt of connection)
+				F_vefRd[part] := F_vRd * k_n_efa[part] + F_vRd_89_810;			# (8.1), here we also reduce the capacity of bulldogs for connections in a row, NTNU example does not do that (take full effekt of connection)
 
 				eta := F_vEd / F_vefRd[part];				
 
@@ -432,8 +432,8 @@ EC5_812 := proc(WhateverYouNeed::table)
 					end do;
 
 					SetProperty("MathContainer_alpha_rope", 'value', fastenervalues["alpha_rope"]);
-					SetProperty("MathContainer_F_vRk", value, round2(convert(fastenervalues["F_vRk"] + F_vRk_810, 'units', 'kN'), 1));		# including shearplanes
-					SetProperty("MathContainer_F_vRd", value, round2(convert(F_vRd + F_vRd_810, 'units', 'kN'), 1));
+					SetProperty("MathContainer_F_vRk", value, round2(convert(fastenervalues["F_vRk"] + F_vRk_89_810, 'units', 'kN'), 1));		# including shearplanes
+					SetProperty("MathContainer_F_vRd", value, round2(convert(F_vRd + F_vRd_89_810, 'units', 'kN'), 1));
 					SetProperty("MathContainer_F_vefRd", value, round2(convert(F_vefRd[part], 'units', 'kN'), 1));
 					SetProperty("TextArea_FvRk_critNode", value, fastener);
 
