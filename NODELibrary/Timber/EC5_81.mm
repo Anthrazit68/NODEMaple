@@ -398,17 +398,17 @@ EC5_812 := proc(WhateverYouNeed::table)
 			
 		end do;
 
-# do we really need to calculate stuff all the time?
-
 		# calculation of capacity
+		# Capacity of some shear connectors is added with fasteners, some not
+		
+		F_vRk_89_810, F_vRd_89_810 := calculate_F_vR_89_810(WhateverYouNeed);	# should be possible to calculate shear connectors in advance
+
 		for part in {"1", "2"} do
 
 			if assigned(eta_n_ef[part]) then
 
-				F_vRk, F_vRd := calculate_F_vR(WhateverYouNeed, alpha);					# EC5_82, capacity of fasteners, F_vRk is table with indices a - m
-				F_vRk_89_810, F_vRd_89_810 := calculate_F_vR_89_810(WhateverYouNeed);	# Shear Connectors
-				
-				F_vefRd[part] := F_vRd * k_n_efa[part] + F_vRd_89_810;			# (8.1), here we also reduce the capacity of bulldogs for connections in a row, NTNU example does not do that (take full effekt of connection)
+				F_vRk, F_vRd := calculate_F_vR(WhateverYouNeed, alpha);		# EC5_82, capacity of fasteners, F_vRk is table with indices a - m				
+				F_vefRd[part] := F_vRd * k_n_efa[part] + F_vRd_89_810;		# (8.1), here we also reduce the capacity of bulldogs for connections in a row, NTNU example does not do that (take full effect of connection)
 
 				eta := F_vEd / F_vefRd[part];				
 

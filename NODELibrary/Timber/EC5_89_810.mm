@@ -5,18 +5,8 @@ calculate_F_vR_89_810 := proc(WhateverYouNeed::table)
 
 	warnings := WhateverYouNeed["warnings"];
 	comments := WhateverYouNeed["results"]["comments"];
-
-	if searchtext(fastener["ShearConnector"], "Toothed-plate, Split ring") = 0 then
-		comments["89_810"] := evaln(comments["89_810"]);
-		return 0, 0			# F_vRk, F_vRd
-	end if;
-	
 	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
 	
-	#if assigned(fastenervalues["F_vRk_89_810"]) then			# return values if previously calculated
-	#	return fastenervalues["F_vRk_89_810"], fastenervalues["F_vRd_89_810"]
-	#end if;	
-
 	fastener := WhateverYouNeed["calculations"]["structure"]["fastener"];
 	ShearConnector := fastener["ShearConnector"];
 	d := WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_d"];
@@ -26,6 +16,11 @@ calculate_F_vR_89_810 := proc(WhateverYouNeed::table)
 	structure := WhateverYouNeed["calculations"]["structure"];
 	fastener := structure["fastener"];
 	warnings := WhateverYouNeed["warnings"];
+
+	if searchtext(ShearConnector, "Toothed-plate, Split ring") = 0 then
+		comments["89_810"] := evaln(comments["89_810"]);
+		return 0, 0			# F_vRk, F_vRd
+	end if;
 
 	if ShearConnector = "Toothed-plate" then
 		platesides := fastener["ToothedPlatesides"];
@@ -63,22 +58,26 @@ calculate_F_vR_89_810 := proc(WhateverYouNeed::table)
 	if ShearConnector = "Toothed-plate" and (structure["connection"]["connection1"] = "Steel" or structure["connection"]["connection2"] = "Steel") then
 		if platesides = "2" then
 			Alert("2-sided toothed plate connector can't be used with steel", warnings, 3);
-			return
+			return 0, 0
 		end if;
 	end if;
 
 	# check minimum thickness of timber parts 8.9(2)
 	if assigned(t["1"]) and t["1"] < 2.25 * he then
 		Alert("Shear connector: 8.9(2): t1(outer) < 2.25 * he", warnings, 3);
+		return 0, 0
 			
 	elif assigned(t["1outside"]) and t["1outside"] < 2.25 * he then
 		Alert("Shear connector: 8.9(2): t1(outer) < 2.25 * he", warnings, 3);
+		return 0, 0
 			
 	elif WhateverYouNeed["calculatedvalues"]["layers"]["1"] > 2 and t["1"] < 3.75 * he then
 		Alert("Shear connector: 8.9(2): t1(inner) < 3.75 * he", warnings, 3);
+		return 0, 0
 			
 	elif assigned(t["2"]) and t["2"] < 3.75 * he then
 		Alert("Shear connector: 8.9(2): t2 < 3.75 * he", warnings, 3);
+		return 0, 0
 			
 	end if;			
 
@@ -166,7 +165,10 @@ calculate_F_vR_89_810 := proc(WhateverYouNeed::table)
 	elif ShearConnector = "Split ring" then
 
 		F_v0Rk := min(	k1 * k2 * k3 * k4 * 35 * convert(dc, 'unit_free')^1.5 * Unit('N'), 
-						k1 * k3 * convert(he, 'unit_free') * 31.5 * convert(dc, 'unit_free'))
+						k1 * k3 * convert(he, 'unit_free') * 31.5 * convert(dc, 'unit_free') * Unit('N'));
+
+		# intermediate code, must be changed
+		F_vRk := F_v0Rk;
 
 	end if;
 
