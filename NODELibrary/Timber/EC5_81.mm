@@ -362,7 +362,7 @@ EC5_812 := proc(WhateverYouNeed::table)
 	F_vefRd := table();
 	k_n_efa := table();
 
-	# precalculation of values
+	# precalculation of reduction factor for fasteners in grain direction
 	for fastener from 1 to numelems(ForcesInConnection) do		# loop over fasteners
 
 		F_vEd := ForcesInConnection[fastener][3];		# force in fastener
@@ -399,6 +399,7 @@ EC5_812 := proc(WhateverYouNeed::table)
 		end do;
 
 		# calculation of capacity
+		# need to calculate F_vR for each fastener and each beam, because f_hk is defined for angle between force and grain direction
 		# Capacity of some shear connectors is added with fasteners, some not
 		
 		F_vRk_89_810, F_vRd_89_810 := calculate_F_vR_89_810(WhateverYouNeed);	# should be possible to calculate shear connectors in advance
@@ -445,7 +446,7 @@ EC5_812 := proc(WhateverYouNeed::table)
 
 						dummy := cat("MathContainer_f_h0k", i);
 						if ComponentExists(dummy) then
-							SetProperty(dummy, value, round2(fastenervalues["f_h0k"][i], 1))
+							SetProperty(dummy, value, round2(WhateverYouNeed["calculatedvalues"]["f_h0k"][i], 1))
 						end if;	
 
 						dummy := cat("MathContainer_f_hk", i);

@@ -40,14 +40,14 @@ AnnexA := proc(WhateverYouNeed::table)
 	# f_hk, needs to be f_h0k, as block failure checks capacity of connection for force in grain direction
 	f_hk := table();
 	if connection["connection1"] = "Timber" and connection["connection2"] = "Steel" then			# Timber - Steel
-		f_hk := fastenervalues["f_h0k"]["1"];
+		f_hk := WhateverYouNeed["calculatedvalues"]["f_h0k"]["1"];
 		f_t0k := WhateverYouNeed["materialdataAll"]["1"]["f_t0k"];
 		f_vk := WhateverYouNeed["materialdataAll"]["1"]["f_vk"];
 		k_mod := WhateverYouNeed["materialdataAll"]["1"]["k_mod"];
 		alphaBeam := evalf(WhateverYouNeed["calculations"]["structure"]["connection"]["graindirection1"]);
 	
 	elif connection["connection1"] = "Steel" and connection["connection2"] = "Timber" then		# Steel - Timber
-		f_hk := fastenervalues["f_h0k"]["2"];
+		f_hk := WhateverYouNeed["calculatedvalues"]["f_h0k"]["2"];
 		f_t0k := WhateverYouNeed["materialdataAll"]["2"]["f_t0k"];
 		f_vk := WhateverYouNeed["materialdataAll"]["2"]["f_vk"];
 		k_mod := WhateverYouNeed["materialdataAll"]["2"]["k_mod"];

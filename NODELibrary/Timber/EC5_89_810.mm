@@ -17,7 +17,7 @@ calculate_F_vR_89_810 := proc(WhateverYouNeed::table)
 	fastener := structure["fastener"];
 	warnings := WhateverYouNeed["warnings"];
 
-	if searchtext(ShearConnector, "Toothed-plate, Split ring") = 0 then
+	if ShearConnector = "-" then
 		comments["89_810"] := evaln(comments["89_810"]);
 		return 0, 0			# F_vRk, F_vRd
 	end if;

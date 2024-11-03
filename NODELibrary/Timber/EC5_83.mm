@@ -772,39 +772,51 @@ end proc:
 
 
 # 8.3.1.1(5)
-calculate_f_h0k := proc(WhateverYouNeed::table, part::string)
-	local f_h0k, calculatedFastener, d, predrilled, chosenFastener, calculateAsNail, structure, rho_k, material;
+calculate_f_h0k := proc(WhateverYouNeed::table)
+	description "precalculate f_h0k for each beam, called by Main";
+	local calculatedvalues, calculatedFastener, d, predrilled, chosenFastener, calculateAsNail, structure, rho_k, material, f_h0k, part;
 
 	structure := WhateverYouNeed["calculations"]["structure"];
-
+	calculatedvalues := WhateverYouNeed["calculatedvalues"];
 	calculatedFastener := WhateverYouNeed["calculatedvalues"]["fastenervalues"]["calculatedFastener"];
 	chosenFastener := structure["fastener"]["chosenFastener"];
 	calculateAsNail := structure["fastener"]["calculateAsNail"];
 	predrilled := structure["fastener"]["predrilled"];
 	d := structure["fastener"]["fastener_d"];
-	rho_k := WhateverYouNeed["materialdataAll"][part]["rho_k"];
-	material := WhateverYouNeed["materialdataAll"][part]["material"];
+
+	f_h0k := table();
+
+	for part in {"1", "2"} do
+
+		material := WhateverYouNeed["materialdataAll"][part]["material"];
+		rho_k := WhateverYouNeed["materialdataAll"][part]["rho_k"];
 	
-	if material = "timber" then
-		if calculatedFastener = "Nail" or (chosenFastener = "Screw" and calculateAsNail = "true") then
-			if predrilled = "true" then
-				f_h0k := (0.082 * (1 - 0.01 * convert(d, 'unit_free')) * convert(rho_k, 'unit_free')) * Unit('N'/'mm^2');
-			else
-				f_h0k := (0.082 * convert(rho_k, 'unit_free') * convert(d, 'unit_free')^(-0.3)) * Unit('N'/'mm^2')
+		if material = "timber" then
+
+			if calculatedFastener = "Nail" or (chosenFastener = "Screw" and calculateAsNail = "true") then
+
+				if predrilled = "true" then
+					f_h0k[part] := (0.082 * (1 - 0.01 * convert(d, 'unit_free')) * convert(rho_k, 'unit_free')) * Unit('N'/'mm^2');
+				else
+					f_h0k[part] := (0.082 * convert(rho_k, 'unit_free') * convert(d, 'unit_free')^(-0.3)) * Unit('N'/'mm^2')
+				end if;
+				
+			elif calculatedFastener = "Bolt" or calculatedFastener = "Dowel" then
+				
+				f_h0k[part] := (0.082 * (1 - 0.01 * convert(d, 'unit_free')) * convert(rho_k, 'unit_free')) * Unit('N'/'mm^2');
+				
 			end if;
-			
-		elif calculatedFastener = "Bolt" or calculatedFastener = "Dowel" then
-			
-			f_h0k := (0.082 * (1 - 0.01 * convert(d, 'unit_free')) * convert(rho_k, 'unit_free')) * Unit('N'/'mm^2');
-			
+
+		else
+
+			f_h0k[part] := 0
+
 		end if;
-
-	else
-		f_h0k := 0
-
-	end if;
+		
+	end do;
 	
-	return f_h0k
+	WhateverYouNeed["calculatedvalues"]["f_h0k"] := f_h0k;
+
 end proc:
 
 

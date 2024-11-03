@@ -51,21 +51,7 @@ calculate_f_hk := proc(WhateverYouNeed::table, part::string, alpha)
 # DEBUG();
 	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
 	calculatedFastener := WhateverYouNeed["calculatedvalues"]["fastenervalues"]["calculatedFastener"];
-
-	# always calculate f_h0k, we might come after a crash where values still are stored, but wrong
-	if assigned(fastenervalues["f_h0k"]) then
-		
-		f_h0k := calculate_f_h0k(WhateverYouNeed, part);
-		fastenervalues["f_h0k"][part] := f_h0k;			
-		
-	else
-
-		f_h0k_table := table();
-		fastenervalues["f_h0k"] := eval(f_h0k_table);
-		f_h0k := calculate_f_h0k(WhateverYouNeed, part);
-		fastenervalues["f_h0k"][part] := f_h0k;
-
-	end if;
+	f_h0k := WhateverYouNeed["calculatedvalues"]["f_h0k"][part];
 
 	if assigned(fastenervalues["f_hk"]) = false then
 		f_hk_table := table();
