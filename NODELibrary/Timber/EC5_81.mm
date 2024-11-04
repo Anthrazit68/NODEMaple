@@ -350,12 +350,12 @@ end proc:
 EC5_812 := proc(WhateverYouNeed::table)
 	description "8.1.2 Multiple fastener connections";
 	local usedcode, comments, ForcesInConnection, part, alphaForce, alphaBeam, alpha, warnings, structure, k_n_ef0, F_vefRd, fastener, eta_n_ef, eta, etamax, 
-		F_vEd, F_vRd, F_vRk, ind, val, dummy, fastenervalues, i, k_n_efa, F_vRd_89_810, F_vRk_89_810;
+		F_vEd, F_vRd, F_vRk, ind, val, dummy, fastenervalues, i, k_n_efa, F_vRd_89_810, F_vRk_89_810, firstrun;
 
 	warnings := WhateverYouNeed["warnings"];
 	structure := WhateverYouNeed["calculations"]["structure"];	
 	ForcesInConnection := WhateverYouNeed["results"]["FastenerGroup"]["ForcesInConnection"];
-	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];	
+	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
 
 	alpha := table();			# angle between force and grain direction
 	eta_n_ef := table();		# reduction factor for fasteners in grain direction, dependent on force to grain
@@ -399,16 +399,27 @@ EC5_812 := proc(WhateverYouNeed::table)
 		end do;
 
 		# calculation of capacity
+		# optimization: F_vR for nails needs just to be calculated once (not alpha dependent), while
 		# need to calculate F_vR for each fastener and each beam, because f_hk is defined for angle between force and grain direction
 		# Capacity of some shear connectors is added with fasteners, some not
 		
 		F_vRk_89_810, F_vRd_89_810 := calculate_F_vR_89_810(WhateverYouNeed);	# should be possible to calculate shear connectors in advance
 
+		firstrun := true;		# just relevant for nails, as they don't need to be calculated multiple times
+
 		for part in {"1", "2"} do
 
 			if assigned(eta_n_ef[part]) then
 
-				F_vRk, F_vRd := calculate_F_vR(WhateverYouNeed, alpha);		# EC5_82, capacity of fasteners, F_vRk is table with indices a - m				
+				if (fastenervalues["calculatedFastener"] = "Nail" or structure["fastener"]["calculateAsNail"] = "true") and firstrun = false then
+					# no need to calculate F_vR again
+					F_vRk := fastenervalues["F_vRk"];
+					F_vRd := fastenervalues["F_vRd"];
+				else
+					F_vRk, F_vRd := calculate_F_vR(WhateverYouNeed, alpha);		# EC5_82, capacity of fasteners, F_vRk is table with indices a - m
+					firstrun := false
+				end if;
+				
 				F_vefRd[part] := F_vRd * k_n_efa[part] + F_vRd_89_810;		# (8.1), here we also reduce the capacity of bulldogs for connections in a row, NTNU example does not do that (take full effect of connection)
 
 				eta := F_vEd / F_vefRd[part];				
@@ -463,7 +474,6 @@ EC5_812 := proc(WhateverYouNeed::table)
 		end do;		
 
 	end do;	
-
 
 	if ComponentExists("TextArea_eta812_active") then
 		if etamax > 1 then 
