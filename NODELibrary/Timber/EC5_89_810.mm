@@ -1,7 +1,7 @@
-calculate_F_vR_89_810 := proc(WhateverYouNeed::table)
+calculate_F_vR_89_810 := proc(WhateverYouNeed::table, alpha)
 	description "Split Ring and Toothed Plate Connectors";
 	local structure, warnings, fastener, platesides, ShearConnector, connectortype, dc, he, F_vRk, F_vRd, k1, k2, k3, k4, t, a3t, rho_k, rho_k_, k_mod, gamma_M,
-			fastenervalues, comments, d, shearplanes, F_vRkfin, F_v0Rk, nFasteners, ka;
+			fastenervalues, comments, d, shearplanes, F_vRkfin, F_v0Rk, nFasteners, ka, k90;
 
 	warnings := WhateverYouNeed["warnings"];
 	comments := WhateverYouNeed["results"]["comments"];
@@ -165,10 +165,12 @@ calculate_F_vR_89_810 := proc(WhateverYouNeed::table)
 	elif ShearConnector = "Split ring" then
 
 		F_v0Rk := min(	k1 * k2 * k3 * k4 * 35 * convert(dc, 'unit_free')^1.5 * Unit('N'), 
-						k1 * k3 * convert(he, 'unit_free') * 31.5 * convert(dc, 'unit_free') * Unit('N'));
+						k1 * k3 * convert(he, 'unit_free') * 31.5 * convert(dc, 'unit_free') * Unit('N'));			# 8.61
+
+		k90 := 1.3 + 0.001 * dc;									# 8.68
 
 		# intermediate code, must be changed
-		F_vRk := F_v0Rk;
+		F_vRk := F_v0Rk / (k90 * sin(alpha)^2 + cos(alpha)^2);		# 8.67
 
 	end if;
 
@@ -176,6 +178,8 @@ calculate_F_vR_89_810 := proc(WhateverYouNeed::table)
 	F_vRkfin := F_vRk * shearplanes;
 	F_vRd := eval(F_vRkfin * min(entries(k_mod, 'nolist')) / gamma_M);
 
+	# F_vR values might not be the lowest possible, as they are overwritten by newer calculations
+	# they should be restored by a check which finds the lowest possible values (outside of this routine)
 	fastenervalues["F_vRk_89_810"] := F_vRkfin;
 	fastenervalues["F_vRd_89_810"] := F_vRd;	
 	comments["89_810"] := "Toothed Plate Connectors";

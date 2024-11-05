@@ -350,17 +350,22 @@ end proc:
 EC5_812 := proc(WhateverYouNeed::table)
 	description "8.1.2 Multiple fastener connections";
 	local usedcode, comments, ForcesInConnection, part, alphaForce, alphaBeam, alpha, warnings, structure, k_n_ef0, F_vefRd, fastener, eta_n_ef, eta, etamax, 
-		F_vEd, F_vRd, F_vRk, ind, val, dummy, fastenervalues, i, k_n_efa, F_vRd_89_810, F_vRk_89_810, firstrun;
+		F_vEd, F_vRd, F_vRk, ind, val, dummy, fastenervalues, i, k_n_efa, F_vRd_89_810, F_vRk_89_810, firstrun_FvR, firstrun_ShearConnector, ShearConnector;
 
 	warnings := WhateverYouNeed["warnings"];
 	structure := WhateverYouNeed["calculations"]["structure"];	
 	ForcesInConnection := WhateverYouNeed["results"]["FastenerGroup"]["ForcesInConnection"];
 	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
+	ShearConnector := structure["fastener"]["ShearConnector"];
 
 	alpha := table();			# angle between force and grain direction
 	eta_n_ef := table();		# reduction factor for fasteners in grain direction, dependent on force to grain
 	F_vefRd := table();
 	k_n_efa := table();
+
+	# 8.8	No fastener calculated, capacity alpha dependent
+	# 8.9 	Split ring and plate connector: capacity of fastener not taken into account, capacity alpha dependent
+	# 8.10 	Toothed plate connector: capacity of shear connector and fastener added, capacity not dependent on alpha
 
 	# precalculation of reduction factor for fasteners in grain direction
 	for fastener from 1 to numelems(ForcesInConnection) do		# loop over fasteners
@@ -402,25 +407,50 @@ EC5_812 := proc(WhateverYouNeed::table)
 		# optimization: F_vR for nails needs just to be calculated once (not alpha dependent), while
 		# need to calculate F_vR for each fastener and each beam, because f_hk is defined for angle between force and grain direction
 		# Capacity of some shear connectors is added with fasteners, some not
-		
-		F_vRk_89_810, F_vRd_89_810 := calculate_F_vR_89_810(WhateverYouNeed);	# should be possible to calculate shear connectors in advance
 
-		firstrun := true;		# just relevant for nails, as they don't need to be calculated multiple times
+		firstrun_FvR := true;					# just relevant for nails, as they don't need to be calculated multiple times
+		firstrun_ShearConnector := true;		# Toothed plate connectors
 
 		for part in {"1", "2"} do
 
-			if assigned(eta_n_ef[part]) then
+			if structure["connection"][cat("connection", part)] = "Timber" then
 
-				if (fastenervalues["calculatedFastener"] = "Nail" or structure["fastener"]["calculateAsNail"] = "true") and firstrun = false then
+				# fasteners
+				# check if we need to calculate F_vR or if we can get it from storage
+				if (fastenervalues["calculatedFastener"] = "Nail" or structure["fastener"]["calculateAsNail"] = "true") and firstrun_FvR = false then
 					# no need to calculate F_vR again
 					F_vRk := fastenervalues["F_vRk"];
 					F_vRd := fastenervalues["F_vRd"];
+
 				else
 					F_vRk, F_vRd := calculate_F_vR(WhateverYouNeed, alpha);		# EC5_82, capacity of fasteners, F_vRk is table with indices a - m
-					firstrun := false
+					firstrun_FvR := false
 				end if;
-				
-				F_vefRd[part] := F_vRd * k_n_efa[part] + F_vRd_89_810;		# (8.1), here we also reduce the capacity of bulldogs for connections in a row, NTNU example does not do that (take full effect of connection)
+
+				# ShearConnectors
+				# check if we need to calculate F_vR_89_810 or if we can get it from storage
+				if ShearConnector = "Toothed-plate" and firstrun_ShearConnector = false then
+					F_vRk_89_810 := fastenervalues["F_vRk_89_810"];
+					F_vRd_89_810 := fastenervalues["F_vRd_89_810"];
+
+				elif ShearConnector = "Toothed-plate" and firstrun_ShearConnector = true then
+					F_vRk_89_810, F_vRd_89_810 := calculate_F_vR_89_810(WhateverYouNeed, alpha);
+					firstrun_ShearConnector := false
+
+				# 8.9 	Split ring and plate connector: capacity of fastener not taken into account, capacity alpha dependent
+				elif ShearConnector = "Split ring" then					
+					F_vRk_89_810, F_vRd_89_810 := calculate_F_vR_89_810(WhateverYouNeed, alpha);
+					F_vRk := 0;
+					F_vRd := 0;
+
+				else
+					F_vRk_89_810 := 0;
+					F_vRd_89_810 := 0
+				end if;
+
+				# (8.1), we do not reduce the capacity of bulldogs for connections in a row, NTNU example does not do that (take full effect of connection)
+				# (8.1) refers to 8.3.1.1(8) - nails, and 8.5.1.1(4) - bolts
+				F_vefRd[part] := F_vRd * k_n_efa[part] + F_vRd_89_810;		
 
 				eta := F_vEd / F_vefRd[part];				
 

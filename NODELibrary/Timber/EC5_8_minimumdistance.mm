@@ -27,7 +27,8 @@ end proc:
 
 calculate_amin_alpha := proc(part::string, WhateverYouNeed::table)
 	local calculatedFastener, chosenFastener, calculateAsNail, a1_min, a2_min, a3_min, a3t_min, a3c_min, a4t_min, a4c_min, predrilled, d, rho_k, axiallyLoaded, 
-		j, variables, red_steel, t, h, structure, materialdataAll, sectiondataAll, warnings, comments, distance, alphaBeam, CosMax, SinMax, alpha, ForcesInConnection, i;
+		j, variables, red_steel, t, h, structure, materialdataAll, sectiondataAll, warnings, comments, distance, alphaBeam, CosMax, SinMax, alpha, ForcesInConnection,
+		i, ShearConnector, dc;
 
 	# global variables
 	warnings := WhateverYouNeed["warnings"];
@@ -42,6 +43,7 @@ calculate_amin_alpha := proc(part::string, WhateverYouNeed::table)
 	axiallyLoaded := WhateverYouNeed["calculatedvalues"]["axiallyLoaded"];
 	alphaBeam := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", part)]);
 	ForcesInConnection := WhateverYouNeed["results"]["FastenerGroup"]["ForcesInConnection"];
+	ShearConnector := structure["fastener"]["ShearConnector"];
 
 	# Find maximum of sinus and cosinus values for angles between force and grain of all fasteners in connection
 	CosMax := 0;
@@ -340,28 +342,39 @@ calculate_amin_alpha := proc(part::string, WhateverYouNeed::table)
 		end if;
 	end if;
 
-	# check if Toothed Plate connection
-	if fastener["ShearConnector"] = "Toothed-plate" then
-		local dc, ToothedPlatetype;
-		ToothedPlatetype := WhateverYouNeed["calculations"]["structure"]["fastener"]["ToothedPlatetype"];		
-		dc := WhateverYouNeed["calculations"]["structure"]["fastener"]["ToothedPlatedc"];
+	# check if ShearConnector are used
+	if ShearConnector = "Toothed-plate" then
+		local ToothedPlatetype;
+		ToothedPlatetype := structure["fastener"]["ToothedPlatetype"];		
+		dc := structure["fastener"]["ToothedPlatedc"];
 		
 		if member(ToothedPlatetype, {"C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9"}) then			
 			a1_min[part] := max(a1_min[part], (1.2 + 0.3 * abs(CosMax)) * dc);
 			a2_min[part] := max(a2_min[part], 1.2 * dc);
-			a3c_min[part] := max(a3c_min[part], (0.9 + 0.6 * abs(SinMax)) * dc);
 			a3t_min[part] := max(a3t_min[part], 2.0 * dc);
+			a3c_min[part] := max(a3c_min[part], (0.9 + 0.6 * abs(SinMax)) * dc);			
 			a4t_min[part] := max(a4t_min[part], (0.6 + 0.2 * abs(SinMax)) * dc);
 			a4c_min[part] := max(a4c_min[part], 0.6 * dc);
 
 		elif member(ToothedPlatetype, {"C10", "C11"}) then
 			a1_min[part] := max(a1_min[part], (1.2 + 0.8 * abs(CosMax)) * dc);
 			a2_min[part] := max(a2_min[part], 1.2 * dc);
-			a3c_min[part] := max(a3c_min[part], (0.9 + 0.6 * abs(SinMax)) * dc);
 			a3t_min[part] := max(a3t_min[part], 2.0 * dc);
+			a3c_min[part] := max(a3c_min[part], (0.9 + 0.6 * abs(SinMax)) * dc);			
 			a4t_min[part] := max(a4t_min[part], (0.6 + 0.2 * abs(SinMax)) * dc);
 			a4c_min[part] := max(a4c_min[part], 0.6 * dc);
 		end if;		
+
+	elif ShearConnector	= "Split ring" then
+			dc := structure["fastener"]["SplitRingdc"];
+
+			a1_min[part] := max(a1_min[part], (1.2 + 0.8 * abs(CosMax)) * dc);
+			a2_min[part] := max(a2_min[part], 1.2 * dc);			
+			a3t_min[part] := max(a3t_min[part], 1.5 * dc);
+			a3c_min[part] := max(a3c_min[part], (0.4 + 1.6 * abs(SinMax)) * dc);
+			a4t_min[part] := max(a4t_min[part], (0.6 + 0.2 * abs(SinMax)) * dc);
+			a4c_min[part] := max(a4c_min[part], 0.6 * dc);
+
 	end if;
 
 	# run evalf on everything to get numbers
@@ -400,7 +413,7 @@ calculate_amin_max := proc(WhateverYouNeed::table)
 	description "calculates minimum distances regardless of alpha value";
 	local calculatedFastener, chosenFastener, calculateAsNail, predrilled, d, rho_k;
 	local a1_min_max, a1_min_min, a2_min_max, a2_min_min, a3_min_max, a3t_min_max, a3c_min_max, a4_min_max, a4t_min_max, a4c_min_max, t, h;
-	local red_steel, structure, materialdataAll, sectiondataAll, warnings, comments, part, distance, serviceclass;
+	local red_steel, structure, materialdataAll, sectiondataAll, warnings, comments, part, distance, serviceclass, ShearConnector, dc;
 
 	# force::table
 # DEBUG();
@@ -414,6 +427,7 @@ calculate_amin_max := proc(WhateverYouNeed::table)
 	chosenFastener := structure["fastener"]["chosenFastener"];
 	calculateAsNail := structure["fastener"]["calculateAsNail"];
 	predrilled := structure["fastener"]["predrilled"];
+	ShearConnector := structure["fastener"]["ShearConnector"];
 
 	# distance stores both minimumdistance and calculated distance values
 	# reset of values is done in ReadComponentsSpecific
@@ -666,28 +680,39 @@ calculate_amin_max := proc(WhateverYouNeed::table)
 		
 		end if;
 
-		# check if Toothed Plate connection
-		if fastener["ShearConnector"] = "Toothed-plate" then
-			local dc, ToothedPlatetype;
-			ToothedPlatetype := WhateverYouNeed["calculations"]["structure"]["fastener"]["ToothedPlatetype"];		
-			dc := WhateverYouNeed["calculations"]["structure"]["fastener"]["ToothedPlatedc"];
-		
+		# check if ShearConnector are used
+		if ShearConnector = "Toothed-plate" then
+			local ToothedPlatetype;
+			ToothedPlatetype := structure["fastener"]["ToothedPlatetype"];		
+			dc := structure["fastener"]["ToothedPlatedc"];
+			
 			if member(ToothedPlatetype, {"C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9"}) then			
 				a1_min_max[part] := max(a1_min_max[part], (1.2 + 0.3 * 1) * dc);
 				a2_min_max[part] := max(a2_min_max[part], 1.2 * dc);
-				a3c_min_max[part] := max(a3c_min_max[part], (0.9 + 0.6 * 1) * dc);
 				a3t_min_max[part] := max(a3t_min_max[part], 2.0 * dc);
+				a3c_min_max[part] := max(a3c_min_max[part], (0.9 + 0.6 * 1) * dc);			
 				a4t_min_max[part] := max(a4t_min_max[part], (0.6 + 0.2 * 1) * dc);
 				a4c_min_max[part] := max(a4c_min_max[part], 0.6 * dc);
 
 			elif member(ToothedPlatetype, {"C10", "C11"}) then
 				a1_min_max[part] := max(a1_min_max[part], (1.2 + 0.8 * 1) * dc);
 				a2_min_max[part] := max(a2_min_max[part], 1.2 * dc);
-				a3c_min_max[part] := max(a3c_min_max[part], (0.9 + 0.6 * 1) * dc);
 				a3t_min_max[part] := max(a3t_min_max[part], 2.0 * dc);
+				a3c_min_max[part] := max(a3c_min_max[part], (0.9 + 0.6 * 1) * dc);			
 				a4t_min_max[part] := max(a4t_min_max[part], (0.6 + 0.2 * 1) * dc);
 				a4c_min_max[part] := max(a4c_min_max[part], 0.6 * dc);
 			end if;		
+
+		elif ShearConnector	= "Split ring" then	
+				dc := structure["fastener"]["SplitRingdc"];
+
+				a1_min_max[part] := max(a1_min_max[part], (1.2 + 0.8 * 1) * dc);
+				a2_min_max[part] := max(a2_min_max[part], 1.2 * dc);			
+				a3t_min_max[part] := max(a3t_min_max[part], 1.5 * dc);
+				a3c_min_max[part] := max(a3c_min_max[part], (0.4 + 1.6 * 1) * dc);
+				a4t_min_max[part] := max(a4t_min_max[part], (0.6 + 0.2 * 1) * dc);
+				a4c_min_max[part] := max(a4c_min_max[part], 0.6 * dc);
+
 		end if;
 
 		a3_min_max[part] := a3t_min_max[part];
