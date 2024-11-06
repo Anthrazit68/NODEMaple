@@ -371,8 +371,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 	fastenervalues["alpha_rope"] := alpha_rope;
 	fastenervalues["F_vRk"] := F_vRkfin;
 	fastenervalues["F_vRd"] := F_vRd;
-
-	return F_vRk, F_vRd;
+	fastenervalues["F_vRk_ind"] := F_vRk;		# all indexed values
 	
 end proc:
 
