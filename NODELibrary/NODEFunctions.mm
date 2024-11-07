@@ -92,7 +92,7 @@ end proc:
 Alert := proc(msg::string, warnings::table, level::integer)
 	description "Error and alert message handling";
 	uses Maplets[Examples];
-	local opts, dummy, j;
+	local opts, dummy, j, warnings_;
 	
 	# alert level		
 	# 0...print TextArea component
@@ -115,12 +115,17 @@ Alert := proc(msg::string, warnings::table, level::integer)
 		opts := "CRITICAL ERROR"
 	end if;
 
-	if level > 0 then
+	warnings_ := convert(WhateverYouNeed["warnings"], set);
+
+	if level > 0 and member(cat(opts,": ", msg), warnings_) = false then
 		Maplets[Examples]:-Alert(msg, 'title'=opts);		# Alert pop up
 	end if;
 
 	if level > 1 or level < 0 then
-		warnings[numelems(warnings) + 1] := cat(opts,": ", msg);
+		# only if warning is new, take it into account		
+		if member(cat(opts,": ", msg), warnings_) = false then
+			warnings[numelems(warnings) + 1] := cat(opts,": ", msg);
+		end if;
 	end if;
 
 	if level <> 1 and ComponentExists("TextArea_warnings") then

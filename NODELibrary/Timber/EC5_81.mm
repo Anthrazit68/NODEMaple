@@ -350,7 +350,7 @@ end proc:
 EC5_812 := proc(WhateverYouNeed::table)
 	description "8.1.2 Multiple fastener connections";
 	local usedcode, comments, ForcesInConnection, part, alphaForce, alphaBeam, alpha, warnings, structure, k_n_ef0, F_vefRd, fastener, eta_n_ef, eta, etamax, 
-		F_vEd, ind, val, dummy, fastenervalues, i, k_n_efa, F_vRd_89_810, F_vRk_89_810, firstrun_FvR, firstrun_ShearConnector, ShearConnector;
+		F_vEd, ind, val, dummy, fastenervalues, i, k_n_efa, firstrun_FvR, firstrun_ShearConnector, ShearConnector;
 
 	warnings := WhateverYouNeed["warnings"];
 	structure := WhateverYouNeed["calculations"]["structure"];	
@@ -428,27 +428,26 @@ EC5_812 := proc(WhateverYouNeed::table)
 				# ShearConnectors
 				# check if we need to calculate F_vR_89_810 or if we can get it from storage
 				if ShearConnector = "Toothed-plate" and firstrun_ShearConnector = false then
-					F_vRk_89_810 := fastenervalues["F_vRk_89_810"];
-					F_vRd_89_810 := fastenervalues["F_vRd_89_810"];
+					# use stored values
 
 				elif ShearConnector = "Toothed-plate" and firstrun_ShearConnector = true then
-					F_vRk_89_810, F_vRd_89_810 := calculate_F_vR_89_810(WhateverYouNeed, alpha);
+					calculate_F_vR_89_810(WhateverYouNeed, alpha[part]);
 					firstrun_ShearConnector := false
 
 				# 8.9 	Split ring and plate connector: capacity of fastener not taken into account, capacity alpha dependent
 				elif ShearConnector = "Split ring" then					
-					F_vRk_89_810, F_vRd_89_810 := calculate_F_vR_89_810(WhateverYouNeed, alpha);
+					calculate_F_vR_89_810(WhateverYouNeed, alpha[part]);
 					fastenervalues["F_vRk"] := 0;
 					fastenervalues["F_vRd"] := 0;
 
 				else
-					F_vRk_89_810 := 0;
-					F_vRd_89_810 := 0
+					fastenervalues["F_vRk_89_810"] := 0;
+					fastenervalues["F_vRd_89_810"] := 0
 				end if;
 
 				# (8.1), we do not reduce the capacity of bulldogs for connections in a row, NTNU example does not do that (take full effect of connection)
 				# (8.1) refers to 8.3.1.1(8) - nails, and 8.5.1.1(4) - bolts
-				F_vefRd[part] := fastenervalues["F_vRd"] * k_n_efa[part] + F_vRd_89_810;		
+				F_vefRd[part] := fastenervalues["F_vRd"] * k_n_efa[part] + fastenervalues["F_vRd_89_810"];		
 
 				if F_vefRd[part] = 0 then
 					eta := 9999
@@ -476,8 +475,8 @@ EC5_812 := proc(WhateverYouNeed::table)
 					end do;
 
 					SetProperty("MathContainer_alpha_rope", 'value', fastenervalues["alpha_rope"]);
-					SetProperty("MathContainer_F_vRk", value, round2(convert(fastenervalues["F_vRk"] + F_vRk_89_810, 'units', 'kN'), 1));		# including shearplanes
-					SetProperty("MathContainer_F_vRd", value, round2(convert(fastenervalues["F_vRd"] + F_vRd_89_810, 'units', 'kN'), 1));
+					SetProperty("MathContainer_F_vRk", value, round2(convert(fastenervalues["F_vRk"] + fastenervalues["F_vRk_89_810"], 'units', 'kN'), 1));		# including shearplanes
+					SetProperty("MathContainer_F_vRd", value, round2(convert(fastenervalues["F_vRd"] + fastenervalues["F_vRd_89_810"], 'units', 'kN'), 1));
 					SetProperty("MathContainer_F_vefRd", value, round2(convert(F_vefRd[part], 'units', 'kN'), 1));
 					SetProperty("TextArea_FvRk_critNode", value, fastener);
 

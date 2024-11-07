@@ -7,15 +7,13 @@ calculate_F_vR_89_810 := proc(WhateverYouNeed::table, alpha)
 	comments := WhateverYouNeed["results"]["comments"];
 	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
 	
-	fastener := WhateverYouNeed["calculations"]["structure"]["fastener"];
+	structure := WhateverYouNeed["calculations"]["structure"];
+	fastener := structure["fastener"];
 	ShearConnector := fastener["ShearConnector"];
-	d := WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_d"];
+	d := fastener["fastener_d"];
 	shearplanes := fastenervalues["shearplanes"];
 
 	gamma_M := 1.3; 		# NS-EN 1995, NA.2.4.1
-	structure := WhateverYouNeed["calculations"]["structure"];
-	fastener := structure["fastener"];
-	warnings := WhateverYouNeed["warnings"];
 
 	if ShearConnector = "-" then
 		comments["89_810"] := evaln(comments["89_810"]);
@@ -65,19 +63,15 @@ calculate_F_vR_89_810 := proc(WhateverYouNeed::table, alpha)
 	# check minimum thickness of timber parts 8.9(2)
 	if assigned(t["1"]) and t["1"] < 2.25 * he then
 		Alert("Shear connector: 8.9(2): t1(outer) < 2.25 * he", warnings, 3);
-		return 0, 0
 			
 	elif assigned(t["1outside"]) and t["1outside"] < 2.25 * he then
 		Alert("Shear connector: 8.9(2): t1(outer) < 2.25 * he", warnings, 3);
-		return 0, 0
 			
 	elif WhateverYouNeed["calculatedvalues"]["layers"]["1"] > 2 and t["1"] < 3.75 * he then
 		Alert("Shear connector: 8.9(2): t1(inner) < 3.75 * he", warnings, 3);
-		return 0, 0
 			
 	elif assigned(t["2"]) and t["2"] < 3.75 * he then
 		Alert("Shear connector: 8.9(2): t2 < 3.75 * he", warnings, 3);
-		return 0, 0
 			
 	end if;			
 
@@ -167,7 +161,7 @@ calculate_F_vR_89_810 := proc(WhateverYouNeed::table, alpha)
 		F_v0Rk := min(	k1 * k2 * k3 * k4 * 35 * convert(dc, 'unit_free')^1.5 * Unit('N'), 
 						k1 * k3 * convert(he, 'unit_free') * 31.5 * convert(dc, 'unit_free') * Unit('N'));			# 8.61
 
-		k90 := 1.3 + 0.001 * dc;									# 8.68
+		k90 := 1.3 + 0.001 * convert(dc, 'unit_free');									# 8.68
 
 		# intermediate code, must be changed
 		F_vRk := F_v0Rk / (k90 * sin(alpha)^2 + cos(alpha)^2);		# 8.67
@@ -212,7 +206,5 @@ calculate_F_vR_89_810 := proc(WhateverYouNeed::table, alpha)
 	if ComponentExists("MathContainer_ToothedPlatea3t") then
 		SetProperty("MathContainer_ToothedPlatea3t", value, round(a3t))
 	end if;
-
-	return F_vRkfin, F_vRd		# both values including shearplanes
 	
 end proc:
