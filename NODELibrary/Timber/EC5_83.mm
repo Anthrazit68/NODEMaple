@@ -382,7 +382,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 	local structure, materialdataAll, sectiondataAll, warnings, comments, fastenervalues, numberOfFasteners, k_ef;
 
 	# define local variables
-	gamma_M := 1.3; 		# NS-EN 1995, NA.2.4.1
+	gamma_M := NODETimberEN1995:-gamma_M("Connections"); 		# NS-EN 1995, NA.2.4.1
 	structure := WhateverYouNeed["calculations"]["structure"];
 	materialdataAll := WhateverYouNeed["materialdataAll"];	
 	sectiondataAll := WhateverYouNeed["sectiondataAll"];

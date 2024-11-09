@@ -14,7 +14,7 @@ AnnexA := proc(WhateverYouNeed::table)
 	shearplanes := fastenervalues["shearplanes"];
 	timberlayers := WhateverYouNeed["calculatedvalues"]["layers"];
 	warnings := WhateverYouNeed["warnings"];
-	gamma_M := 1.3; 		# NS-EN 1995, NA.2.4.1
+	gamma_M := NODETimberEN1995:-gamma_M("Connections"); 		# NS-EN 1995, NA.2.4.1
 
 	lvl := WhateverYouNeed["calculatedvalues"]["distance"]["dist"]["a_lvl"];
 	lvr := WhateverYouNeed["calculatedvalues"]["distance"]["dist"]["a_lvr"];

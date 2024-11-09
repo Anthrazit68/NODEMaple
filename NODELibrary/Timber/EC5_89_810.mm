@@ -13,7 +13,7 @@ calculate_F_vR_89_810 := proc(WhateverYouNeed::table, alpha)
 	d := fastener["fastener_d"];
 	shearplanes := fastenervalues["shearplanes"];
 
-	gamma_M := 1.3; 		# NS-EN 1995, NA.2.4.1
+	gamma_M := NODETimberEN1995:-gamma_M("Connections"); 		# NS-EN 1995, NA.2.4.1
 
 	if ShearConnector = "-" then
 		comments["89_810"] := evaln(comments["89_810"]);

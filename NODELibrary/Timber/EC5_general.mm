@@ -131,6 +131,9 @@ Changed_bh := proc(WhateverYouNeed::table, varname::string)
 		if ComponentExists(cat("ComboBox_b", partsnumber)) then
 			assign('b_', parse(GetProperty(cat("ComboBox_b", partsnumber), value)));	# Combobox value is string, convert to number
 			SetProperty(cat("TextArea_b", partsnumber), value, b_);
+			if ComponentExists(cat("TextArea_b", partsnumber, "outside")) then
+				SetProperty(cat("TextArea_b", partsnumber, "outside"), value, b_);
+			end if;
 
 			if partsnumber = "" then
 				SetProperty(cat("ComboBox_h", partsnumber), 'itemList', NODETimberSections:-h[WhateverYouNeed["materialdata"]["timbertype"], b_]);
@@ -294,13 +297,6 @@ GetMaterialdata := proc(activematerial::string, WhateverYouNeed::table)		# "GL 3
 	rho_k := eval(Property(strengthclass, "rho_k"));
 	rho_mean := eval(Property(strengthclass, "rho_mean"));
 
-	# gamma_m
-	if timbertype = "Solid timber" then
-		gamma_M := 1.25
-	elif timbertype = "Glued laminated timber" or timbertype = "CLT" then
-		gamma_M := 1.15
-	end if;
-
 	# lagre materialdata
 	materialdata := table();
 	materialdata["material"] := "timber";
@@ -310,6 +306,7 @@ GetMaterialdata := proc(activematerial::string, WhateverYouNeed::table)		# "GL 3
 	materialdata["serviceclass"] := serviceclass;
 	materialdata["loaddurationclass"] := loaddurationclass;
 
+	gamma_M := NODETimberEN1995:-gamma_M(timbertype);
 	materialdata["gamma_M"] := gamma_M;
 
 	materialdata["f_mk"] := f_mk;
@@ -331,7 +328,7 @@ GetMaterialdata := proc(activematerial::string, WhateverYouNeed::table)		# "GL 3
 	materialdata["rho_mean"] := rho_mean;
 
 	# dimensjonerende materialverdier
-
+	
 	# k_mod
 	k_mod := kmod(loaddurationclass, serviceclass);
 	f_md := f_mk * k_mod / gamma_M;								# f_md needs to be modified by kh

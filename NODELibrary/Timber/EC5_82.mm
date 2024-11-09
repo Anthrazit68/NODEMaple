@@ -11,7 +11,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 
 	# local variables
 	warnings := WhateverYouNeed["warnings"];
-	gamma_M := 1.3; 		# NS-EN 1995, NA.2.4.1
+	gamma_M := NODETimberEN1995:-gamma_M("Connections"); 		# NS-EN 1995, NA.2.4.1
 	structure := WhateverYouNeed["calculations"]["structure"];
 	materialdataAll := WhateverYouNeed["materialdataAll"];
 	sectiondataAll := WhateverYouNeed["sectiondataAll"];

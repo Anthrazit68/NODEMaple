@@ -206,7 +206,7 @@ PlotResults := proc(WhateverYouNeed::table)
 				geometryList := [op(geometryList), parse(cat("fastener", i))('color' = "Black", 'filled' = true)];
 			end if;
 
-			# Toothed Plate Connectors
+			# Shear Connectors
 			if fastener["ShearConnector"] = "Toothed-plate" then
 				# outer circle
 				geometry:-circle(parse(cat("fastener", i,"_bulldogo")), [parse(cat("F", i)), convert(fastener["ToothedPlatedc"] / 2, 'unit_free')]);
@@ -214,6 +214,7 @@ PlotResults := proc(WhateverYouNeed::table)
 				# inner circle				
 				geometry:-circle(parse(cat("fastener", i,"_bulldogi")), [parse(cat("F", i)), convert(fastenervalues["ToothedPlated1"] / 2, 'unit_free')]);
 				geometryList := [op(geometryList), parse(cat("fastener", i,"_bulldogi"))('color' = "Niagara DarkOrchid", 'linestyle' = "dash")];
+
 			elif fastener["ShearConnector"] = "Split ring" then
 				# outer circle
 				geometry:-circle(parse(cat("fastener", i,"_bulldogo")), [parse(cat("F", i)), convert(fastener["SplitRingdc"] / 2, 'unit_free')]);
