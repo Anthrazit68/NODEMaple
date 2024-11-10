@@ -7,7 +7,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 	description "Calculate Fv,R according to 8.2.2";
 
 	local f_hk, t_eff, t_steel, d, F_axRk, M_yRk, shearplanes, F_vRk, F_vRd, beta, dummy, F_vRkmin, alpha_rope, gamma_M, k_mod, structure,
-	materialdataAll, sectiondataAll, comments, fastenervalues, warnings, connectionInsideLayers, i, F_vRkfin, f, b1outside, connection;
+	materialdataAll, sectiondataAll, comments, fastenervalues, warnings, connectionInsideLayers, i, F_vRkfin, f, b1outside, connection, OutsideLayerDifferent;
 
 	# local variables
 	warnings := WhateverYouNeed["warnings"];
@@ -37,27 +37,44 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 	# modify t_eff if connectionHalfOutsideLayers	
 	t_eff := table();	
 	t_eff["1"] := fastenervalues["t_eff"]["1"];		# t_eff 1 inside
-	t_eff["2"] := fastenervalues["t_eff"]["2"];		
+	t_eff["2"] := fastenervalues["t_eff"]["2"];
+
+	# Outside layer different from other layers?
+	OutsideLayerDifferent := false;
+	if connection["connection1"] = "Timber" and b1outside <> "false" and shearplanes > 3 then
+		if b1outside <> WhateverYouNeed["sectiondataAll"]["1"]["b"] then
+			OutsideLayerDifferent := true;
+		end if;
+	end if;	
 
 	if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then
 		# 8.2.2
 		f_hk["1"] := calculate_f_hk(WhateverYouNeed, "1", alpha["1"]);
 		f_hk["2"] := calculate_f_hk(WhateverYouNeed, "2", alpha["2"]);
 		beta := f_hk["2"] / f_hk["1"];			# this will change for each fastener if alpha is different
+
+		# reduced thickness of outer layer will be allowed
+		t_eff["1o"] := fastenervalues["t_eff"]["1"];
+		if b1outside <> "false" and b1outside < t_eff["1o"] then			# only possible with timber outside / steel inside	
+			t_eff["1o"] := b1outside
+		end if;	
 			
-		if shearplanes = 1 or fastenervalues["SingleShearplane"] = true then 				# if connectionInsideLayers = 0 then
+		if shearplanes = 1 or fastenervalues["SingleShearplane"] = true or OutsideLayerDifferent then
 		
-			F_vRk["a"] := evalf(f_hk["1"] * t_eff["1"] * d);
+			F_vRk["a"] := evalf(f_hk["1"] * t_eff["1o"] * d);
 		
 			F_vRk["b"] := evalf(f_hk["2"] * t_eff["2"] * d);
 
-			dummy := f_hk["1"] * t_eff["1"] * d / (1 + beta) * (sqrt(beta + 2 * beta^2 * (1 + t_eff["2"] / t_eff["1"] + (t_eff["2"] / t_eff["1"])^2) + beta^3 * (t_eff["2"] / t_eff["1"])^2) - beta * (1 + t_eff["2"] / t_eff["1"]));
+			dummy := f_hk["1"] * t_eff["1o"] * d / (1 + beta) * (sqrt(beta + 2 * beta^2 * (1 + t_eff["2"] / t_eff["1o"] + 
+					(t_eff["2"] / t_eff["1o"])^2) + beta^3 * (t_eff["2"] / t_eff["1o"])^2) - beta * (1 + t_eff["2"] / t_eff["1o"]));
 			F_vRk["c"] := eval(dummy + min(dummy * alpha_rope, F_axRk / 4));
 
-			dummy := 1.05 * f_hk["1"] * t_eff["1"] * d / (2 + beta) * (sqrt(2 * beta * (1 + beta) + 4 * beta * (2 + beta) * M_yRk / (f_hk["1"] * d * t_eff["1"]^2)) - beta);
+			dummy := 1.05 * f_hk["1"] * t_eff["1o"] * d / (2 + beta) * (sqrt(2 * beta * (1 + beta) + 4 * beta * 
+					(2 + beta) * M_yRk / (f_hk["1"] * d * t_eff["1o"]^2)) - beta);
 			F_vRk["d"] := eval(dummy + min(dummy * alpha_rope, F_axRk / 4));
 
-			dummy := 1.05 * f_hk["1"] * t_eff["2"] * d / (1 + 2 * beta) * (sqrt(2 * beta^2 * (1 + beta) + 4 * beta * (1 + 2 * beta) * M_yRk / (f_hk["1"] * d * t_eff["2"]^2)) - beta);
+			dummy := 1.05 * f_hk["1"] * t_eff["2"] * d / (1 + 2 * beta) * (sqrt(2 * beta^2 * (1 + beta) + 4 * beta *
+					(1 + 2 * beta) * M_yRk / (f_hk["1"] * d * t_eff["2"]^2)) - beta);
 			F_vRk["e"] := eval(dummy + min(dummy * alpha_rope, F_axRk / 4));
 
 			dummy := 1.15 * sqrt(2 * beta / (1 + beta)) * sqrt(2 * M_yRk * f_hk["1"] * d);
@@ -110,8 +127,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 
 		f_hk["1"] := calculate_f_hk(WhateverYouNeed, "1", alpha["1"]);		# only used if timber is outside
 
-		t_eff["1o"] := fastenervalues["t_eff"]["1"];
-
+		t_eff["1o"] := fastenervalues["t_eff"]["1"]
 		if b1outside <> "false" and b1outside < t_eff["1o"] then			# only possible with timber outside / steel inside	
 			t_eff["1o"] := b1outside
 		end if;	
@@ -120,7 +136,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 		
 		if connection["connection1"] = "Timber" then						# division by zero if run with steel plate outside
 
-			if shearplanes = 1 or fastenervalues["SingleShearplane"] = true then # 1 shearplane, timber outside, steel inside
+			if shearplanes = 1 or fastenervalues["SingleShearplane"] = true or OutsideLayerDifferent then # 1 shearplane, timber outside, steel inside
 			
 				F_vRk["a"] := evalf(0.4 * f_hk["1"] * t_eff["1o"] * d);
 
@@ -135,7 +151,9 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 				dummy := 2.3 * sqrt(M_yRk * f_hk["1"] * d);
 				F_vRk["e"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
 
-			else # 2 shearplanes, timber outside, steel inside
+			end if;
+
+			if shearplanes > 1 then # 2 shearplanes, timber outside, steel inside
 
 				F_vRk["f"] := evalf(f_hk["1"] * t_eff["1"] * d);
 
