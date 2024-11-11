@@ -128,10 +128,10 @@ Changed_bh := proc(WhateverYouNeed::table, varname::string)
 	end if;
 
 	if dim = "b" then
-		if ComponentExists(cat("ComboBox_b", partsnumber)) then
+		if NODEFunctions:-ComponentExists(cat("ComboBox_b", partsnumber)) then
 			assign('b_', parse(GetProperty(cat("ComboBox_b", partsnumber), value)));	# Combobox value is string, convert to number
 			SetProperty(cat("TextArea_b", partsnumber), value, b_);
-			if ComponentExists(cat("TextArea_b", partsnumber, "outside")) then
+			if NODEFunctions:-ComponentExists(cat("TextArea_b", partsnumber, "outside")) then
 				SetProperty(cat("TextArea_b", partsnumber, "outside"), value, b_);
 			end if;
 
@@ -146,7 +146,7 @@ Changed_bh := proc(WhateverYouNeed::table, varname::string)
 		end if;
 		
 	elif dim = "h" then
-		if ComponentExists(cat("ComboBox_h", partsnumber)) then
+		if NODEFunctions:-ComponentExists(cat("ComboBox_h", partsnumber)) then
 			assign('h_', parse(GetProperty(cat("ComboBox_h", partsnumber), value)));
 			SetProperty(cat("TextArea_h", partsnumber), value, h_);
 		end if;
@@ -190,11 +190,11 @@ kh := proc(side::string, WhateverYouNeed::table)
 	end if;
 	# `k__h` := k_h;	# 2D notasjon
 
-	if side = "h" and ComponentExists("TextArea_k_h") then
+	if side = "h" and NODEFunctions:-ComponentExists("TextArea_k_h") then
 		HighlightResults({"k_h"}, "highlight");
 		SetProperty("TextArea_k_h", 'value', round2(kh, 2))
 		
-	elif side = "b" and ComponentExists("TextArea_k_hb") then
+	elif side = "b" and NODEFunctions:-ComponentExists("TextArea_k_hb") then
 		HighlightResults({"k_hb"}, "highlight");
 		SetProperty("TextArea_k_hb", 'value', round2(kh, 2))
 	end if;
@@ -359,8 +359,8 @@ GetActiveSectionName := proc(WhateverYouNeed::table, partsnumber::string) ::stri
 	description "Create activesection reading TextArea";
 	local b_, h_, sectiontype;
 
-	if ComponentExists(cat("TextArea_b", partsnumber)) and GetProperty(cat("TextArea_b", partsnumber), 'enabled') = "true"
-		and ComponentExists(cat("TextArea_h", partsnumber)) and GetProperty(cat("TextArea_h", partsnumber), 'enabled') = "true" then
+	if NODEFunctions:-ComponentExists(cat("TextArea_b", partsnumber)) and GetProperty(cat("TextArea_b", partsnumber), 'enabled') = "true"
+		and NODEFunctions:-ComponentExists(cat("TextArea_h", partsnumber)) and GetProperty(cat("TextArea_h", partsnumber), 'enabled') = "true" then
 			
 		# sectiontype := WhateverYouNeed["materialdata"]["timbertype"];
 		sectiontype := "Rectangular";

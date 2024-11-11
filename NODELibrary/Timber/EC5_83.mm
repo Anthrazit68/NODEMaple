@@ -837,6 +837,9 @@ calculate_n_ef := proc(WhateverYouNeed::table)
 	for part in {"1", "2"} do
 
 		staggered := structure["fastener"][cat("staggered", part)];
+		if staggered = "false" then		# staggered parallel to grain direction with distance d
+			comments[cat("staggered", part)] := evaln(comments[cat("staggered", part)]);
+		end if;
 
 		if structure["connection"][cat("connection", part)] = "Timber" then
 
@@ -848,7 +851,6 @@ calculate_n_ef := proc(WhateverYouNeed::table)
 			
 			if calculatedFastener = "Nail" or (chosenFastener = "Screw" and calculateAsNail = "true") then
 				if staggered = "false" then		# staggered parallel to grain direction with distance d
-					comments[cat("staggered", part)] := evaln(comments[cat("staggered", part)]);
 					k_ef := calculate_k_ef(part, WhateverYouNeed);
 					n_ef0 := n1^k_ef;			# (8.17)
 				else

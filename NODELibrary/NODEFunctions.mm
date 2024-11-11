@@ -42,7 +42,7 @@ ComponentExists := proc(EC::{name,string})
 		GetProperty(EC, ':-visible');
 		true;
 	catch "Attempted to retrieve property of unknown component":
-			false;
+		false;
 	end try;
 end proc:
 

@@ -47,8 +47,9 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 		end if;
 	end if;	
 
+	# 8.2.2 timber - timber connection
 	if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then
-		# 8.2.2
+
 		f_hk["1"] := calculate_f_hk(WhateverYouNeed, "1", alpha["1"]);
 		f_hk["2"] := calculate_f_hk(WhateverYouNeed, "2", alpha["2"]);
 		beta := f_hk["2"] / f_hk["1"];			# this will change for each fastener if alpha is different
@@ -80,10 +81,6 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 			dummy := 1.15 * sqrt(2 * beta / (1 + beta)) * sqrt(2 * M_yRk * f_hk["1"] * d);
 			F_vRk["f"] := eval(dummy + min(dummy * alpha_rope, F_axRk / 4));
 
-			# 8.1.3(2)
-			# To be able to combine the resistance from individual shear planes in a multiple shear plane connection, the governing failure mode of the fasteners in the respective shear planes should
-			# be compatible with each other and should not consist of a combination of failure modes (a), (b), (g) and (h) from Figure 8.2
-
 			F_vRkmin["1ta"] := min(F_vRk["a"], F_vRk["b"]);							# fig. 8.2, 1 shearplane, timber - timber, steel straight
 			F_vRkmin["1tb"] := min(F_vRk["c"], F_vRk["d"], F_vRk["e"], F_vRk["f"]);	# fig. 8.2, 1 shearplane, timber - timber, steel bent
 			
@@ -92,14 +89,17 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 			else
 				comments["F_vRkmin"] := "Fv,Rk acc. to 8.2.2 (c-f)"
 			end if;
+
+		end if;
 		
-		else # more than 1 shearplane
+		if shearplanes > 1 then # more than 1 shearplane
 
 			F_vRk["g"] := evalf(f_hk["1"] * t_eff["1"] * d);
 
 			F_vRk["h"] := evalf(0.5 * f_hk["2"] * t_eff["2"] * d);
 
-			dummy := 1.05 * f_hk["1"] * t_eff["1"] * d / (2 + beta) * (sqrt(2 * beta * (1 + beta) + 4 * beta * (2 + beta) * M_yRk / (f_hk["1"] * d * t_eff["1"]^2)) - beta);
+			dummy := 1.05 * f_hk["1"] * t_eff["1"] * d / (2 + beta) * (sqrt(2 * beta * (1 + beta) + 4 * beta * (2 + beta) * M_yRk /
+					(f_hk["1"] * d * t_eff["1"]^2)) - beta);
 			F_vRk["j"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
 
 			dummy := 1.15 * sqrt(2 * beta / (1 + beta)) * sqrt(2 * M_yRk * f_hk["1"] * d);
@@ -116,18 +116,58 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 			
 		end if;
 
-		F_vRkfin := min(entries(F_vRkmin));
-		if fastenervalues["doublesided"] = true and fastenervalues["overlap"] = true then	# overlap situation, double capacity of single connection
-			F_vRkfin := F_vRkfin * 2
+		F_vRkfin := 0;
+
+		if shearplanes = 1 or fastenervalues["SingleShearplane"] = true then		# just indices starting with "1"
+			for i in indices(F_vRkmin, 'nolist') do 
+				if substring(i, 1..1) = "1" then
+					if F_vRkfin = 0 or F_vRkmin[i] < F_vRkfin then
+						F_vRkfin := F_vRkmin[i];						
+					end if;
+				end if;
+			end do;
+
+		elif shearplanes = 2 then		# 1 inside part
+			for i in indices(F_vRkmin, 'nolist') do 
+				if substring(i, 1..1) = "2" then
+					if F_vRkfin = 0 or F_vRkmin[i] < F_vRkfin then
+						F_vRkfin := F_vRkmin[i];						
+					end if;
+				end if;
+			end do;
+
+			if fastenervalues["doublesided"] = true and fastenervalues["overlap"] = true then	# overlap situation, double capacity of single connection
+				F_vRkfin := F_vRkfin * 2
+			end if;
+
+		# 8.1.3(2)
+		# To be able to combine the resistance from individual shear planes in a multiple shear plane connection, the governing failure mode of the fasteners
+		# in the respective shear planes should be compatible with each other and 
+		# should not consist of a combination of failure modes (a), (b), (g) and (h) from Figure 8.2 with the other failure modes
+
+		else		# > 2 shearplanes
+
+			# check if straight of bent steel has lowest capacity
+			F_vRkfin := F_vRkmin["1ta"] * 2 + (shearplanes - 2) * F_vRkmin["2ta"];		# straight steel
+			dummy := F_vRkmin["1tb"] * 2 + (shearplanes - 2) * F_vRkmin["2tb"];			# bent steel
+
+			if F_vRkfin < dummy then
+				comments["F_vRkmin"] := "Fv,Rk acc. to 8.2.2, straight steel"
+			else
+				F_vRkfin := dummy;
+				comments["F_vRkmin"] := "Fv,Rk acc. to 8.2.2, bent steel"
+			end if;		
+
 		end if;
 
 		comments["F_vRk_steel"] := evaln(comments["F_vRk_steel"]);
 		
-	else	# (8.2.3) steel either on inside our outside
+	# (8.2.3) steel either on inside our outside
+	else	
 
 		f_hk["1"] := calculate_f_hk(WhateverYouNeed, "1", alpha["1"]);		# only used if timber is outside
 
-		t_eff["1o"] := fastenervalues["t_eff"]["1"]
+		t_eff["1o"] := fastenervalues["t_eff"]["1"];
 		if b1outside <> "false" and b1outside < t_eff["1o"] then			# only possible with timber outside / steel inside	
 			t_eff["1o"] := b1outside
 		end if;	
@@ -172,7 +212,8 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 		# if connection with >=3 inside layers, t_eff["2"] = 0 (steel inside in connection)
 		# need to calculate j - m with t_eff["1"], calculating capacity of part of the connection
 
-		if t_eff["2"] = 0 and connectionInsideLayers >= 3 then
+		# if t_eff["2"] = 0 and connectionInsideLayers >= 3 then
+		if connection["connection2"] = "Steel" and connectionInsideLayers >= 3 then		
 			
 			F_vRk["j"] := evalf(0.5 * f_hk["1"] * t_eff["1"] * d);
 
@@ -183,8 +224,9 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 
 			dummy := 2.3 * sqrt(M_yRk * f_hk["1"] * d);
 			F_vRk["m"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
-			
-		else	# real situation with steel outside, timber inside
+
+		# else	# real situation with steel outside, timber inside
+		elif connection["connection1"] = "Steel" and connection["connection2"] = "Timber" then		
 			
 			f_hk["2"] := calculate_f_hk(WhateverYouNeed, "2", alpha["2"]);
 			
@@ -283,7 +325,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 					end if;
 				end do;
 				
-			elif connectionInsideLayers = 1 then		# timber - steel - timber with fully anchored fastener
+			elif shearplanes = 2 then		# timber - steel - timber with fully anchored fastener
 
 				for i in indices(F_vRkmin, 'nolist') do 
 					if substring(i, 1..1) = "2" then
@@ -358,7 +400,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 
 		else
 			
-			Alert("Error in calculate_F_vR", warnings, 1);
+			Alert("Error in calculate_F_vR, line 367", warnings, 1);
 			
 		end if;
 	
