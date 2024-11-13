@@ -357,7 +357,7 @@ end proc:
 
 GetActiveSectionName := proc(WhateverYouNeed::table, partsnumber::string) ::string;		# partsnumber: "", 1, 2, steel
 	description "Create activesection reading TextArea";
-	local b_, h_, sectiontype;
+	local b_, boutside_, h_, sectiontype;
 
 	if NODEFunctions:-ComponentExists(cat("TextArea_b", partsnumber)) and GetProperty(cat("TextArea_b", partsnumber), 'enabled') = "true"
 		and NODEFunctions:-ComponentExists(cat("TextArea_h", partsnumber)) and GetProperty(cat("TextArea_h", partsnumber), 'enabled') = "true" then
@@ -365,10 +365,21 @@ GetActiveSectionName := proc(WhateverYouNeed::table, partsnumber::string) ::stri
 		# sectiontype := WhateverYouNeed["materialdata"]["timbertype"];
 		sectiontype := "Rectangular";
 					
-		assign('b_', parse(GetProperty(cat("TextArea_b", partsnumber), value)));	# Combobox value is string, convert to number
-		assign('h_', parse(GetProperty(cat("TextArea_h", partsnumber), value)));
-					
-		return cat(sectiontype, " / ", b_, "x", h_);
+		b_ := parse(GetProperty(cat("TextArea_b", partsnumber), value));	# Combobox value is string, convert to number
+		h_ := parse(GetProperty(cat("TextArea_h", partsnumber), value));
+
+		if NODEFunctions:-ComponentExists(cat("TextArea_b", partsnumber, "outside")) then
+			boutside_ := parse(GetProperty(cat("TextArea_b", partsnumber, "outside"), value));
+			if b_ <> boutside_ then
+				return cat(sectiontype, " / ", b_, "(", boutside_, ")x", h_);
+			else
+				return cat(sectiontype, " / ", b_, "x", h_);
+			end if;
+		else
+			return cat(sectiontype, " / ", b_, "x", h_);
+		end if;
+			
+		
 	else
 		return "";
 		# Alert(cat("GetActiveSectionName: TextArea_b", partsnumber, " / ", cat("TextArea_h", partsnumber), " not found"), WhateverYouNeed["warnings"], 3)
@@ -378,20 +389,30 @@ end proc:
 
 GetSectiondata := proc(profilename::string, WhateverYouNeed::table)
 	description "Get section data, just rectangular sections for the moment";
-	local b, h, A, W_y, W_z, I_y, I_z, I_t, i_y, i_z;
-	local sectiontype, section, sectionproperties, sectiondata, b_, h_, i, j;
+	local b, boutside, h, A, W_y, W_z, I_y, I_z, I_t, i_y, i_z;
+	local sectiontype, section, sectionproperties, sectiondata, b_, boutside_, h_, i, j;
 
 # 	warnings := WhateverYouNeed["warnings"];
+	# Rectangular / bxh				usual name for rectangular sections
+	# Rectanbular / b(boutside)xh	name for sections with different b in ouside layer, section values calculated for main section
 
 	sectionproperties := ["h", "b", "A", "I_y", "I_z", "I_t", "W_y", "W_z", "i_y", "i_z"];
 
 	sectiontype := substring(profilename, 1 .. searchtext(" / ", profilename)-1);
 	section := substring(profilename, searchtext(" / ", profilename)+3 .. -1);	
-	b_ := parse(substring(section, 1 .. searchtext("x", section)-1));
-	h_ := parse(substring(section, searchtext("x", section)+1 .. -1));
 
-	b := b_*Unit('mm');
-	h := h_*Unit('mm');
+	if searchtext(section, "(") = 0 then
+		b_ := parse(substring(section, 1 .. searchtext("x", section)-1));	# 71x85
+		h_ := parse(substring(section, searchtext("x", section)+1 .. -1));
+	else
+		b_ := parse(substring(section, 1 .. searchtext("(", section)-1));	# 71(40)x85
+		boutside_ := parse(substring(section, searchtext("(", section)+1 .. searchtext(")", section)-1));	# 71(40)x85
+		h_ := parse(substring(section, searchtext(")", section)+1 .. -1));
+		boutside := boutside_ * Unit('mm');
+	end if;
+	
+	b := b_ * Unit('mm');
+	h := h_ * Unit('mm');
 
 	# check 6.3.3 will not work
 	# if b > h then
@@ -423,6 +444,10 @@ GetSectiondata := proc(profilename::string, WhateverYouNeed::table)
 	sectiondata["i_y"] := i_y;
 	sectiondata["i_z"] := i_z;
 	sectiondata["I_t"] := I_t;
+
+	if assigned(boutside) then 
+		sectiondata["boutside"] := boutside
+	end if;
 
 	WhateverYouNeed["sectionproperties"] := sectionproperties;
 	WhateverYouNeed["sectiondata"] := sectiondata;

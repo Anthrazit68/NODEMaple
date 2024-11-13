@@ -1859,6 +1859,10 @@ SectionChanged := proc(material::string, activesection::string, WhateverYouNeed:
 		
 		SetProperty(cat("TextArea_b", partsnumber), value, convert(convert(WhateverYouNeed["sectiondata"]["b"], 'unit_free'), string));
 		SetProperty(cat("TextArea_h", partsnumber), value, convert(WhateverYouNeed["sectiondata"]["h"], 'unit_free'));
+		if assigned(WhateverYouNeed["sectiondata"]["boutside"]) then
+			SetProperty(cat("TextArea_b", partsnumber, "outside"), value, convert(convert(WhateverYouNeed["sectiondata"]["boutside"], 'unit_free'), string));
+		end if;
+
 		updateResults(WhateverYouNeed["sectiondata"]);
 		
 		if partsnumber <> "" then
