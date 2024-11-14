@@ -37,22 +37,22 @@ EC5_622 := proc(WhateverYouNeed::table)
 	# print stuff
 	HighlightResults(WhateverYouNeed["componentvariables"]["var_resultsdetails"]["6.2.2"], "highlight");
 	if ComponentExists("TextArea_k_c90") then
-		SetProperty("TextArea_k_c90", value, round2(k_c90, 2))
+		SetProperty("TextArea_k_c90", 'value', round2(k_c90, 2))
 	end if;
 	if ComponentExists("MathContainer_A_622") then
-		SetProperty("MathContainer_A_622", value, round2(A_622, 2))
+		SetProperty("MathContainer_A_622", 'value', round2(A_622, 2))
 	end if;
 	
 	if ComponentExists("MathContainer_sigma_cad") then
-		SetProperty("MathContainer_sigma_cad", value, round2(sigma_cad, 2))
+		SetProperty("MathContainer_sigma_cad", 'value', round2(sigma_cad, 2))
 	end if;
 	
 	if ComponentExists("MathContainer_f_cad") then
-		SetProperty("MathContainer_f_cad", value, round2(f_cad, 2))
+		SetProperty("MathContainer_f_cad", 'value', round2(f_cad, 2))
 	end if;
 	
 	# if ComponentExists("TextArea_eta_622") then
-	# 	SetProperty("TextArea_eta_622", value, round2(eta_622, 2))
+	# 	SetProperty("TextArea_eta_622", 'value', round2(eta_622, 2))
 	# end if;
 	
 	return eta_622, usedcode, comments
@@ -127,8 +127,8 @@ EC5_624 := proc(WhateverYouNeed::table, k_cy, k_cz)
 
 	# if ComponentExists("TextArea_eta_619") and ComponentExists("TextArea_eta_623") then
 	#	HighlightResults({"eta_619", "eta_623"}, "highlight");
-	#	SetProperty("TextArea_eta_619", value, round2(eta_619, 2));		# (6.19/.20)
-	#	SetProperty("TextArea_eta_623", value, round2(eta_623, 2));		# (6.23/.24)
+	#	SetProperty("TextArea_eta_619", 'value', round2(eta_619, 2));		# (6.19/.20)
+	#	SetProperty("TextArea_eta_623", 'value', round2(eta_623, 2));		# (6.23/.24)
 	# end if;
 
 	if k_cy = 1 and k_cz = 1 then

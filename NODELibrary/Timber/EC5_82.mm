@@ -7,7 +7,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 	description "Calculate Fv,R according to 8.2.2";
 
 	local f_hk, t_eff, t_steel, d, F_axRk, M_yRk, shearplanes, F_vRk, F_vRd, beta, dummy, F_vRkmin, alpha_rope, gamma_M, k_mod, structure,
-	materialdataAll, sectiondataAll, comments, fastenervalues, warnings, connectionInsideLayers, i, F_vRkfin, f, b1outside, connection, OutsideLayerDifferent;
+	materialdataAll, sectiondataAll, comments, fastenervalues, warnings, connectionInsideLayers, i, F_vRkfin, f, bout1, connection, OutsideLayerDifferent;
 
 	# local variables
 	warnings := WhateverYouNeed["warnings"];
@@ -26,7 +26,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 	t_steel := sectiondataAll["steel"]["b"];
 
 	d := structure["fastener"]["fastener_d"];
-	b1outside := connection["b1outside"];
+	bout1 := connection["bout1"];
 	connectionInsideLayers := connection["connectionInsideLayers"];
 		
 	alpha_rope := calculate_alpha_rope(WhateverYouNeed);
@@ -41,8 +41,8 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 
 	# Outside layer different from other layers?
 	OutsideLayerDifferent := false;
-	if connection["connection1"] = "Timber" and b1outside <> "false" and shearplanes > 3 then
-		if b1outside <> WhateverYouNeed["sectiondataAll"]["1"]["b"] then
+	if connection["connection1"] = "Timber" and bout1 <> "false" and shearplanes > 3 then
+		if bout1 <> WhateverYouNeed["sectiondataAll"]["1"]["b"] then
 			OutsideLayerDifferent := true;
 		end if;
 	end if;	
@@ -56,8 +56,8 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 
 		# reduced thickness of outer layer will be allowed
 		t_eff["1o"] := fastenervalues["t_eff"]["1"];
-		if b1outside <> "false" and b1outside < t_eff["1o"] then			# only possible with timber outside / steel inside	
-			t_eff["1o"] := b1outside
+		if bout1 <> "false" and bout1 < t_eff["1o"] then			# only possible with timber outside / steel inside	
+			t_eff["1o"] := bout1
 		end if;	
 			
 		if shearplanes = 1 or fastenervalues["SingleShearplane"] = true or OutsideLayerDifferent then
@@ -168,8 +168,8 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 		f_hk["1"] := calculate_f_hk(WhateverYouNeed, "1", alpha["1"]);		# only used if timber is outside
 
 		t_eff["1o"] := fastenervalues["t_eff"]["1"];
-		if b1outside <> "false" and b1outside < t_eff["1o"] then			# only possible with timber outside / steel inside	
-			t_eff["1o"] := b1outside
+		if bout1 <> "false" and bout1 < t_eff["1o"] then			# only possible with timber outside / steel inside	
+			t_eff["1o"] := bout1
 		end if;	
 
 		# F_vRk
@@ -425,7 +425,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 	F_vRd := eval(F_vRkfin * k_mod / gamma_M);
 	
 	if ComponentExists("TextArea_gamma_M") then
-		SetProperty("TextArea_gamma_M", value, round2(gamma_M, 2))
+		SetProperty("TextArea_gamma_M", 'value', round2(gamma_M, 2))
 	end if;
 	
 	fastenervalues["alpha_rope"] := alpha_rope;

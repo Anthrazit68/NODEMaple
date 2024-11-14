@@ -39,8 +39,8 @@ calculate_F_vR_89_810 := proc(WhateverYouNeed::table, alpha)
 	
 	if structure["connection"]["connection1"] = "Timber" then
 		t["1"] := WhateverYouNeed["sectiondataAll"]["1"]["b"];
-		if structure["connection"]["b1outside"] <> "false" then
-			t["1outside"] := structure["connection"]["b1outside"];		
+		if structure["connection"]["bout1"] <> "false" then
+			t["1out"] := structure["connection"]["bout1"];		
 		end if;
 		rho_k["1"] := WhateverYouNeed["materialdataAll"]["1"]["rho_k"];
 		k_mod["1"] := WhateverYouNeed["materialdataAll"]["1"]["k_mod"]
@@ -64,7 +64,7 @@ calculate_F_vR_89_810 := proc(WhateverYouNeed::table, alpha)
 	if assigned(t["1"]) and t["1"] < 2.25 * he then
 		Alert("Shear connector: 8.9(2): t1(outer) < 2.25 * he", warnings, 3);
 			
-	elif assigned(t["1outside"]) and t["1outside"] < 2.25 * he then
+	elif assigned(t["1out"]) and t["1out"] < 2.25 * he then
 		Alert("Shear connector: 8.9(2): t1(outer) < 2.25 * he", warnings, 3);
 			
 	elif WhateverYouNeed["calculatedvalues"]["layers"]["1"] > 2 and t["1"] < 3.75 * he then
@@ -82,8 +82,8 @@ calculate_F_vR_89_810 := proc(WhateverYouNeed::table, alpha)
 		k1 := min(k1, t["1"] / (3 * he))
 	end if;
 	
-	if assigned(t["1outside"]) then 
-		k1 := min(k1, t["1outside"] / (3 * he))
+	if assigned(t["1out"]) then 
+		k1 := min(k1, t["1out"] / (3 * he))
 	end if;
 	
 	if assigned(t["2"]) then
@@ -180,31 +180,31 @@ calculate_F_vR_89_810 := proc(WhateverYouNeed::table, alpha)
 
 	# print
 	if ComponentExists("TextArea_ToothedPlatehc") then
-		SetProperty("TextArea_ToothedPlatehc", value, round(convert(he, unit_free)))
+		SetProperty("TextArea_ToothedPlatehc", 'value', round(convert(he, unit_free)))
 	end if;
 	
 	if ComponentExists("MathContainer_F_vRk_89_810") then
-		SetProperty("MathContainer_F_vRk_89_810", value, round2(F_vRk, 1))
+		SetProperty("MathContainer_F_vRk_89_810", 'value', round2(F_vRk, 1))
 	end if;
 
 	if ComponentExists("MathContainer_F_vRd_89_810") then
-		SetProperty("MathContainer_F_vRd_89_810", value, round2(F_vRd, 1))
+		SetProperty("MathContainer_F_vRd_89_810", 'value', round2(F_vRd, 1))
 	end if;
 	
 	if ComponentExists("TextArea_ToothedPlatek1") then
-		SetProperty("TextArea_ToothedPlatek1", value, round2(k1, 2))
+		SetProperty("TextArea_ToothedPlatek1", 'value', round2(k1, 2))
 	end if;
 
 	if ComponentExists("TextArea_ToothedPlatek2") then
-		SetProperty("TextArea_ToothedPlatek2", value, round2(k2, 2))
+		SetProperty("TextArea_ToothedPlatek2", 'value', round2(k2, 2))
 	end if;
 
 	if ComponentExists("TextArea_ToothedPlatek3") then
-		SetProperty("TextArea_ToothedPlatek3", value, round2(k3, 2))
+		SetProperty("TextArea_ToothedPlatek3", 'value', round2(k3, 2))
 	end if;
 
 	if ComponentExists("MathContainer_ToothedPlatea3t") then
-		SetProperty("MathContainer_ToothedPlatea3t", value, round(a3t))
+		SetProperty("MathContainer_ToothedPlatea3t", 'value', round(a3t))
 	end if;
 	
 end proc:

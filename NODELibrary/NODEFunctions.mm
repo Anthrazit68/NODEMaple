@@ -139,7 +139,7 @@ Alert := proc(msg::string, warnings::table, level::integer)
 			end if;
 		end do;
 	
-		SetProperty("TextArea_warnings", value, dummy);
+		SetProperty("TextArea_warnings", 'value', dummy);
 	end if;
 	
 end proc:
@@ -160,7 +160,7 @@ PrintAlert := proc(warnings::table)
 			end if;
 		end do;
 	
-		SetProperty("TextArea_warnings", value, dummy);		
+		SetProperty("TextArea_warnings", 'value', dummy);		
 	end if;
 	
 end proc:
@@ -198,7 +198,7 @@ ResetComponent := proc(var::set)
 	for i in var do
 	
 		if ComponentExists(cat("TextArea_", i)) then
-			SetProperty(cat("TextArea_", i), value, 0);
+			SetProperty(cat("TextArea_", i), 'value', 0);
 		elif ComponentExists(cat("ComboBox_", i)) then
 			SetProperty(cat("ComboBox_", i), 'itemlist', [""]);
 		elif ComponentExists(cat("CheckBox_", i)) then
@@ -237,7 +237,7 @@ WriteValueToComponent := proc(compvariable::string, b, check_calculations::set)
 		if componentvalue = "false" or componentvalue = false then
 			SetProperty(cat("TextArea_", compvariable), 'enabled', "false");
 		else
-			SetProperty(cat("TextArea_", compvariable), value, componentvalue);
+			SetProperty(cat("TextArea_", compvariable), 'value', componentvalue);
 			SyncSliderWithTextArea(compvariable)		# there could be a slider to be adjusted as well
 		end if;
 		if checkvar then
@@ -265,7 +265,7 @@ WriteValueToComponent := proc(compvariable::string, b, check_calculations::set)
 		end if;
 
 	elif ComponentExists(cat("CheckBox_", compvariable)) then
-		SetProperty(cat("CheckBox_", compvariable), value, componentvalue);
+		SetProperty(cat("CheckBox_", compvariable), 'value', componentvalue);
 		if checkvar then
 			upd_check_calculations := upd_check_calculations minus {compvariable};
 		end if;
@@ -273,11 +273,11 @@ WriteValueToComponent := proc(compvariable::string, b, check_calculations::set)
 	# contrary to other fields, slider values must be numeric, not string!
 	elif ComponentExists(cat("Slider_", compvariable)) then
 		if type(componentvalue, string) then
-			SetProperty(cat("Slider_", compvariable), value, parse(componentvalue))
+			SetProperty(cat("Slider_", compvariable), 'value', parse(componentvalue))
 		elif type(componentvalue, numeric) then
-			SetProperty(cat("Slider_", compvariable), value, componentvalue)
+			SetProperty(cat("Slider_", compvariable), 'value', componentvalue)
 		elif type(componentvalue, with_unit) then
-			SetProperty(cat("Slider_", compvariable), value, convert(componentvalue, 'unit_free'))
+			SetProperty(cat("Slider_", compvariable), 'value', convert(componentvalue, 'unit_free'))
 		else
 			Alert("Can't set value to slider component", table(), 1)
 		end if;
@@ -305,7 +305,7 @@ WriteValueToComponent := proc(compvariable::string, b, check_calculations::set)
 				end if;
 			end if;
 		elif searchtext("CheckBox", compvariable) = 1 then
-			DocumentTools:-SetProperty(compvariable, value, componentvalue);
+			DocumentTools:-SetProperty(compvariable, 'value', componentvalue);
 			if checkvar then
 				upd_check_calculations := upd_check_calculations minus {compvariable};
 			end if;
@@ -331,17 +331,17 @@ updateResults := proc(data::table)
 	for i in indices(data, 'nolist') do
 		
 		if ComponentExists(cat("MathContainer_", i)) then
-			SetProperty(cat("MathContainer_", i), value, round2(data[i], 1))
+			SetProperty(cat("MathContainer_", i), 'value', round2(data[i], 1))
 			
 		elif ComponentExists(cat("TextArea_", i)) then
 			if type(data[i], float) then	# concrete, epsilon etc.
-				SetProperty(cat("TextArea_", i), value, MapleTA:-Builtin:-numfmt("0.0000", data[i]))
+				SetProperty(cat("TextArea_", i), 'value', MapleTA:-Builtin:-numfmt("0.0000", data[i]))
 				
 			elif type(data[i], string) then
-				SetProperty(cat("TextArea_", i), value, data[i])
+				SetProperty(cat("TextArea_", i), 'value', data[i])
 				
 			elif SearchText("*Units:-Unit", convert(data[i], string)) > 0 then		# check if data has units, then remove unit from value
-				SetProperty(cat("TextArea_", i), value, convert(data[i], 'unit_free'))
+				SetProperty(cat("TextArea_", i), 'value', convert(data[i], 'unit_free'))
 
 			else
 				#
@@ -778,7 +778,7 @@ end if;
 
 if action = "all" or action = "GetLoadcase" or action = "calculateAllLoadcasesCleanup" then
 	if ComponentExists("ComboBox_loadcases") and ComponentExists("TextArea_activeloadcase") then
-		SetProperty("TextArea_activeloadcase", value, GetProperty("ComboBox_loadcases", value));
+		SetProperty("TextArea_activeloadcase", 'value', GetProperty("ComboBox_loadcases", value));
 	end if;
 	if ComponentExists("TextArea_activeloadcase") then
 		activeloadcase := GetProperty("TextArea_activeloadcase", value);
@@ -808,7 +808,7 @@ elif action = "StoreLoadcase" then
 elif action = "DeleteLoadcase" then
 	NODEFunctions:-ModifyLoadcases("ComboBox_loadcases", "Delete", loadvariables, loadcases, activeloadcase);
 	SetProperty("ComboBox_loadcases", 'selectedindex', 0);
-	SetProperty("TextArea_activeloadcase", value, GetProperty("ComboBox_loadcases", value));
+	SetProperty("TextArea_activeloadcase", 'value', GetProperty("ComboBox_loadcases", value));
 	activeloadcase := GetProperty("TextArea_activeloadcase", value);
 	WriteLoadsToDocument(activeloadcase, WhateverYouNeed);		# get stored load values and write values to document
 	
@@ -821,17 +821,17 @@ elif action = "ResetLoadcase" then
 		SetProperty("ComboBox_loadcases", 'selectedindex', 0)
 	end if;
 	if ComponentExists("TextArea_activeloadcase") then
-		SetProperty("TextArea_activeloadcase", value, activeloadcase)
+		SetProperty("TextArea_activeloadcase", 'value', activeloadcase)
 	end if;
 	for i in loadvariables do
 		dummy := cat("TextArea_", i);
 		if ComponentExists(dummy) then
 			SetProperty(dummy, 'enabled', true);
-			SetProperty(dummy, value, 0);
+			SetProperty(dummy, 'value', 0);
 		elif ComponentExists(cat("Slider_", i)) then
 			dummy := cat("Slider_", i);
 			SetProperty(dummy, 'enabled', true);
-			SetProperty(dummy, value, 0);
+			SetProperty(dummy, 'value', 0);
 		end if;
 	end do;
 	CalculateLoads(activeloadcase, true, "verify", WhateverYouNeed);
@@ -1081,10 +1081,10 @@ CalculateLoads := proc(loadcase::string, loadsaving::boolean, action::string, Wh
 	gamma_Q := 1.5;
 
 	if ComponentExists("TextArea_gamma_G") then
-		SetProperty("TextArea_gamma_G", value, gamma_G)
+		SetProperty("TextArea_gamma_G", 'value', gamma_G)
 	end if;
 	if ComponentExists("TextArea_gamma_Q") then
-		SetProperty("TextArea_gamma_Q", value, gamma_Q)
+		SetProperty("TextArea_gamma_Q", 'value', gamma_Q)
 	end if;
 
 	# splitting loads from nonloads, stripping loadnames
@@ -1154,19 +1154,19 @@ CalculateLoads := proc(loadcase::string, loadsaving::boolean, action::string, Wh
 			if definedCharacteristic then
 				if load_d_calculated <> load_d then				
 					if action = "calculate" then
-						SetProperty(cat("TextArea_", loadcase_d), value, convert(load_d_calculated, 'unit_free'));
+						SetProperty(cat("TextArea_", loadcase_d), 'value', convert(load_d_calculated, 'unit_free'));
 						
 					elif action = "verify" then
 
-						# if just load_d has value, apparently it comes from Excel file, fix visibility of characteristic TextAreas
+						# if just load_d has 'value', apparently it comes from Excel file, fix visibility of characteristic TextAreas
 						if load_Gk = 0 and load_Qk = 0 and load_d <> 0 then
-							SetProperty(cat("TextArea_", loadcase_d), value, convert(load_d, 'unit_free'));
+							SetProperty(cat("TextArea_", loadcase_d), 'value', convert(load_d, 'unit_free'));
 							SetProperty(cat("TextArea_", loadcase_Gk), 'enabled', "false");
 							SetProperty(cat("TextArea_", loadcase_Qk), 'enabled', "false");
 
 						# if design is 0, and characteristic not, do calculation
 						elif (load_Gk <> 0 or load_Qk <> 0) and load_d = 0 then
-							SetProperty(cat("TextArea_", loadcase_d), value, convert(load_d_calculated, 'unit_free'));
+							SetProperty(cat("TextArea_", loadcase_d), 'value', convert(load_d_calculated, 'unit_free'));
 						
 						else
 							Alert(cat("loadcase: ", loadcase, ", load: ", i, ": gamma_G * ", load_Gk, " + gamma_Q * ", load_Qk, " <> ", load_d), warnings, 3)
@@ -1335,7 +1335,7 @@ if type(WhateverYouNeed["results"]["etamax"], table) then
 				SetProperty(cat("TextArea_eta", dummy, "_max"), 'fontcolor', "Green");				
 			end if;
 			
-			SetProperty(cat("TextArea_eta", dummy, "_max"), value, round2(etamax[dummy], 2));								
+			SetProperty(cat("TextArea_eta", dummy, "_max"), 'value', round2(etamax[dummy], 2));								
 		end if;
 	end do;
 	
@@ -1353,19 +1353,19 @@ else
 			SetProperty("TextArea_etamax", 'fontcolor', "Green");
 		end if;
 		SetProperty("TextArea_etamax", 'enabled', "true");
-		SetProperty("TextArea_etamax", value, round2(etamax["max"], 2));
+		SetProperty("TextArea_etamax", 'value', round2(etamax["max"], 2));
 	end if;
 	
 end if;
 
 if ComponentExists("TextArea_loadcaseMax") then
 	SetProperty("TextArea_loadcaseMax", 'enabled', "true");
-	SetProperty("TextArea_loadcaseMax", value, loadcaseMax)
+	SetProperty("TextArea_loadcaseMax", 'value', loadcaseMax)
 end if;
 
 if ComponentExists("TextArea_warningsAll") then
 	SetProperty("TextArea_warningsAll", 'enabled', "true");
-	SetProperty("TextArea_warningsAll", value, warningsAll);
+	SetProperty("TextArea_warningsAll", 'value', warningsAll);
 end if;
 
 if hasindex(WhateverYouNeed["results"], "FastenerGroup") then
@@ -1378,7 +1378,7 @@ WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"] := activeloa
 # WriteLoadsToDocument(loadcase, WhateverYouNeed);	
 # Main(WhateverYouNeed);
 
-# SetProperty("TextArea_activeloadcase", value, activeloadcase);
+# SetProperty("TextArea_activeloadcase", 'value', activeloadcase);
 # MainCommon("calculateAllLoadcasesCleanup");
 MainCommon("calculateAllLoadcasesCleanup")
 end proc:
@@ -1416,26 +1416,26 @@ WriteLoadsToDocument := proc(loadcase, WhateverYouNeed::table)
 	loadvariables := WhateverYouNeed["calculations"]["loadvariables"];
 	loadcases := WhateverYouNeed["calculations"]["loadcases"];
 
-	SetProperty("TextArea_activeloadcase", value, loadcase);
+	SetProperty("TextArea_activeloadcase", 'value', loadcase);
 
 	for i in loadvariables do
 		if ComponentExists(cat("TextArea_", i)) then
 			dummy := cat("TextArea_", i);	
 			if assigned(loadcases[loadcase][i]) then
 				if type(loadcases[loadcase][i], boolean) or (type(loadcases[loadcase][i], string) and loadcases[loadcase][i] = "false") then # must be false
-					SetProperty(dummy, value, "0");
+					SetProperty(dummy, 'value', "0");
 					SetProperty(dummy, 'enabled', false);
 				else									# loadcases do also store 'enabled' property now
 					SetProperty(dummy, 'enabled', true);
-					SetProperty(dummy, value, convert(loadcases[loadcase][i], 'unit_free'));						
+					SetProperty(dummy, 'value', convert(loadcases[loadcase][i], 'unit_free'));						
 				end if;
 			else 
-				SetProperty(dummy, value, "0");
+				SetProperty(dummy, 'value', "0");
 				SetProperty(dummy, 'enabled', false);
 			end if;
 	
 		elif ComponentExists(cat("Slider_", i)) then
-			SetProperty(cat("Slider_", i), value, convert(loadcases[loadcase][i], 'unit_free'));		
+			SetProperty(cat("Slider_", i), 'value', convert(loadcases[loadcase][i], 'unit_free'));		
 		else
 			Alert(cat("Error in WriteLoadsToDocument with ", i), WhateverYouNeed["warnings"], 5)
 		end if;
@@ -1457,8 +1457,8 @@ SetVisibilityTextAreaLoads := proc(loadvar::string)
 			SetProperty(cat("TextArea_", loadvar, "Qk"), 'enabled', true);
 			activated := true
 		else
-			# SetProperty(cat("TextArea_", loadvar, "_Gk"), value, "0");
-			# SetProperty(cat("TextArea_", loadvar, "_Qk"), value, "0");
+			# SetProperty(cat("TextArea_", loadvar, "_Gk"), 'value', "0");
+			# SetProperty(cat("TextArea_", loadvar, "_Qk"), 'value', "0");
 
 			SetProperty(cat("TextArea_", loadvar, "Gk"), 'enabled', false);
 			SetProperty(cat("TextArea_", loadvar, "Qk"), 'enabled', false);
@@ -1582,7 +1582,7 @@ ExcelFileInOut := proc(action::string, WhateverYouNeed::table) :: string;
 		for i from 2 to upperbound(loaddata)[1] do
 		
 			loadname := convert(loaddata[i][1], string);
-			SetProperty("TextArea_activeloadcase", value, loadname);
+			SetProperty("TextArea_activeloadcase", 'value', loadname);
 		
 			if loadname <> "" then
 			
@@ -1600,14 +1600,14 @@ ExcelFileInOut := proc(action::string, WhateverYouNeed::table) :: string;
 							SetProperty(cat("TextArea_", j), 'enabled', "false")
 						else
 							SetProperty(cat("TextArea_", j), 'enabled', "true");
-							SetProperty(cat("TextArea_", j), value, cellvalue)
+							SetProperty(cat("TextArea_", j), 'value', cellvalue)
 						end if
 					elif ComponentExists(cat("Slider_", j)) then
 						if cellvalue = "false" then
 							SetProperty(cat("Slider_", j), 'enabled', "false")
 						else
 							SetProperty(cat("Slider_", j), 'enabled', "true");
-							SetProperty(cat("Slider_", j), value, cellvalue)
+							SetProperty(cat("Slider_", j), 'value', cellvalue)
 						end if
 					end if;					
 				end do;
@@ -1632,7 +1632,7 @@ ExcelFileInOut := proc(action::string, WhateverYouNeed::table) :: string;
 
 				if ComponentExists("TextArea_coordinates") then
 					SetProperty("TextArea_coordinates", 'enabled', "true");
-					SetProperty("TextArea_coordinates", value, convert(dummy, string));
+					SetProperty("TextArea_coordinates", 'value', convert(dummy, string));
 					if ComponentExists("ComboBox_FastenerPatternType") then
 						selindex := ListTools:-Search("coordinates", GetProperty("ComboBox_FastenerPatternType", 'itemList')) - 1;	# index of "coordinates" in Combobox
 						SetProperty("ComboBox_FastenerPatternType", 'selectedindex', selindex)
@@ -1670,7 +1670,7 @@ Write_eta := proc(WhateverYouNeed::table)
 					SetProperty(cat("TextArea_eta", dummy, "_active"), 'fontcolor', "Green");				
 				end if;
 			
-				SetProperty(cat("TextArea_eta", dummy, "_active"), value, round2(eta[dummy], 2));
+				SetProperty(cat("TextArea_eta", dummy, "_active"), 'value', round2(eta[dummy], 2));
 
 			elif ComponentExists(cat("TextArea_eta", dummy)) then
 
@@ -1684,12 +1684,12 @@ Write_eta := proc(WhateverYouNeed::table)
 					SetProperty(cat("TextArea_eta", dummy), 'fontcolor', "Green");				
 				end if;
 			
-				SetProperty(cat("TextArea_eta", dummy), value, round2(eta[dummy], 2));
+				SetProperty(cat("TextArea_eta", dummy), 'value', round2(eta[dummy], 2));
 				
 			end if;
 
 			if ComponentExists("TextArea_Printactiveloadcase") then
-				SetProperty("TextArea_Printactiveloadcase", value, WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"]);
+				SetProperty("TextArea_Printactiveloadcase", 'value', WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"]);
 			end if;
 																
 		end if;
@@ -1708,7 +1708,7 @@ Write_eta := proc(WhateverYouNeed::table)
 		dummy := substring(dummy, 4..-1);		# eliminate  /  at the start
 	end if;
 	if ComponentExists("TextArea_comments") then
-		SetProperty("TextArea_comments", value, dummy);
+		SetProperty("TextArea_comments", 'value', dummy);
 	end if;
 
 	
@@ -1720,15 +1720,15 @@ Write_eta2 := proc(eta, usedcode::string, comments, loadcase)
 	description "Write color coded eta values to document";
 
 	if ComponentExists("TextArea_activeloadcase") then
-		SetProperty("TextArea_activeloadcase", value, loadcase)
+		SetProperty("TextArea_activeloadcase", 'value', loadcase)
 	end if;
 
 	if ComponentExists("TextArea_usedcode") then
-		SetProperty("TextArea_usedcode", value, usedcode)
+		SetProperty("TextArea_usedcode", 'value', usedcode)
 	end if;
 
 	if ComponentExists("TextArea_eta") then
-		SetProperty("TextArea_eta", value, round2(eta,2));
+		SetProperty("TextArea_eta", 'value', round2(eta,2));
 		if eta > 1 then 
 			SetProperty("TextArea_eta", 'fontcolor', "Red");
 		elif eta > 0.9 then
@@ -1739,11 +1739,11 @@ Write_eta2 := proc(eta, usedcode::string, comments, loadcase)
 	end if;
 
 	if ComponentExists("TextArea_Printactiveloadcase") then
-		SetProperty("TextArea_Printactiveloadcase", value, loadcase);
+		SetProperty("TextArea_Printactiveloadcase", 'value', loadcase);
 	end if;
 
 	if ComponentExists("TextArea_comments") then
-		SetProperty("TextArea_comments", value, comments)
+		SetProperty("TextArea_comments", 'value', comments)
 	end if;
 
 end proc:
@@ -1753,7 +1753,7 @@ SyncSliderWithTextArea := proc(i::string)
 	description "synchronize sliders with text values";
 	
 	if ComponentExists(cat("Slider_", i)) and ComponentExists(cat("TextArea_", i)) then
-		SetProperty(cat("Slider_", i), value, parse(GetProperty(cat("TextArea_", i), value)))
+		SetProperty(cat("Slider_", i), 'value', parse(GetProperty(cat("TextArea_", i), value)))
 	end if;		
 end proc:
 
@@ -1773,7 +1773,7 @@ MaterialChanged := proc(material::string, activematerial::string, WhateverYouNee
 	end if;
 
 	if ComponentExists(cat("TextArea_activematerial", partsnumber)) then
-		SetProperty(cat("TextArea_activematerial", partsnumber), value, activematerial);
+		SetProperty(cat("TextArea_activematerial", partsnumber), 'value', activematerial);
 		# WhateverYouNeed["calculations"]["activesettings"][cat("activematerial", partsnumber)] := activematerial		# this erases other stuff and I don't know why
 		activesettings[cat("activematerial", partsnumber)] := activematerial
 	end if;
@@ -1835,7 +1835,7 @@ SectionChanged := proc(material::string, activesection::string, WhateverYouNeed:
 	activesettings := WhateverYouNeed["calculations"]["activesettings"];
 
 	if ComponentExists(cat("TextArea_activesection", partsnumber)) then
-		SetProperty(cat("TextArea_activesection", partsnumber), value, activesection);
+		SetProperty(cat("TextArea_activesection", partsnumber), 'value', activesection);
 		activesettings[cat("activesection", partsnumber)] := activesection
 	end if;
 	
@@ -1857,10 +1857,14 @@ SectionChanged := proc(material::string, activesection::string, WhateverYouNeed:
 			NODESteelEN1993:-GetSectiondata(activesection, WhateverYouNeed);			
 		end if;
 		
-		SetProperty(cat("TextArea_b", partsnumber), value, convert(convert(WhateverYouNeed["sectiondata"]["b"], 'unit_free'), string));
-		SetProperty(cat("TextArea_h", partsnumber), value, convert(WhateverYouNeed["sectiondata"]["h"], 'unit_free'));
-		if assigned(WhateverYouNeed["sectiondata"]["boutside"]) then
-			SetProperty(cat("TextArea_b", partsnumber, "outside"), value, convert(convert(WhateverYouNeed["sectiondata"]["boutside"], 'unit_free'), string));
+		SetProperty(cat("TextArea_b", partsnumber), 'value', convert(convert(WhateverYouNeed["sectiondata"]["b"], 'unit_free'), string));
+		SetProperty(cat("TextArea_h", partsnumber), 'value', convert(WhateverYouNeed["sectiondata"]["h"], 'unit_free'));
+		if assigned(WhateverYouNeed["sectiondata"]["bout"]) then
+			if WhateverYouNeed["sectiondata"]["bout"] <> "false" then
+				SetProperty(cat("TextArea_bout", partsnumber), 'value', convert(convert(WhateverYouNeed["sectiondata"]["bout"], 'unit_free'), string));
+			else
+				SetProperty(cat("TextArea_bout", partsnumber), 'enabled', "false")
+			end if;
 		end if;
 
 		updateResults(WhateverYouNeed["sectiondata"]);
@@ -1903,7 +1907,7 @@ LibInitCommon := proc(WhateverYouNeed, calculationtype)
 	calculations["calculationtype"] := calculationtype;
 	
 	if ComponentExists("TextArea_calculationtype") then
-		SetProperty("TextArea_calculationtype", value, calculationtype)
+		SetProperty("TextArea_calculationtype", 'value', calculationtype)
 	end if;
 
 	#componentvariables

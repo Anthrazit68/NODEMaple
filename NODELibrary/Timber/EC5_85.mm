@@ -27,12 +27,12 @@
 		
 #		dummy := cat("MathContainer_f_h0k", part);
 #		if ComponentExists(dummy) then
-#			SetProperty(dummy, value, round2(f_h0k[part], 1))
+#			SetProperty(dummy, 'value', round2(f_h0k[part], 1))
 #		end if;
 
 #		dummy := cat("MathContainer_f_hk", part);
 #		if ComponentExists(dummy) then
-#			SetProperty(dummy, value, round2(f_hk[part], 1))
+#			SetProperty(dummy, 'value', round2(f_hk[part], 1))
 #		end if;
 	
 #	end do;
@@ -62,7 +62,7 @@ calculate_f_hk := proc(WhateverYouNeed::table, part::string, alpha)
 		
 		dummy := cat("MathContainer_f_hk", part);
 		if ComponentExists(dummy) then
-			SetProperty(dummy, value, round2(f_h0k, 1))
+			SetProperty(dummy, 'value', round2(f_h0k, 1))
 		end if;
 
 		f_hk := f_h0k;

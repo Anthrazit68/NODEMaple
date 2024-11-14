@@ -22,7 +22,7 @@ end proc:
 
 calculate_t_total := proc(WhateverYouNeed::table)
 	description "Calculate total thickness";
-	local dummy, t, t_steel, t_total, numberOfLayers, structure, sectiondataAll, plural, layer1, layer1outside, layer2, layerSteel, tolerance, shearplanes, layerTolerance, connection;
+	local dummy, t, t_steel, t_total, numberOfLayers, structure, sectiondataAll, plural, layer1, layer1out, layer2, layerSteel, tolerance, shearplanes, layerTolerance, connection;
 
 	sectiondataAll := WhateverYouNeed["sectiondataAll"];
 	structure := WhateverYouNeed["calculations"]["structure"];
@@ -31,14 +31,18 @@ calculate_t_total := proc(WhateverYouNeed::table)
 	t := table();
 	t["1"] := sectiondataAll["1"]["b"];
 	t["2"] := sectiondataAll["2"]["b"];
-	t["1outside"] := connection["b1outside"];
+	if connection["bout1"] <> "false" then
+		t["1out"] := connection["bout1"];
+	else
+		t["1out"] := 0
+	end if;
 	t_steel := sectiondataAll["steel"]["b"];
 	tolerance := connection["connectionInsideTolerance"];
 	shearplanes := WhateverYouNeed["calculatedvalues"]["fastenervalues"]["shearplanes"];
 	numberOfLayers := table();
 
 	layer1 := cat(convert(t["1"], 'unit_free'),"mm timber");	
-	layer1outside := cat(convert(t["1outside"], 'unit_free'),"mm timber");
+	layer1out := cat(convert(t["1out"], 'unit_free'),"mm timber");
 	cat(round(convert(t["1"], 'unit_free') / 2),"mm timber");
 	layer2 := cat(convert(t["2"], 'unit_free'),"mm timber");
 	layerSteel := cat(convert(t_steel, 'unit_free'),"mm steel");
@@ -78,20 +82,20 @@ calculate_t_total := proc(WhateverYouNeed::table)
 				numberOfLayers["steel"] := 0;
 
 				# t_total
-				if connection["b1outside"] = "false" then
+				if connection["bout1"] = "false" then
 					t_total := numberOfLayers["1"] * t["1"] + numberOfLayers["2"] * t["2"] + shearplanes * tolerance;
 				else
-					t_total := 2 * t["1outside"] + (numberOfLayers["1"] - 2) * t["1"] + numberOfLayers["2"] * t["2"] + shearplanes * tolerance;
+					t_total := 2 * t["1out"] + (numberOfLayers["1"] - 2) * t["1"] + numberOfLayers["2"] * t["2"] + shearplanes * tolerance;
 				end if;
 
 				# text
 				if connection["connectionInsideLayers"] = 1 then					
 					dummy := cat(layer1, " + ", layer2, " + ", layer1, layerTolerance)
 				else
-					if connection["b1outside"] = "false" then
+					if connection["bout1"] = "false" then
 						dummy := cat(numberOfLayers["1"], "*", layer1, " + ", numberOfLayers["2"], "*", layer2, layerTolerance)
 					else
-						dummy := cat("2*", layer1outside, " + ", numberOfLayers["1"]-2, "*", layer1, " + ", numberOfLayers["2"], "*", layer2, layerTolerance)						
+						dummy := cat("2*", layer1out, " + ", numberOfLayers["1"]-2, "*", layer1, " + ", numberOfLayers["2"], "*", layer2, layerTolerance)						
 					end if;
 				end if;
 
@@ -101,20 +105,20 @@ calculate_t_total := proc(WhateverYouNeed::table)
 				numberOfLayers["steel"] := trunc(connection["connectionInsideLayers"] / 2) + 1;		# number of steellayers in part 2
 
 				# t_total
-				if connection["b1outside"] = "false" then					
+				if connection["bout1"] = "false" then					
 					t_total := numberOfLayers["1"] * t["1"] + numberOfLayers["steel"] * t_steel + shearplanes * tolerance;
 				else
-					t_total := 2 * t["1outside"] + (numberOfLayers["1"] - 2) * t["1"] + numberOfLayers["steel"] * t_steel + shearplanes * tolerance;
+					t_total := 2 * t["1out"] + (numberOfLayers["1"] - 2) * t["1"] + numberOfLayers["steel"] * t_steel + shearplanes * tolerance;
 				end if;				
 
 				# text
 				if connection["connectionInsideLayers"] = 1 then					
 					dummy := cat(layer1, " + ", layerSteel, " + ", layer1, layerTolerance)
 				else
-					if connection["b1outside"] = "false" then
+					if connection["bout1"] = "false" then
 						dummy := cat(numberOfLayers["1"], "*", layer1, " + ", numberOfLayers["steel"], "*", layerSteel, layerTolerance)
 					else
-						dummy := cat("2*", layer1outside, " + ", numberOfLayers["1"]-2, "*", layer1, " + ", numberOfLayers["steel"], "*", layerSteel, layerTolerance)						
+						dummy := cat("2*", layer1out, " + ", numberOfLayers["1"]-2, "*", layer1, " + ", numberOfLayers["steel"], "*", layerSteel, layerTolerance)						
 					end if;
 				end if;
 			
@@ -138,7 +142,7 @@ calculate_t_total := proc(WhateverYouNeed::table)
 		plural := "s"
 	end if;
 	dummy := cat(WhateverYouNeed["calculatedvalues"]["fastenervalues"]["shearplanes"], " shearplane", plural, ": ",SubstituteAll(dummy, "1x", ""), " = ",convert(t_total, 'unit_free'), "mm");		# trenger ikke 1x
-	SetProperty("TextArea_ConnectionBuildup", value, convert(dummy, string));
+	SetProperty("TextArea_ConnectionBuildup", 'value', convert(dummy, string));
 
 	WhateverYouNeed["calculatedvalues"]["t_total"] := t_total;					# total thickness of connection without tolerance
 	WhateverYouNeed["calculatedvalues"]["layers"] := eval(numberOfLayers);		# number of timber layers in connection
@@ -289,44 +293,44 @@ calculate_F_90R := proc(WhateverYouNeed::table)
 
 		# printing
 		if ComponentExists(cat("MathContainer_F_90Rd", part)) then
-			SetProperty(cat("MathContainer_F_90Rd", part), value, round2(F_90Rd[part], 1));
+			SetProperty(cat("MathContainer_F_90Rd", part), 'value', round2(F_90Rd[part], 1));
 		end if;
 
 		if ComponentExists(cat("MathContainer_h_e", part)) then
-			SetProperty(cat("MathContainer_h_e", part), value, round2(h_e[part] * Unit('mm'), 1));
+			SetProperty(cat("MathContainer_h_e", part), 'value', round2(h_e[part] * Unit('mm'), 1));
 		end if;
 
 		if ComponentExists(cat("TextArea_h_e_side", part)) then
-			SetProperty(cat("TextArea_h_e_side", part), value, h_e_side);
+			SetProperty(cat("TextArea_h_e_side", part), 'value', h_e_side);
 		end if;
 
 		if ComponentExists(cat("TextArea_w", part)) then
-			SetProperty(cat("TextArea_w", part), value, round2(w_, 2));
+			SetProperty(cat("TextArea_w", part), 'value', round2(w_, 2));
 		end if;
 
 		if ComponentExists(cat("TextArea_k_r", part)) then
-			SetProperty(cat("TextArea_k_r", part), value, round2(k_r[part], 2));
+			SetProperty(cat("TextArea_k_r", part), 'value', round2(k_r[part], 2));
 		end if;
 
 		if ComponentExists(cat("MathContainer_a_r", part)) then
-			SetProperty(cat("MathContainer_a_r", part), value, round(a_r[part]));
+			SetProperty(cat("MathContainer_a_r", part), 'value', round(a_r[part]));
 		end if;
 
 		if ComponentExists(cat("TextArea_k_s", part)) then
-			SetProperty(cat("TextArea_k_s", part), value, round2(k_s[part], 2));
+			SetProperty(cat("TextArea_k_s", part), 'value', round2(k_s[part], 2));
 		end if;
 
 		if ComponentExists(cat("MathContainer_t_ef_814_NA_DE", part)) then
-			SetProperty(cat("MathContainer_t_ef_814_NA_DE", part), value, round2(t_ef_814_NA_DE[part], 2));
+			SetProperty(cat("MathContainer_t_ef_814_NA_DE", part), 'value', round2(t_ef_814_NA_DE[part], 2));
 		end if;
 		
 		if ComponentExists(cat("MathContainer_F_90Rd_NA_DE", part)) then
-			SetProperty(cat("MathContainer_F_90Rd_NA_DE", part), value, round2(convert(F_90Rd_NA_DE[part], 'units', 'kN'), 1));
+			SetProperty(cat("MathContainer_F_90Rd_NA_DE", part), 'value', round2(convert(F_90Rd_NA_DE[part], 'units', 'kN'), 1));
 		end if;
 	end do;
 
 	# if ComponentExists("TextArea_gamma_M") then
-	#	SetProperty("TextArea_gamma_M", value, round2(gamma_M, 2))
+	#	SetProperty("TextArea_gamma_M", 'value', round2(gamma_M, 2))
 	# end if;
 
 	fastenervalues["F_90Rk"] := eval(F_90Rk);
@@ -471,14 +475,14 @@ EC5_812 := proc(WhateverYouNeed::table)
 					# https://www.mapleprimes.com/questions/234098-Loop-Over-Table
 					for ind in indices(fastenervalues["F_vRk_ind"], 'nolist') do
 						dummy := cat("MathContainer_F_vRk", ind);
-						SetProperty(dummy, value, round2(convert(fastenervalues["F_vRk_ind"][ind], 'units', 'kN'), 1));
+						SetProperty(dummy, 'value', round2(convert(fastenervalues["F_vRk_ind"][ind], 'units', 'kN'), 1));
 					end do;
 
 					SetProperty("MathContainer_alpha_rope", 'value', fastenervalues["alpha_rope"]);
-					SetProperty("MathContainer_F_vRk", value, round2(convert(fastenervalues["F_vRk"] + fastenervalues["F_vRk_89_810"], 'units', 'kN'), 1));		# including shearplanes
-					SetProperty("MathContainer_F_vRd", value, round2(convert(fastenervalues["F_vRd"] + fastenervalues["F_vRd_89_810"], 'units', 'kN'), 1));
-					SetProperty("MathContainer_F_vefRd", value, round2(convert(F_vefRd[part], 'units', 'kN'), 1));
-					SetProperty("TextArea_FvRk_critNode", value, fastener);
+					SetProperty("MathContainer_F_vRk", 'value', round2(convert(fastenervalues["F_vRk"] + fastenervalues["F_vRk_89_810"], 'units', 'kN'), 1));		# including shearplanes
+					SetProperty("MathContainer_F_vRd", 'value', round2(convert(fastenervalues["F_vRd"] + fastenervalues["F_vRd_89_810"], 'units', 'kN'), 1));
+					SetProperty("MathContainer_F_vefRd", 'value', round2(convert(F_vefRd[part], 'units', 'kN'), 1));
+					SetProperty("TextArea_FvRk_critNode", 'value', fastener);
 
 					for i in {"1", "2"} do
 						
@@ -488,12 +492,12 @@ EC5_812 := proc(WhateverYouNeed::table)
 
 						dummy := cat("MathContainer_f_h0k", i);
 						if ComponentExists(dummy) then
-							SetProperty(dummy, value, round2(WhateverYouNeed["calculatedvalues"]["f_h0k"][i], 1))
+							SetProperty(dummy, 'value', round2(WhateverYouNeed["calculatedvalues"]["f_h0k"][i], 1))
 						end if;	
 
 						dummy := cat("MathContainer_f_hk", i);
 						if ComponentExists(dummy) then
-							SetProperty(dummy, value, round2(fastenervalues["f_hk"][i], 1))
+							SetProperty(dummy, 'value', round2(fastenervalues["f_hk"][i], 1))
 						end if;	
 						
 					end do;
@@ -514,7 +518,7 @@ EC5_812 := proc(WhateverYouNeed::table)
 		else
 			SetProperty("TextArea_eta812_active", 'fontcolor', "Green");
 		end if;
-		SetProperty("TextArea_eta812_active", value, round2(etamax, 2));
+		SetProperty("TextArea_eta812_active", 'value', round2(etamax, 2));
 	end if;
 
 
@@ -561,7 +565,7 @@ end proc:
 #					eta[part] := etaFastener; 
 					
 #					if ComponentExists(cat("MathContainer_FvefRd", part)) then
-#						SetProperty(cat("MathContainer_FvefRd", part), value, round2(F_vefRd, 1))
+#						SetProperty(cat("MathContainer_FvefRd", part), 'value', round2(F_vefRd, 1))
 #					end if;
 					
 #				end if;
@@ -614,11 +618,11 @@ EC5_814 := proc(WhateverYouNeed::table)
 			eta[part] := abs(evalf(F_vEd  / F_90Rd[part]));
 
 			if ComponentExists(cat("MathContainer_F_vEd", part)) then
-				SetProperty(cat("MathContainer_F_vEd", part), value, round2(F_vEd, 1))
+				SetProperty(cat("MathContainer_F_vEd", part), 'value', round2(F_vEd, 1))
 			end if;
 
 			if ComponentExists(cat("TextArea_eta814", part)) then
-				SetProperty(cat("TextArea_eta814", part), value, round2(eta[part], 2))
+				SetProperty(cat("TextArea_eta814", part), 'value', round2(eta[part], 2))
 			end if;
 			
 		end if;		
@@ -717,7 +721,7 @@ EC5_814_NA_DE := proc(WhateverYouNeed::table, h_e::table, a_r::table)
 
 			if ComponentExists(cat("TextArea_eta814_NA_DE", part)) then
 				SetProperty(cat("TextArea_eta814_NA_DE", part), 'enabled', true);
-				SetProperty(cat("TextArea_eta814_NA_DE", part), value, round2(eta[part], 2))
+				SetProperty(cat("TextArea_eta814_NA_DE", part), 'value', round2(eta[part], 2))
 			end if;
 
 		end if;		
@@ -735,7 +739,7 @@ end proc:
 # effect from kh not taken into account
 EC5_62net := proc(WhateverYouNeed::table)
 	description "Check net area of section, simplified";
-	local structure, sectiondataAll, d, b1outside, Anet, part, numberOfLayers, numberOfBolts, alphaBeam, activeloadcase, F_hd, F_vd, F_Ed, F_xEd, alphaForce,
+	local structure, sectiondataAll, d, bout1, Anet, part, numberOfLayers, numberOfBolts, alphaBeam, activeloadcase, F_hd, F_vd, F_Ed, F_xEd, alphaForce,
 		alpha, eta, f_t0d, usedcode, comments, fastener, intPointL, intPointR, fastenerPointlist, b, h, distance, yi, ind, I_d, I_d_part, Inet, FastenerGroup,
 		eta_F, eta_M, M_yd1, f_c0d, kh, sigma_t0d, sigma_c0d, sigma_md, f_md, connection, eqnumberOfLayers, tolerance, i,
 		A_steel, f_yd, f_ud, N_plRd, N_uRd, M_cRd;
@@ -752,7 +756,7 @@ EC5_62net := proc(WhateverYouNeed::table)
 	connection := WhateverYouNeed["calculations"]["structure"]["connection"];
 	tolerance := 1 * Unit('mm');
 
-	b1outside := connection["b1outside"];	
+	bout1 := connection["bout1"];	
 
 	if F_hd = 0 and F_vd = 0 then		# special case where either everything is zero, or we just have moments on the connection
 		alphaForce := 0;
@@ -772,10 +776,10 @@ EC5_62net := proc(WhateverYouNeed::table)
 		if structure["connection"][cat("connection", part)] = "Timber" then
 
 			if part = "1" then
-				if b1outside = "false" then
+				if bout1 = "false" then
 					eqnumberOfLayers := numberOfLayers[part]
 				else
-					eqnumberOfLayers := (numberOfLayers[part] - 2) + 2 * (b1outside / sectiondataAll[part]["b"])
+					eqnumberOfLayers := (numberOfLayers[part] - 2) + 2 * (bout1 / sectiondataAll[part]["b"])
 				end if;
 			else
 				eqnumberOfLayers := numberOfLayers[part]
@@ -786,7 +790,7 @@ EC5_62net := proc(WhateverYouNeed::table)
 			Anet[part] := eqnumberOfLayers * (sectiondataAll[part]["A"] - numberOfBolts * d * sectiondataAll[part]["b"]);
 
 			if ComponentExists(cat("TextArea_Agross_net", part)) then
-				SetProperty(cat("TextArea_Agross_net", part), value, round2((numberOfLayers[part] * sectiondataAll[part]["A"]) / Anet[part], 2))
+				SetProperty(cat("TextArea_Agross_net", part), 'value', round2((numberOfLayers[part] * sectiondataAll[part]["A"]) / Anet[part], 2))
 			end if;
 			
 		elif structure["connection"][cat("connection", part)] = "Steel" then			
@@ -806,11 +810,11 @@ EC5_62net := proc(WhateverYouNeed::table)
 			WhateverYouNeed["calculatedvalues"]["N_uRd"] := N_uRd;
 
 			if ComponentExists("MathContainer_N_plRd") then
-				SetProperty("MathContainer_N_plRd", value, round2(N_plRd, 1))
+				SetProperty("MathContainer_N_plRd", 'value', round2(N_plRd, 1))
 			end if;
 
 			if ComponentExists("MathContainer_N_uRd") then
-				SetProperty("MathContainer_N_uRd", value, round2(N_uRd, 1))
+				SetProperty("MathContainer_N_uRd", 'value', round2(N_uRd, 1))
 			end if;
 			
 		end if;
@@ -860,7 +864,7 @@ EC5_62net := proc(WhateverYouNeed::table)
 			Inet[part] := numberOfLayers[part] * (sectiondataAll[part]["I_y"] - I_d_part[part]);
 
 			if ComponentExists(cat("TextArea_Igross_net", part)) then
-				SetProperty(cat("TextArea_Igross_net", part), value, round2((numberOfLayers[part] * sectiondataAll[part]["I_y"]) / Inet[part], 2))
+				SetProperty(cat("TextArea_Igross_net", part), 'value', round2((numberOfLayers[part] * sectiondataAll[part]["I_y"]) / Inet[part], 2))
 			end if;
 
 		else
@@ -894,7 +898,7 @@ EC5_62net := proc(WhateverYouNeed::table)
 		h := sectiondataAll[part]["h"];
 			
 		if ComponentExists(cat("MathContainer_F_xEd", part)) then
-			SetProperty(cat("MathContainer_F_xEd", part), value, round2(F_xEd, 1))
+			SetProperty(cat("MathContainer_F_xEd", part), 'value', round2(F_xEd, 1))
 		end if;
 
 		if structure["connection"][cat("connection", part)] = "Timber" then
@@ -940,13 +944,13 @@ EC5_62net := proc(WhateverYouNeed::table)
 		eta[part] := eta_F + eta_M;
 			
 		if ComponentExists(cat("TextArea_eta62net", part)) then
-			SetProperty(cat("TextArea_eta62net", part), value, round2(eta[part], 2))
+			SetProperty(cat("TextArea_eta62net", part), 'value', round2(eta[part], 2))
 		end if;
 			
 	end do;
 	
 	if ComponentExists("TextArea_eta62net") then
-		SetProperty("TextArea_eta62net", value, round2(max(entries(eta)), 2))
+		SetProperty("TextArea_eta62net", 'value', round2(max(entries(eta)), 2))
 	end if;
 
 
@@ -1047,10 +1051,10 @@ BoltandSteelCapacity := proc(WhateverYouNeed::table)
 	WhateverYouNeed["calculatedvalues"]["F_bRd_steel"] := F_bRd;
 
 	if ComponentExists("MathContainer_F_vRd_bolt") then
-		SetProperty("MathContainer_F_vRd_bolt", value, round(F_vRd))
+		SetProperty("MathContainer_F_vRd_bolt", 'value', round(F_vRd))
 	end if;
 	if ComponentExists("MathContainer_F_bRd_steel") then
-		SetProperty("MathContainer_F_bRd_steel", value, round(F_bRd))
+		SetProperty("MathContainer_F_bRd_steel", 'value', round(F_bRd))
 	end if;
 
 	return max(entries(eta)), usedcode, comments;

@@ -191,12 +191,12 @@ EC5_615_EN := proc(WhateverYouNeed::table)
 	if ComponentExists("TextArea_k_c90") and ComponentExists("MathContainer_Anet") and ComponentExists("MathContainer_Aef")
 	and ComponentExists("MathContainer_f_c90d_mod") and ComponentExists("MathContainer_sigma_c90d") and ComponentExists("TextArea_eta615_EN") then
 		HighlightResults(WhateverYouNeed["componentvariables"]["var_resultsdetails"]["6.1.5"], "highlight");
-		SetProperty("TextArea_k_c90", value, k_c90);
-		SetProperty("MathContainer_Anet", value, round2(evalf(convert(A_net, 'units', 'mm^2')), 1));
-		SetProperty("MathContainer_Aef", value, round2(evalf(convert(A_ef, 'units', 'mm^2')), 1));
-		SetProperty("MathContainer_f_c90d_mod", value, round2(evalf(f_c90d_mod), 1));
-		SetProperty("MathContainer_sigma_c90d", value, round2(evalf(sigma_c90d), 1));
-		SetProperty("TextArea_eta615_EN", value, round2(eta_EN,2));
+		SetProperty("TextArea_k_c90", 'value', k_c90);
+		SetProperty("MathContainer_Anet", 'value', round2(evalf(convert(A_net, 'units', 'mm^2')), 1));
+		SetProperty("MathContainer_Aef", 'value', round2(evalf(convert(A_ef, 'units', 'mm^2')), 1));
+		SetProperty("MathContainer_f_c90d_mod", 'value', round2(evalf(f_c90d_mod), 1));
+		SetProperty("MathContainer_sigma_c90d", 'value', round2(evalf(sigma_c90d), 1));
+		SetProperty("TextArea_eta615_EN", 'value', round2(eta_EN,2));
 		if eta_EN > 1 then 
 			SetProperty("TextArea_eta615_EN", 'fontcolor', "Red");
 		elif eta_EN > 0.9 then
@@ -295,9 +295,9 @@ EC5_615_NTI := proc(WhateverYouNeed::table)
 
 	if ComponentExists("MathContainer_NTI_f_c90d_mod") and ComponentExists("MathContainer_NTI_sigma_c90d") and ComponentExists("TextArea_eta615_NTI") then
 		HighlightResults(WhateverYouNeed["componentvariables"]["var_resultsdetails"]["6.1.5"], "highlight");
-		SetProperty("MathContainer_NTI_f_c90d_mod", value, round2(evalf(f_c90d_mod), 1));
-		SetProperty("MathContainer_NTI_sigma_c90d", value, round2(evalf(sigma_c90d), 1));
-		SetProperty("TextArea_eta615_NTI", value, round2(eta_NTI,2));
+		SetProperty("MathContainer_NTI_f_c90d_mod", 'value', round2(evalf(f_c90d_mod), 1));
+		SetProperty("MathContainer_NTI_sigma_c90d", 'value', round2(evalf(sigma_c90d), 1));
+		SetProperty("TextArea_eta615_NTI", 'value', round2(eta_NTI,2));
 		if eta_NTI > 1 then 
 			SetProperty("TextArea_eta615_NTI", 'fontcolor', "Red");
 		elif eta_NTI > 0.9 then
@@ -368,12 +368,12 @@ EC5_616 := proc(WhateverYouNeed::table, k_crity, k_critz)
 
 	if ComponentExists("TextArea_k_crity") then
 		HighlightResults({"k_crity"}, "highlight");
-		SetProperty("TextArea_k_crity", value, round2(k_crity, 2))
+		SetProperty("TextArea_k_crity", 'value', round2(k_crity, 2))
 	end if;
 
 	if ComponentExists("TextArea_k_critz") then
 		HighlightResults({"k_critz"}, "highlight");
-		SetProperty("TextArea_k_critz", value, round2(k_critz, 2))
+		SetProperty("TextArea_k_critz", 'value', round2(k_critz, 2))
 	end if;
 	
 	return eta, usedcode, comments
@@ -464,9 +464,9 @@ EC5_617 := proc(WhateverYouNeed::table)
 	
 	if ComponentExists("TextArea_kcr") and ComponentExists("TextArea_kn") and ComponentExists("TextArea_kv") then 
 		HighlightResults(WhateverYouNeed["componentvariables"]["var_resultsdetails"]["6.1.7"], "highlight");
-		SetProperty("TextArea_kcr", value, round2(kcr, 2));
-		SetProperty("TextArea_kn", value, round2(kn, 2));
-		SetProperty("TextArea_kv", value, round2(k_v, 2));
+		SetProperty("TextArea_kcr", 'value', round2(kcr, 2));
+		SetProperty("TextArea_kn", 'value', round2(kn, 2));
+		SetProperty("TextArea_kv", 'value', round2(k_v, 2));
 	end if;
 	
 	return eta, usedcode, comments
@@ -503,9 +503,9 @@ EC5_618 := proc(WhateverYouNeed::table)
 
 	if ComponentExists("MathContainer_tau_tord") and ComponentExists("TextArea_k_shape") and ComponentExists("MathContainer_ksh_fvd") then
 		HighlightResults(WhateverYouNeed["componentvariables"]["var_resultsdetails"]["6.1.8"], "highlight");
-		SetProperty("MathContainer_tau_tord", value, round2(evalf(tau_tord), 1));
-		SetProperty("TextArea_k_shape", value, round2(evalf(k_shape), 1));
-		SetProperty("MathContainer_ksh_fvd", value, round2(evalf(k_shape * f_vd), 1));
+		SetProperty("MathContainer_tau_tord", 'value', round2(evalf(tau_tord), 1));
+		SetProperty("TextArea_k_shape", 'value', round2(evalf(k_shape), 1));
+		SetProperty("MathContainer_ksh_fvd", 'value', round2(evalf(k_shape * f_vd), 1));
 	end if;
 	
 	return eta, usedcode, comments

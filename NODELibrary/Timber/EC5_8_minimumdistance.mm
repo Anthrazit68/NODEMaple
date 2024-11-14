@@ -768,10 +768,10 @@ PrintMinimumdistance := proc(part, WhateverYouNeed::table)
 		end if;
 
 		if ComponentExists(cat("TextArea_", varmin)) and assigned(distance[varmin]) then
-			SetProperty(cat("TextArea_", varmin), value, round(convert(distance[varmin], 'unit_free')));
+			SetProperty(cat("TextArea_", varmin), 'value', round(convert(distance[varmin], 'unit_free')));
 		end if;
 		if ComponentExists(cat("TextArea_", varmin_max)) and assigned(distance[varmin_max]) then
-			SetProperty(cat("TextArea_", varmin_max), value, round(convert(distance[varmin_max], 'unit_free')));
+			SetProperty(cat("TextArea_", varmin_max), 'value', round(convert(distance[varmin_max], 'unit_free')));
 		end if;
 
 		# check if current distance is bigger that minimumdistance

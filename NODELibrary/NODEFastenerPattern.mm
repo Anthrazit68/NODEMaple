@@ -50,7 +50,7 @@ CalculateForcesInConnection := proc(WhateverYouNeed::table)
 	load := EccentricMoment(loadVector, centerOfFasteners, centerOfForce);			# calculate load in center of bolt group, Vector[column]
 	
 	if ComponentExists("TextArea_M_yd1") and WhateverYouNeed["calculations"]["calculatingAllLoadcases"] = false then
-		SetProperty("TextArea_M_yd1", value, round2(convert(load[3], 'unit_free'), 2))
+		SetProperty("TextArea_M_yd1", 'value', round2(convert(load[3], 'unit_free'), 2))
 	end if;
 	
 	ForcesInConnection := ForcesInPoint(load, pointList, centerOfFasteners, warnings);	# list of forces in every fastener node / Fh, Fv, Fres, alpha
@@ -68,14 +68,14 @@ CalculateForcesInConnection := proc(WhateverYouNeed::table)
 		and ComponentExists("TextArea_activeloadcase") and ComponentExists("TextArea_criticalnodeCurrentloadcase")
 		and WhateverYouNeed["calculations"]["calculatingAllLoadcases"] = false then
 			
-		SetProperty("MathContainer_Fx", value, round2(ForcesInConnection[maxFindex][1], 2));
-		SetProperty("MathContainer_Fy", value, round2(ForcesInConnection[maxFindex][2], 2));
-		SetProperty("MathContainer_F", value, round2(ForcesInConnection[maxFindex][3], 2));
-		SetProperty("MathContainer_alpha", value, round2(ForcesInConnection[maxFindex][4], 2));
-		SetProperty("TextArea_x", value, round2(FastenerGroup["Fasteners"][maxFindex][1], 2));
-		SetProperty("TextArea_y", value, round2(FastenerGroup["Fasteners"][maxFindex][2], 2));
-		SetProperty("TextArea_currentloadcase", value, GetProperty("TextArea_activeloadcase", value));
-		SetProperty("TextArea_criticalnodeCurrentloadcase", value, maxFindex);
+		SetProperty("MathContainer_Fx", 'value', round2(ForcesInConnection[maxFindex][1], 2));
+		SetProperty("MathContainer_Fy", 'value', round2(ForcesInConnection[maxFindex][2], 2));
+		SetProperty("MathContainer_F", 'value', round2(ForcesInConnection[maxFindex][3], 2));
+		SetProperty("MathContainer_alpha", 'value', round2(ForcesInConnection[maxFindex][4], 2));
+		SetProperty("TextArea_x", 'value', round2(FastenerGroup["Fasteners"][maxFindex][1], 2));
+		SetProperty("TextArea_y", 'value', round2(FastenerGroup["Fasteners"][maxFindex][2], 2));
+		SetProperty("TextArea_currentloadcase", 'value', GetProperty("TextArea_activeloadcase", value));
+		SetProperty("TextArea_criticalnodeCurrentloadcase", 'value', maxFindex);
 	end if;
 
 	# SetComponentsCriticalLoadcase("deactivate", WhateverYouNeed); # 
@@ -117,7 +117,7 @@ ModifyFastenerPattern := proc(action::string, WhateverYouNeed::table)
 			end if;	
 		end if;
 		activeFastenerPattern := GetProperty("ComboBox_FastenerPatterns", value);
-		SetProperty("TextArea_activeFastenerPattern", value, activeFastenerPattern);
+		SetProperty("TextArea_activeFastenerPattern", 'value', activeFastenerPattern);
 		for compvariable in indices(eval(FastenerPatterns[activeFastenerPattern]), 'nolist') do
 			check_calculations := WriteValueToComponent(compvariable, eval(FastenerPatterns[activeFastenerPattern][compvariable]), check_calculations)
 		end do;
@@ -533,11 +533,11 @@ PlotResults := proc(WhateverYouNeed::table)
 			end if;			
 
 		
-			SetProperty("Plot_result", value, display(geometry:-draw(geometryList), plotitems));		# combine geometry and plots elements
+			SetProperty("Plot_result", 'value', display(geometry:-draw(geometryList), plotitems));		# combine geometry and plots elements
 			
 		else	# if assigned(WhateverYouNeed["calculations"]["structure"]["connection"]) = false
 
-			SetProperty("Plot_result", value, display(displayForceVectors, annotations));		# combine geometry and plots elements
+			SetProperty("Plot_result", 'value', display(displayForceVectors, annotations));		# combine geometry and plots elements
 			
 		end if;
 		
@@ -1604,14 +1604,14 @@ SetComponentsCriticalLoadcase := proc(action::string, WhateverYouNeed::table)
 
 			maxloadedFastener := WhateverYouNeed["results"]["maxloadedFastener"];
 			
-			SetProperty("MathContainer_FxMax", value, round2(maxloadedFastener["Fx"], 2));
-			SetProperty("MathContainer_FyMax", value, round2(maxloadedFastener["Fy"], 2));
-			SetProperty("MathContainer_FMax", value, round2(maxloadedFastener["F"], 2));
-			SetProperty("MathContainer_alphaMax", value, round2(maxloadedFastener["alpha"], 2));
-			SetProperty("TextArea_xMax", value, round2(maxloadedFastener["x"], 2));
-			SetProperty("TextArea_yMax", value, round2(maxloadedFastener["y"], 2));
-			SetProperty("TextArea_loadcaseMax", value, round2(maxloadedFastener["loadcase"], 2));
-			SetProperty("TextArea_criticalnodeAllloadcases", value, round2(maxloadedFastener["fastener"], 2));				
+			SetProperty("MathContainer_FxMax", 'value', round2(maxloadedFastener["Fx"], 2));
+			SetProperty("MathContainer_FyMax", 'value', round2(maxloadedFastener["Fy"], 2));
+			SetProperty("MathContainer_FMax", 'value', round2(maxloadedFastener["F"], 2));
+			SetProperty("MathContainer_alphaMax", 'value', round2(maxloadedFastener["alpha"], 2));
+			SetProperty("TextArea_xMax", 'value', round2(maxloadedFastener["x"], 2));
+			SetProperty("TextArea_yMax", 'value', round2(maxloadedFastener["y"], 2));
+			SetProperty("TextArea_loadcaseMax", 'value', round2(maxloadedFastener["loadcase"], 2));
+			SetProperty("TextArea_criticalnodeAllloadcases", 'value', round2(maxloadedFastener["fastener"], 2));				
 		end if;
 		
 	elif action = "deactivate" then

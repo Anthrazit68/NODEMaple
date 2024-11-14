@@ -132,7 +132,7 @@
 							# elif Search("z", i) > 0 then								# kopier y verdier til z verdier for quadratiske profiler
 							#	k := StringTools:-RegSubs("z" = "y", i);			
 							#	data := sprintf("%s(%a,%a)", sectioncode, section, k);		# henter tverrsnittsdata
-							#	SetProperty(j, value, eval(parse(data)));
+							#	SetProperty(j, 'value', eval(parse(data)));
 							#	sectiondata[i] := eval(parse(data));
 						else													# nuller ut andre verdier
 							sectiondata[i] := 0;

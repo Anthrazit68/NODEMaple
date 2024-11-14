@@ -57,8 +57,8 @@ EC5_63 := proc(WhateverYouNeed::table)
 
 	if ComponentExists("TextArea_lambda_rely") and ComponentExists("TextArea_lambda_relz") then
 		HighlightResults({"lambda_rely", "lambda_relz"}, "highlight");
-		SetProperty("TextArea_lambda_rely", value, round2(lambda_rely,2));
-		SetProperty("TextArea_lambda_relz", value, round2(lambda_relz,2))
+		SetProperty("TextArea_lambda_rely", 'value', round2(lambda_rely,2));
+		SetProperty("TextArea_lambda_relz", 'value', round2(lambda_relz,2))
 	end if;
 
 	if lambda_rely < 0.3 and lambda_relz < 0.3 then 	
@@ -82,15 +82,15 @@ EC5_63 := proc(WhateverYouNeed::table)
 	end if;
 	if ComponentExists("TextArea_k_cy") and ComponentExists("TextArea_k_cz") then
 		HighlightResults({"k_cy", "k_cz"}, "highlight");
-		SetProperty("TextArea_k_cy", value, round2(k_cy,2));
-		SetProperty("TextArea_k_cz", value, round2(k_cz,2))
+		SetProperty("TextArea_k_cy", 'value', round2(k_cy,2));
+		SetProperty("TextArea_k_cz", 'value', round2(k_cz,2))
 	end if;
 
 	# 6.2.4
 	eta["624"], usedcode["624"], usedcodeDescription["624"] := EC5_624(WhateverYouNeed, k_cy, k_cz);		# beregner kapasitet med utvidet formel fra 6.2.4
 	# if ComponentExists("TextArea_eta_624") then
 	#	HighlightResults({"eta_624"}, "highlight");
-	#	SetProperty("TextArea_eta_624", value, round2(eta["624"], 2))
+	#	SetProperty("TextArea_eta_624", 'value', round2(eta["624"], 2))
 	# end if;
 
 	# 6.3.3
@@ -129,11 +129,11 @@ EC5_63 := proc(WhateverYouNeed::table)
 
 	if ComponentExists("TextArea_lambda_relmy") then
 		HighlightResults({"lambda_relmy"}, "highlight");
-		SetProperty("TextArea_lambda_relmy", value, round2(lambda_relmy,2))
+		SetProperty("TextArea_lambda_relmy", 'value', round2(lambda_relmy,2))
 	end if;
 	if ComponentExists("TextArea_lambda_relmz") then
 		HighlightResults({"lambda_relmz"}, "highlight");
-		SetProperty("TextArea_lambda_relmz", value, round2(lambda_relmz,2))
+		SetProperty("TextArea_lambda_relmz", 'value', round2(lambda_relmz,2))
 	end if;
 
 	# 6.1.6
@@ -141,7 +141,7 @@ EC5_63 := proc(WhateverYouNeed::table)
 	eta["616"], usedcode["616"], usedcodeDescription["616"] := EC5_616(WhateverYouNeed, k_crity, k_critz);		
 	# if ComponentExists("TextArea_eta_616") then
 	#	HighlightResults({"eta_616"}, "highlight");
-	#	SetProperty("TextArea_eta_616", value, round2(eta["616"],2))
+	#	SetProperty("TextArea_eta_616", 'value', round2(eta["616"],2))
 	# end if;
 
 	sigma_c0d := convert(-F_xd / A, 'units', 'N'/'mm^2');
@@ -154,7 +154,7 @@ EC5_63 := proc(WhateverYouNeed::table)
 	
 	# if ComponentExists("TextArea_eta_633") then
 	#	HighlightResults({"eta_633"}, "highlight");
-	#	SetProperty("TextArea_eta_633", value, round2(eta["633"],2))
+	#	SetProperty("TextArea_eta_633", 'value', round2(eta["633"],2))
 	# end if;
 
 	max_index := indices(eta, 'nolist')[max[index](convert(eta, list))];		# have to convert table to list, get the index position, and get the index name of the index
@@ -293,13 +293,13 @@ calculate_k_64 := proc(WhateverYouNeed::table)
 			
 		HighlightResults(WhateverYouNeed["componentvariables"]["var_resultsdetails"]["6.4"], "highlight");		# should always be active
 
-		SetProperty("TextArea_k_dis", value, round2(k_64["k_dis"], 2));
-		SetProperty("TextArea_k_m_alpha", value, round2(k_64["k_m_alpha"], 2));
-		SetProperty("TextArea_k_l", value, round2(k_64["k_l"], 2));
-		SetProperty("TextArea_k_p", value, round2(k_64["k_p"], 2));
-		SetProperty("TextArea_k_r", value, round2(k_64["k_r"], 2));
-		SetProperty("TextArea_k_vol", value, round2(k_64["k_vol"], 2));
-		SetProperty("TextArea_V", value, round2(convert(k_64["V"], 'unit_free'), 2));
+		SetProperty("TextArea_k_dis", 'value', round2(k_64["k_dis"], 2));
+		SetProperty("TextArea_k_m_alpha", 'value', round2(k_64["k_m_alpha"], 2));
+		SetProperty("TextArea_k_l", 'value', round2(k_64["k_l"], 2));
+		SetProperty("TextArea_k_p", 'value', round2(k_64["k_p"], 2));
+		SetProperty("TextArea_k_r", 'value', round2(k_64["k_r"], 2));
+		SetProperty("TextArea_k_vol", 'value', round2(k_64["k_vol"], 2));
+		SetProperty("TextArea_V", 'value', round2(convert(k_64["V"], 'unit_free'), 2));
 	end if;
 
 	WhateverYouNeed["results"]["k_64"] := eval(k_64);
