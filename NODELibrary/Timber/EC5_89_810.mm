@@ -29,7 +29,7 @@ calculate_F_vR_89_810 := proc(WhateverYouNeed::table, alpha)
 	elif ShearConnector = "Split ring" then
 		connectortype := fastener["SplitRingtype"];
 		dc := fastener["SplitRingdc"];
-		he := fastenervalues["SplitRinghc"];
+		he := fastenervalues["SplitRinghc"] / 2;		# only halv height is protruded into part
 	end if;
 
 	# calculate some values need for calculation
@@ -40,7 +40,9 @@ calculate_F_vR_89_810 := proc(WhateverYouNeed::table, alpha)
 	if structure["connection"]["connection1"] = "Timber" then
 		t["1"] := WhateverYouNeed["sectiondataAll"]["1"]["b"];
 		if structure["connection"]["bout1"] <> "false" then
-			t["1out"] := structure["connection"]["bout1"];		
+			t["1out"] := structure["connection"]["bout1"];
+		else
+			t["1out"] := t["1"]
 		end if;
 		rho_k["1"] := WhateverYouNeed["materialdataAll"]["1"]["rho_k"];
 		k_mod["1"] := WhateverYouNeed["materialdataAll"]["1"]["k_mod"]
@@ -61,18 +63,16 @@ calculate_F_vR_89_810 := proc(WhateverYouNeed::table, alpha)
 	end if;
 
 	# check minimum thickness of timber parts 8.9(2)
-	if assigned(t["1"]) and t["1"] < 2.25 * he then
+	if assigned(t["1out"]) and t["1out"] < 2.25 * he then
 		Alert("Shear connector: 8.9(2): t1(outer) < 2.25 * he", warnings, 3);
-			
-	elif assigned(t["1out"]) and t["1out"] < 2.25 * he then
-		Alert("Shear connector: 8.9(2): t1(outer) < 2.25 * he", warnings, 3);
-			
-	elif WhateverYouNeed["calculatedvalues"]["layers"]["1"] > 2 and t["1"] < 3.75 * he then
+	end if;
+						
+	if assigned(t["1"]) and t["1"] < 3.75 * he then
 		Alert("Shear connector: 8.9(2): t1(inner) < 3.75 * he", warnings, 3);
+	end if;
 			
-	elif assigned(t["2"]) and t["2"] < 3.75 * he then
-		Alert("Shear connector: 8.9(2): t2 < 3.75 * he", warnings, 3);
-			
+	if assigned(t["2"]) and t["2"] < 3.75 * he then
+		Alert("Shear connector: 8.9(2): t2 < 3.75 * he", warnings, 3);			
 	end if;			
 
 	# k1 (8.62, 8.73)
