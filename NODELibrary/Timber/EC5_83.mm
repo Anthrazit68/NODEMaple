@@ -62,9 +62,12 @@ calculate_t := proc(WhateverYouNeed::table)
 	t_ef_814_NA_DE := table();
 	
 	# reset specific settings for overlap and doublesided
-	fastenervalues["overlap"] := evaln(fastenervalues["overlap"]);
-	fastenervalues["doublesided"] := evaln(fastenervalues["doublesided"]);
-	fastenervalues["SingleShearplane"] := evaln(fastenervalues["SingleShearplane"]);
+	# fastenervalues["overlap"] := evaln(fastenervalues["overlap"]);
+	# fastenervalues["doublesided"] := evaln(fastenervalues["doublesided"]);
+	# fastenervalues["SingleShearplane"] := evaln(fastenervalues["SingleShearplane"]);
+	fastenervalues["overlap"] := false;
+	fastenervalues["doublesided"] := false;
+	fastenervalues["SingleShearplane"] := false;
 
 	comments["overlap"] := evaln(comments["overlap"]);
 	comments["doublesided"] := evaln(comments["doublesided"]);
@@ -824,7 +827,7 @@ end proc:
 # calculating k_n_ef as a reduction factor for capacity due to number of fasteners in a row
 calculate_n_ef := proc(WhateverYouNeed::table)
 	description "calculate reduction factor of capacity of one single fastener";
-	local staggered, calculatedFastener, a1, d, chosenFastener, calculateAsNail, part, structure, distance, k_ef, n_ef0, n1, k_n_ef0, comments;
+	local staggered, calculatedFastener, a1, d, chosenFastener, calculateAsNail, part, structure, distance, k_ef, n_ef0, n1, k_n_ef0, comments, ShearConnector;
 
 	structure := WhateverYouNeed["calculations"]["structure"];	
 	chosenFastener := structure["fastener"]["chosenFastener"];	
@@ -833,6 +836,7 @@ calculate_n_ef := proc(WhateverYouNeed::table)
 	distance := WhateverYouNeed["calculatedvalues"]["distance"];
 	d := structure["fastener"]["fastener_d"];
 	comments := WhateverYouNeed["results"]["comments"];
+	ShearConnector := WhateverYouNeed["calculations"]["structure"]["fastener"]["ShearConnector"];
 
 	for part in {"1", "2"} do
 
@@ -849,7 +853,10 @@ calculate_n_ef := proc(WhateverYouNeed::table)
 				n1 := 1
 			end if;
 			
-			if calculatedFastener = "Nail" or (chosenFastener = "Screw" and calculateAsNail = "true") then
+			if ShearConnector = "Split ring" then
+				n_ef0 := evalf(2 + (1 - n1/20) * (n1 - 2));		# (8.71)
+
+			elif calculatedFastener = "Nail" or (chosenFastener = "Screw" and calculateAsNail = "true") then
 				if staggered = "false" then		# staggered parallel to grain direction with distance d
 					k_ef := calculate_k_ef(part, WhateverYouNeed);
 					n_ef0 := n1^k_ef;			# (8.17)

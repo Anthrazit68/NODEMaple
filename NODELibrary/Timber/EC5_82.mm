@@ -92,7 +92,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 
 		end if;
 		
-		if shearplanes > 1 then # more than 1 shearplane
+		if shearplanes > 1 and fastenervalues["SingleShearplane"] = false then # more than 1 shearplane
 
 			F_vRk["g"] := evalf(f_hk["1"] * t_eff["1"] * d);
 
@@ -127,6 +127,10 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 				end if;
 			end do;
 
+			if fastenervalues["doublesided"] = true and fastenervalues["overlap"] = true then	# overlap situation, double capacity of single connection
+				F_vRkfin := F_vRkfin * 2
+			end if;
+
 		elif shearplanes = 2 then		# 1 inside part
 			for i in indices(F_vRkmin, 'nolist') do 
 				if substring(i, 1..1) = "2" then
@@ -135,10 +139,6 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 					end if;
 				end if;
 			end do;
-
-			if fastenervalues["doublesided"] = true and fastenervalues["overlap"] = true then	# overlap situation, double capacity of single connection
-				F_vRkfin := F_vRkfin * 2
-			end if;
 
 		# 8.1.3(2)
 		# To be able to combine the resistance from individual shear planes in a multiple shear plane connection, the governing failure mode of the fasteners

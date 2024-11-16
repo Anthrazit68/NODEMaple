@@ -22,7 +22,8 @@ end proc:
 
 calculate_t_total := proc(WhateverYouNeed::table)
 	description "Calculate total thickness";
-	local dummy, t, t_steel, t_total, numberOfLayers, structure, sectiondataAll, plural, layer1, layer1out, layer2, layerSteel, tolerance, shearplanes, layerTolerance, connection;
+	local dummy, t, t_steel, t_total, numberOfLayers, eqnumberOfLayers, structure, sectiondataAll, plural, layer1, layer1out, layer2, layerSteel, tolerance,
+		shearplanes, layerTolerance, connection, part;
 
 	sectiondataAll := WhateverYouNeed["sectiondataAll"];
 	structure := WhateverYouNeed["calculations"]["structure"];
@@ -40,7 +41,8 @@ calculate_t_total := proc(WhateverYouNeed::table)
 	tolerance := connection["connectionInsideTolerance"];
 	shearplanes := WhateverYouNeed["calculatedvalues"]["fastenervalues"]["shearplanes"];
 	numberOfLayers := table();
-
+	eqnumberOfLayers := table();
+	
 	layer1 := cat(convert(t["1"], 'unit_free'),"mm timber");	
 	layer1out := cat(convert(t["1out"], 'unit_free'),"mm timber");
 	cat(round(convert(t["1"], 'unit_free') / 2),"mm timber");
@@ -144,8 +146,21 @@ calculate_t_total := proc(WhateverYouNeed::table)
 	dummy := cat(WhateverYouNeed["calculatedvalues"]["fastenervalues"]["shearplanes"], " shearplane", plural, ": ",SubstituteAll(dummy, "1x", ""), " = ",convert(t_total, 'unit_free'), "mm");		# trenger ikke 1x
 	SetProperty("TextArea_ConnectionBuildup", 'value', convert(dummy, string));
 
-	WhateverYouNeed["calculatedvalues"]["t_total"] := t_total;					# total thickness of connection without tolerance
-	WhateverYouNeed["calculatedvalues"]["layers"] := eval(numberOfLayers);		# number of timber layers in connection
+	for part in {"1", "2", "steel"} do
+		if part = "1" then
+			if connection["bout1"] = "false" then
+				eqnumberOfLayers[part] := numberOfLayers[part]
+			else
+				eqnumberOfLayers[part] := (numberOfLayers[part] - 2) + 2 * (connection["bout1"] / sectiondataAll[part]["b"])	# virtual number of layers
+			end if;
+		else
+			eqnumberOfLayers[part] := numberOfLayers[part]
+		end if;
+	end do;
+
+	WhateverYouNeed["calculatedvalues"]["t_total"] := t_total;								# total thickness of connection without tolerance
+	WhateverYouNeed["calculatedvalues"]["layers"] := eval(numberOfLayers);					# number of timber layers in connection
+	WhateverYouNeed["calculatedvalues"]["eqnumberOfLayers"] := eval(eqnumberOfLayers);		# number of timber layers in connection
 	
 end proc:
 
@@ -153,7 +168,7 @@ end proc:
 calculate_F_90R := proc(WhateverYouNeed::table)
 	description "Calculate splitting capacity according to 8.1.4";
 
-	local warnings, F_90Rk, F_90Rd, part, dummy, t, t_, h, h_, h_e, gamma_M, k_mod, numberOfLayers, w_, structure, materialdataAll,
+	local warnings, F_90Rk, F_90Rd, part, dummy, t, t_, h, h_, h_e, gamma_M, k_mod, eqnumberOfLayers, w_, structure, materialdataAll,
 		sectiondataAll, fastenervalues, h_e_side, k_r, n, i, h_i, activebeamside, distance, k_r_divisor, h_1, h_1_side, h_e_index, k_s,
 		F_90Rd_NA_DE, a_r, t_ef_814_NA_DE;
 
@@ -182,7 +197,7 @@ calculate_F_90R := proc(WhateverYouNeed::table)
 		w_ := max((convert(h, 'unit_free') / 100)^0.35, 1)
 	end if;
 
-	numberOfLayers := WhateverYouNeed["calculatedvalues"]["layers"];
+	eqnumberOfLayers := WhateverYouNeed["calculatedvalues"]["eqnumberOfLayers"];
 
 	# profile might not be active in connection, but is still defined (e.g. connection type 1 timber, but not used).
 	# calculations might be wrong, should not be done with inactive types
@@ -237,7 +252,7 @@ calculate_F_90R := proc(WhateverYouNeed::table)
 		h_1 := h_ - h_e[part];
 		
 		if structure["connection"][cat("connection", part)] = "Timber" then
-			F_90Rk[part] := convert(evalf(14 * t_ * w_ * sqrt(h_e[part] / (1 - h_e[part] / h_))) * Unit('N'), 'units', 'kN') * numberOfLayers[part];
+			F_90Rk[part] := convert(evalf(14 * t_ * w_ * sqrt(h_e[part] / (1 - h_e[part] / h_))) * Unit('N'), 'units', 'kN') * eqnumberOfLayers[part];
 		else
 			F_90Rk[part] := 0
 		end if;
@@ -739,23 +754,26 @@ end proc:
 # effect from kh not taken into account
 EC5_62net := proc(WhateverYouNeed::table)
 	description "Check net area of section, simplified";
-	local structure, sectiondataAll, d, bout1, Anet, part, numberOfLayers, numberOfBolts, alphaBeam, activeloadcase, F_hd, F_vd, F_Ed, F_xEd, alphaForce,
+	local structure, sectiondataAll, d, bout1, Anet, part, eqnumberOfLayers, numberOfBolts, alphaBeam, activeloadcase, F_hd, F_vd, F_Ed, F_xEd, alphaForce,
 		alpha, eta, f_t0d, usedcode, comments, fastener, intPointL, intPointR, fastenerPointlist, b, h, distance, yi, ind, I_d, I_d_part, Inet, FastenerGroup,
-		eta_F, eta_M, M_yd1, f_c0d, kh, sigma_t0d, sigma_c0d, sigma_md, f_md, connection, eqnumberOfLayers, tolerance, i,
-		A_steel, f_yd, f_ud, N_plRd, N_uRd, M_cRd;
+		eta_F, eta_M, M_yd1, f_c0d, kh, sigma_t0d, sigma_c0d, sigma_md, f_md, connection, tolerance, i,
+		A_steel, f_yd, f_ud, N_plRd, N_uRd, M_cRd, dc, he, A_shearconnector, A_fastener, fastenervalues, shearplanes;
 
 	structure := WhateverYouNeed["calculations"]["structure"];
+	fastener := structure["fastener"];
 	sectiondataAll := WhateverYouNeed["sectiondataAll"];
-	d := structure["fastener"]["fastener_d"];
+	d := fastener["fastener_d"];
 	activeloadcase := WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"];
 	F_hd := WhateverYouNeed["calculations"]["loadcases"][activeloadcase]["F_hd"];
 	F_vd := WhateverYouNeed["calculations"]["loadcases"][activeloadcase]["F_vd"];
 	fastenerPointlist := WhateverYouNeed["calculatedvalues"]["graphicsElements"]["fastenerPointlist"];
 	FastenerGroup := WhateverYouNeed["results"]["FastenerGroup"];
 	distance := WhateverYouNeed["calculatedvalues"]["distance"];
-	connection := WhateverYouNeed["calculations"]["structure"]["connection"];
+	connection := structure["connection"];
 	tolerance := 1 * Unit('mm');
-
+	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
+	shearplanes := fastenervalues["shearplanes"];
+	
 	bout1 := connection["bout1"];	
 
 	if F_hd = 0 and F_vd = 0 then		# special case where either everything is zero, or we just have moments on the connection
@@ -768,29 +786,37 @@ EC5_62net := proc(WhateverYouNeed::table)
 
 	Anet := table();
 	eta := table();
-	numberOfLayers := WhateverYouNeed["calculatedvalues"]["layers"];
+	eqnumberOfLayers := WhateverYouNeed["calculatedvalues"]["eqnumberOfLayers"];
 
 	# Anet
 	for part in {"1", "2"} do
 		
 		if structure["connection"][cat("connection", part)] = "Timber" then
 
-			if part = "1" then
-				if bout1 = "false" then
-					eqnumberOfLayers := numberOfLayers[part]
-				else
-					eqnumberOfLayers := (numberOfLayers[part] - 2) + 2 * (bout1 / sectiondataAll[part]["b"])
-				end if;
-			else
-				eqnumberOfLayers := numberOfLayers[part]
-			end if;
+			# 1. calculate or get section area, check if there is different thickness on outer parts
+			# 2. deduct split ring / shear plate area
+			# 3. deduct bolt size
 
 			numberOfBolts := WhateverYouNeed["calculatedvalues"]["distance"]["a2_nFastenersInColumn"][part];
-			
-			Anet[part] := eqnumberOfLayers * (sectiondataAll[part]["A"] - numberOfBolts * d * sectiondataAll[part]["b"]);
 
-			if ComponentExists(cat("TextArea_Agross_net", part)) then
-				SetProperty(cat("TextArea_Agross_net", part), 'value', round2((numberOfLayers[part] * sectiondataAll[part]["A"]) / Anet[part], 2))
+			# total area of ShearConnector area
+			if fastener["ShearConnector"] = "Split ring" then
+				dc := fastener["SplitRingdc"];
+				he := fastenervalues["SplitRinghc"] / 2;
+				A_shearconnector := dc * he * shearplanes * numberOfBolts
+			else
+				he := 0;
+				A_shearconnector := 0
+			end if;
+
+			# Fastener
+			A_fastener := eqnumberOfLayers[part] * (d + tolerance) * (sectiondataAll[part]["b"] - he) * numberOfBolts;
+			
+			# net section area
+			Anet[part] := eqnumberOfLayers[part] * sectiondataAll[part]["A"] - A_shearconnector - A_fastener;
+
+			if ComponentExists(cat("TextArea_Anet_gross", part)) then
+				SetProperty(cat("TextArea_Anet_gross", part), 'value', round2(Anet[part] / (eqnumberOfLayers[part] * sectiondataAll[part]["A"]), 2))
 			end if;
 			
 		elif structure["connection"][cat("connection", part)] = "Steel" then			
@@ -800,9 +826,9 @@ EC5_62net := proc(WhateverYouNeed::table)
 			f_ud := WhateverYouNeed["materialdataAll"]["steel"]["f_uk"] / WhateverYouNeed["materialdataAll"]["steel"]["gamma_M2"];
 			numberOfBolts := WhateverYouNeed["calculatedvalues"]["distance"]["a2_nFastenersInColumn"]["steel"];
 			
-			N_plRd := convert(numberOfLayers["steel"] * A_steel * f_yd, 'units', 'kN');			# NS-EN 1993-1-1, (6.6)
+			N_plRd := convert(eqnumberOfLayers["steel"] * A_steel * f_yd, 'units', 'kN');			# NS-EN 1993-1-1, (6.6)
 
-			Anet["steel"] := numberOfLayers["steel"] * (sectiondataAll["steel"]["A"] - numberOfBolts * (d + tolerance) * sectiondataAll["steel"]["b"]);
+			Anet["steel"] := eqnumberOfLayers["steel"] * (sectiondataAll["steel"]["A"] - numberOfBolts * (d + tolerance) * sectiondataAll["steel"]["b"]);
 
 			N_uRd := convert(0.9 * Anet["steel"] * f_ud, 'units', 'kN');						# NS-EN 1993-1-1, (6.7)			
 
@@ -861,15 +887,15 @@ EC5_62net := proc(WhateverYouNeed::table)
 		
 		if structure["connection"][cat("connection", part)] = "Timber" then
 
-			Inet[part] := numberOfLayers[part] * (sectiondataAll[part]["I_y"] - I_d_part[part]);
+			Inet[part] := eqnumberOfLayers[part] * (sectiondataAll[part]["I_y"] - I_d_part[part]);
 
-			if ComponentExists(cat("TextArea_Igross_net", part)) then
-				SetProperty(cat("TextArea_Igross_net", part), 'value', round2((numberOfLayers[part] * sectiondataAll[part]["I_y"]) / Inet[part], 2))
+			if ComponentExists(cat("TextArea_Inet_gross", part)) then
+				SetProperty(cat("TextArea_Inet_gross", part), 'value', round2(Inet[part] / (eqnumberOfLayers[part] * sectiondataAll[part]["I_y"]), 2))
 			end if;
 
 		else
 			
-			Inet["steel"] := numberOfLayers["steel"] * (sectiondataAll["steel"]["I_y"] - I_d_part["steel"]);
+			Inet["steel"] := eqnumberOfLayers["steel"] * (sectiondataAll["steel"]["I_y"] - I_d_part["steel"]);
 			
 		end if
 		
@@ -965,15 +991,15 @@ end proc:
 # this one should be moved into the steel library
 BoltandSteelCapacity := proc(WhateverYouNeed::table)
 	description "Bolt Shear capacity acc. NS-EN 1993-1-8:2005+NA:2009, table 3.4";
-	local fastenervalues, structure, F_vRd, F_bRd, alpha_v, f_ub, A, gamma_M2, d, numberOfLayers, t, f_u, alpha_b, tolerance, d0, p1, p2, e1, e2, alpha_d, k1, calculatedvalues, usedcode, comments,
+	local fastenervalues, structure, F_vRd, F_bRd, alpha_v, f_ub, A, gamma_M2, d, eqnumberOfLayers, t, f_u, alpha_b, tolerance, d0, p1, p2, e1, e2, alpha_d, k1, calculatedvalues, usedcode, comments,
 		maxFindex, ForcesInConnection, F_vEd, eta;
 # DEBUG();
 	calculatedvalues := WhateverYouNeed["calculatedvalues"];
-	numberOfLayers := WhateverYouNeed["calculatedvalues"]["layers"];
+	eqnumberOfLayers := WhateverYouNeed["calculatedvalues"]["eqnumberOfLayers"];
 	usedcode := "EC3 3.6.1";
 	comments := "EC3, steel bolt shear and bearing resistance";
 
-	if assigned(numberOfLayers["steel"]) = false or numberOfLayers["steel"] = 0 then
+	if assigned(eqnumberOfLayers["steel"]) = false or eqnumberOfLayers["steel"] = 0 then
 		WhateverYouNeed["calculatedvalues"]["F_vRd_bolt"] := evaln(WhateverYouNeed["calculatedvalues"]["F_vRd_bolt"]);
 		WhateverYouNeed["calculatedvalues"]["F_bRd_steel"] := evaln(WhateverYouNeed["calculatedvalues"]["F_bRd_steel"]);
 		return 0, usedcode, comments;
@@ -1000,15 +1026,15 @@ BoltandSteelCapacity := proc(WhateverYouNeed::table)
 	end if;
 
 	if structure["connection"]["connection1"] = "Timber" then
-		if numberOfLayers["steel"] = 1 then
-			F_vRd := evalf(numberOfLayers["steel"] * alpha_v * f_ub * A / gamma_M2)	# timber - steel connection
+		if eqnumberOfLayers["steel"] = 1 then
+			F_vRd := evalf(eqnumberOfLayers["steel"] * alpha_v * f_ub * A / gamma_M2)	# timber - steel connection
 		else
-			F_vRd := evalf(2 * numberOfLayers["steel"] * alpha_v * f_ub * A / gamma_M2)	# e.g. 3 inner layers of steel -> 3 * 2 shear planes
+			F_vRd := evalf(2 * eqnumberOfLayers["steel"] * alpha_v * f_ub * A / gamma_M2)	# e.g. 3 inner layers of steel -> 3 * 2 shear planes
 		end if;
 		
 	elif structure["connection"]["connection1"] = "Steel" then
-		if numberOfLayers["steel"] <= 2 then
-			F_vRd := evalf(numberOfLayers["steel"] * alpha_v * f_ub * A / gamma_M2)	# timber - steel connection
+		if eqnumberOfLayers["steel"] <= 2 then
+			F_vRd := evalf(eqnumberOfLayers["steel"] * alpha_v * f_ub * A / gamma_M2)	# timber - steel connection
 		else
 			F_vRd := 0;		# should not be possible
 		end if;
@@ -1039,7 +1065,7 @@ BoltandSteelCapacity := proc(WhateverYouNeed::table)
 	
 	alpha_b := min(alpha_d, f_ub / f_u, 1.0);		# table 3.4
 	
-	F_bRd := convert(evalf(numberOfLayers["steel"] * k1 * alpha_b * f_u * d * t / gamma_M2), 'units', 'kN');
+	F_bRd := convert(evalf(eqnumberOfLayers["steel"] * k1 * alpha_b * f_u * d * t / gamma_M2), 'units', 'kN');
 
 	if F_bRd > 0 then
 		eta["F_bRd"]:= F_vEd / F_bRd;

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- (c) NODE radgivende ingenioerer AS 2020, https://www.node.no -->
+<database version = '2023.12' source_software = 'NODE common file format, generated via Maple'>
+  <projectdata client = 'NODE rådgivende ingeniører AS' projectnumber = '' projecttitle = 'Holzbau Taschenbuch'/>
+  <materials>
+    <timber/>
+  </materials>
+  <sections>
+    <timber/>
+  </sections>
+  <calculations>
+    <calculation calculationtype = 'NS-EN 1995-1-1, Section 8: Fasteners'>
+      <calculation calculationtype = 'NS-EN 1995-1-1, Section 8: Fasteners' positionnumber = 'B.2.4' positiontitle = 'Fachwerkknoten - Einschnittige Verbindung mit Nägeln'>
+        <activesettings activeloadcase = 'Zug' activematerial1 = 'C24 / Service class 1 / Medium-term' activematerial2 = 'C24 / Service class 1 / Medium-term' activesection1 = 'Rectangular / 60x240' activesection2 = 'Rectangular / 100x180' activeFastenerPattern = '1' calculate_814_NA_DE = 'true'/>
+        <loadcases>
+          <loadcase name = 'Zug' F_axGk = 'false' F_axQk = 'false' F_axd = '0' F_hGk = '0' F_hQk = '0' F_hd = '0.' F_vGk = '-10*Units:-Unit(kN)' F_vQk = '-12.5*Units:-Unit(kN)' F_vd = '-32.25*Units:-Unit(kN)' M_yGk = '0' M_yQk = '0' M_yd = '0' f_814 = '1' loadcenter_x = '0' loadcenter_y = '-300*Units:-Unit(mm)'/>
+        </loadcases>
+        <structure>
+          <connection bout1 = 'false' Cutleft1 = 'false' Cutleft2 = 'false' Cutleftsteel = 'false' Cutright1 = 'false' Cutright2 = 'true' Cutrightsteel = 'false' connection1 = 'Timber' connection2 = 'Timber' graindirection1 = '0' graindirection2 = '90*Units:-Unit(arcdeg)' lengthleft1 = '200*Units:-Unit(mm)' lengthleft2 = '300*Units:-Unit(mm)' lengthleftsteel = 'false' lengthright1 = '200*Units:-Unit(mm)' lengthright2 = '0' connectionInsideLayers = '1' graindirectionsteel = 'false' lengthrightsteel = 'false' connectionHalfOutsideLayers = 'false' connectionInsideTolerance = '0'/>
+          <fastener ShearConnector = '-' SplitRingdc = 'false' SplitRingtype = 'false' ToothedPlatedc = 'false' alphaScrew = '90*Units:-Unit(arcdeg)' calculateAsNail = 'false' chosenFastener = 'Nail' doublesided = 'true' fastenerProduct = 'FIRKSQG' fastener_d = '4.2*Units:-Unit(mm)' fastener_dh = '9*Units:-Unit(mm)' fastener_ls = '125*Units:-Unit(mm)' nailForm = 'round' nailSurface = 'smooth' predrilled = 'false' screwWithWasher = 'false' staggered1 = 'true' staggered2 = 'true' staggered_0 = 'true' staggered_90 = 'false' washerProducer = 'false' washerProduct = 'false' SharpMetalActive = 'false' SharpMetalLength = '0' SharpMetalProducer = 'false' SharpMetalProduct = 'false' SharpMetalStripes = 'false' ToothedPlateActive = 'false' ToothedPlatesides = 'false' ToothedPlatetype = 'false' fastenerProducer = 'STRONGTIE' ignoreReqPredrilled = 'false'/>
+          <FastenerPatterns>
+            <FastenerPattern name = '1' grid_x1 = '5*25' grid_y1 = '3*45' center_x1 = '0' center_y1 = '-12.5' grid_alpha_11 = '0' grid_alpha_21 = '0' reactionforces = 'true' FastenerPatternType1 = 'grid' FastenerPatternType2 = '-' FastenerPatternType3 = '-' FastenerPatternUnits = 'mm' FastenerPatternCoordinates = 'false'/>
+            <FastenerPattern name = '2' grid_x1 = '4*100' grid_x2 = '4*100' grid_y1 = '2*100' grid_y2 = '3*100' center_x1 = '-284' center_x2 = '-334' center_y1 = '0' center_y2 = '0' grid_alpha_11 = '0' grid_alpha_12 = '0' grid_alpha_21 = '0' grid_alpha_22 = '0' reactionforces = 'false' FastenerPatternType1 = 'grid' FastenerPatternType2 = 'grid' FastenerPatternType3 = '-' FastenerPatternUnits = 'mm' FastenerPatternCoordinates = 'false'/>
+            <FastenerPattern name = '3' grid_x1 = '4*100' grid_y1 = '2*100' center_x1 = '-320' center_y1 = '0' grid_alpha_11 = '20' grid_alpha_21 = '0' reactionforces = 'false' FastenerPatternType1 = 'grid' FastenerPatternType2 = '-' FastenerPatternType3 = '-' FastenerPatternUnits = 'mm' FastenerPatternCoordinates = 'false'/>
+          </FastenerPatterns>
+        </structure>
+      </calculation>
+    </calculation>
+  </calculations>
+</database>
+
