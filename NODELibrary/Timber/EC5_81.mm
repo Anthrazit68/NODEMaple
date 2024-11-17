@@ -596,7 +596,7 @@ end proc:
 EC5_814 := proc(WhateverYouNeed::table)
 	description "8.1.4 Connection forces at an angle to the grain";
 	local F_90Rd, alpha, alphaForce, alphaBeam, F_hd, F_vd, F_Ed, F_vEd, activeloadcase, warnings,	part, eta, comments, usedcode, structure,
-		f_814, eta_814_NA_DE, usedcode_NA_DE, comments_NA_DE, h_e, a_r, i;
+		f_814, eta_814_NA_DE, usedcode_NA_DE, comments_NA_DE, h_e, a_r, i, calculate_814_NA_DE;
 
 	warnings := WhateverYouNeed["warnings"];
 	structure := WhateverYouNeed["calculations"]["structure"];	
@@ -636,16 +636,17 @@ EC5_814 := proc(WhateverYouNeed::table)
 				SetProperty(cat("MathContainer_F_vEd", part), 'value', round2(F_vEd, 1))
 			end if;
 
-			if ComponentExists(cat("TextArea_eta814", part)) then
-				SetProperty(cat("TextArea_eta814", part), 'value', round2(eta[part], 2))
-			end if;
+			# if ComponentExists(cat("TextArea_eta814", part)) then
+			#	SetProperty(cat("TextArea_eta814", part), 'value', round2(eta[part], 2))
+			# end if;
 			
 		end if;		
 		
 	end do;
 
-	# check according to german EC5_814_NA_DE	
-	if WhateverYouNeed["calculations"]["activesettings"]["calculate_814_NA_DE"] = "true" then
+	# check according to german EC5_814_NA_DE
+	calculate_814_NA_DE := WhateverYouNeed["calculations"]["activesettings"]["calculate_814_NA_DE"];
+	if calculate_814_NA_DE = "true" then
 		
 		eta_814_NA_DE, usedcode_NA_DE, comments_NA_DE := EC5_814_NA_DE(WhateverYouNeed, h_e, a_r);
 		
@@ -672,10 +673,16 @@ EC5_814 := proc(WhateverYouNeed::table)
 	usedcode := "8.1.4";
 	comments := "Connection forces at an angle to the grain";
 
-	if max(entries(eta)) >=  max(entries(eta_814_NA_DE)) then
-		return max(entries(eta)), usedcode, comments
+	Write_eta(eta, table());
+
+	if calculate_814_NA_DE = "true" then
+		if max(entries(eta)) <=  max(entries(eta_814_NA_DE)) then		# take the least of the 2 maximum values (similar to 6.1.5)
+			return max(entries(eta)), usedcode, comments
+		else
+			return max(entries(eta_814_NA_DE)), usedcode_NA_DE, comments_NA_DE
+		end if;
 	else
-		return max(entries(eta_814_NA_DE)), usedcode_NA_DE, comments_NA_DE
+		return max(entries(eta)), usedcode, comments
 	end if;
 end proc:
 
@@ -736,15 +743,16 @@ EC5_814_NA_DE := proc(WhateverYouNeed::table, h_e::table, a_r::table)
 
 			if ComponentExists(cat("TextArea_eta814_NA_DE", part)) then
 				SetProperty(cat("TextArea_eta814_NA_DE", part), 'enabled', true);
-				SetProperty(cat("TextArea_eta814_NA_DE", part), 'value', round2(eta[part], 2))
+				# SetProperty(cat("TextArea_eta814_NA_DE", part), 'value', round2(eta[part], 2))
 			end if;
-
 		end if;		
 		
 	end do;
 
 	usedcode := "8.1.4 NA DE";
 	comments := "Connection forces at an angle to the grain, NA DE";
+
+	Write_eta(eta, table());
 
 	return eta, usedcode, comments;
 end proc:
@@ -969,19 +977,20 @@ EC5_62net := proc(WhateverYouNeed::table)
 
 		eta[part] := eta_F + eta_M;
 			
-		if ComponentExists(cat("TextArea_eta62net", part)) then
-			SetProperty(cat("TextArea_eta62net", part), 'value', round2(eta[part], 2))
-		end if;
+		# if ComponentExists(cat("TextArea_eta62net", part)) then
+		#	SetProperty(cat("TextArea_eta62net", part), 'value', round2(eta[part], 2))
+		# end if;
 			
 	end do;
 	
-	if ComponentExists("TextArea_eta62net") then
-		SetProperty("TextArea_eta62net", 'value', round2(max(entries(eta)), 2))
-	end if;
-
+	# if ComponentExists("TextArea_eta62net") then
+	#	SetProperty("TextArea_eta62net", 'value', round2(max(entries(eta)), 2))
+	# end if;
 
 	usedcode := "6.2net";
 	comments := "EC 6.2, check net section";
+
+	Write_eta(eta, table());		# eta, comments
 
 	return max(entries(eta)), usedcode, comments;
 	
@@ -993,7 +1002,7 @@ BoltandSteelCapacity := proc(WhateverYouNeed::table)
 	description "Bolt Shear capacity acc. NS-EN 1993-1-8:2005+NA:2009, table 3.4";
 	local fastenervalues, structure, F_vRd, F_bRd, alpha_v, f_ub, A, gamma_M2, d, eqnumberOfLayers, t, f_u, alpha_b, tolerance, d0, p1, p2, e1, e2, alpha_d, k1, calculatedvalues, usedcode, comments,
 		maxFindex, ForcesInConnection, F_vEd, eta;
-# DEBUG();
+
 	calculatedvalues := WhateverYouNeed["calculatedvalues"];
 	eqnumberOfLayers := WhateverYouNeed["calculatedvalues"]["eqnumberOfLayers"];
 	usedcode := "EC3 3.6.1";

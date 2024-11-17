@@ -254,7 +254,7 @@ WriteValueToComponent := proc(compvariable::string, b, check_calculations::set)
 				upd_check_calculations := upd_check_calculations minus {compvariable};
 			end if;
 		else
-			if componentvalue = "false" then
+			if componentvalue = "false" or componentvalue = false then
 				SetProperty(cat("ComboBox_", compvariable), 'enabled', "false");
 				if checkvar then
 					upd_check_calculations := upd_check_calculations minus {compvariable};
@@ -295,7 +295,7 @@ WriteValueToComponent := proc(compvariable::string, b, check_calculations::set)
 					upd_check_calculations := upd_check_calculations minus {compvariable};
 				end if;
 			else
-				if componentvalue = "false" then
+				if componentvalue = "false" or componentvalue = false then
 					DocumentTools:-SetProperty(compvariable, 'enabled', "false");
 					if checkvar then
 						upd_check_calculations := upd_check_calculations minus {compvariable};
@@ -1646,13 +1646,10 @@ ExcelFileInOut := proc(action::string, WhateverYouNeed::table) :: string;
 end proc:
 
 
-Write_eta := proc(WhateverYouNeed::table)
+Write_eta := proc(eta::table, comments::table)
 	description "Write color coded eta values to document";
-	local dummy, i, eta, comments;
+	local dummy, i;
 
-	eta := WhateverYouNeed["results"]["eta"];
-	comments := WhateverYouNeed["results"]["comments"];	
-	
 	for dummy in indices(eta, 'nolist') do
 	
 		# active loadcase
@@ -1697,7 +1694,7 @@ Write_eta := proc(WhateverYouNeed::table)
 	end do;
 
 	# print comments
-	dummy := "";
+	dummy := "";	
 	for i in entries(comments, 'nolist') do
 		if type(i, string) then
 			dummy := cat(dummy, " / ", i)
@@ -1707,11 +1704,9 @@ Write_eta := proc(WhateverYouNeed::table)
 	if length(dummy) > 4 then
 		dummy := substring(dummy, 4..-1);		# eliminate  /  at the start
 	end if;
-	if ComponentExists("TextArea_comments") then
+	if ComponentExists("TextArea_comments") and dummy <> "" then
 		SetProperty("TextArea_comments", 'value', dummy);
-	end if;
-
-	
+	end if;	
 
 end proc:
 
@@ -2114,7 +2109,7 @@ for dummy in storeitems do
 	# ComboBoxes can also have predefined values, where the right value needs to be setattribute
 	# name of the special ComboBoxes where we fill values manually need to be defined (e.g. "loadcases" "FastenerPatterns", materials, sections).
 
-	if searchtext("/", dummy) > 0 then 		# "calculations/positionnumber"
+	if searchtext("/", dummy) > 0 then 		# "calculations/positionnumber", "calculations/structure"
 		parent := StringTools:-Split(dummy, "/")[1];
 		child := StringTools:-Split(dummy, "/")[2];
 		
@@ -2126,7 +2121,7 @@ for dummy in storeitems do
 			elif member(child, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
 				ModifyComboVariables(cat("ComboBox_", child), "Write", WhateverYouNeed[parent][child], table());	# write new values to combobox
 
-			elif type(WhateverYouNeed[parent][child], table) then
+			elif type(WhateverYouNeed[parent][child], table) then	# ["calculations"]["structure"]
 
 				# didn't manage to do that recursive, so we need to do that manually a couple of levels downwards
 				for j in indices(WhateverYouNeed[parent][child], 'nolist') do
@@ -2141,9 +2136,13 @@ for dummy in storeitems do
 						checkvar := WriteValueToComponent(j, convert(convert(WhateverYouNeed[parent][child][j], 'unit_free'), string), checkvar)
 
 					elif member(j, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
-						ModifyComboVariables(cat("ComboBox_", j), "Write", WhateverYouNeed[parent][child][j], table());	# write new values to combobox
+						if ComponentExists(cat("ComboBox_", j)) then
+							ModifyComboVariables(cat("ComboBox_", j), "Write", WhateverYouNeed[parent][child][j], table());	# write new values to combobox
+						else
+							Alert(cat("StoredsettingsToComponents: ComboBox_", j, " not found"), WhateverYouNeed["warnings"], 1)
+						end if;
 
-					elif type(WhateverYouNeed[parent][child][j], table) then
+					elif type(WhateverYouNeed[parent][child][j], table) then	#  ["calculations"]["structure"]["fastener"]
 
 						for k in indices(WhateverYouNeed[parent][child][j], 'nolist') do
 					
@@ -2159,12 +2158,10 @@ for dummy in storeitems do
 							elif member(k, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
 								ModifyComboVariables(cat("ComboBox_", k), "Write", WhateverYouNeed[parent][child][j][k], table());	# write new values to combobox
 							
-							elif type(WhateverYouNeed[parent][child][j][k], table) then
-								
+							elif type(WhateverYouNeed[parent][child][j][k], table) then								
 								Alert("Missing implementation in StoredsettingsToComponents 1a", WhateverYouNeed["warnings"], 1);
 
-							else
-								DEBUG();
+							else							
 								Alert(cat("Missing implementation in StoredsettingsToComponents 1b for variable ", k), WhateverYouNeed["warnings"], 1);
 								
 							end if;

@@ -158,7 +158,7 @@ PlotResults := proc(WhateverYouNeed::table)
 	geometryList := [];	# list of geometry elements to be plotted
 	# displayPoints := [];
 	fastenerPointlist := [];
-# DEBUG();
+
 	if assigned(WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_d"]) then
 		r := round(convert(WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_d"], 'unit_free') / 2)		# need to convert to posint, diameter to radius
 	else
@@ -356,7 +356,7 @@ PlotResults := proc(WhateverYouNeed::table)
 		
 				end if;
 			end do;
-# DEBUG();
+
 			# need to redefine line and segment positions if lines if they are cut
 			# probably enough to just move point positions
 			for part from 1 to 2 do
@@ -1032,7 +1032,7 @@ calculate_a := proc(WhateverYouNeed::table)			# calculate a-values according to 
 	a1_nFastenersInRow := table();	# number of fasteners in row
 	a2_FastenersInColumn := table();	# indexed table of a2_column elements
 	a2_nFastenersInColumn := table();	# number of fasteners in column
-# DEBUG();
+
 	# distance stores both minimumdistance and calculated distance values
 	# reset of values is done in ReadComponentsSpecific
 	distance := WhateverYouNeed["calculatedvalues"]["distance"];
@@ -1195,7 +1195,6 @@ calculate_a := proc(WhateverYouNeed::table)			# calculate a-values according to 
 	distance["a1_numberOfFasteners"] := 0;
 	distance["a2_numberOfFasteners"] := 0;
 
-# DEBUG();
 	for beamBoundaryline from 1 to numelems(beamBoundarylines) do
 		
 #			if searchtext("steel", beamBoundarylines[beamBoundaryline]) > 0 then
