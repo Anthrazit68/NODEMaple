@@ -199,7 +199,7 @@
 		end if;		
 
 		if action = "overwrite" then	# lager ny fil
-			xmlversion := "2023.12";
+			xmlversion := "2024.11";
 			software := "NODE common file format, generated via Maple";
 			xmltree := XMLElement("database", ["version" = xmlversion, "source_software" = software]);	# general information
 		else	# merge

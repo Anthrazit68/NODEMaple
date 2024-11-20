@@ -2107,7 +2107,7 @@ for dummy in storeitems do
 
 	# We do either have TextAreas to be filled with values (default), or ComboBoxes where values need to be added (values below are stored in variables, not in Components)
 	# ComboBoxes can also have predefined values, where the right value needs to be setattribute
-	# name of the special ComboBoxes where we fill values manually need to be defined (e.g. "loadcases" "FastenerPatterns", materials, sections).
+	# name of the special ComboBoxes where we fill values during the run need to be defined (e.g. "loadcases" "FastenerPatterns", materials, sections).
 
 	if searchtext("/", dummy) > 0 then 		# "calculations/positionnumber", "calculations/structure"
 		parent := StringTools:-Split(dummy, "/")[1];
@@ -2118,7 +2118,12 @@ for dummy in storeitems do
 			if type(WhateverYouNeed[parent][child], string) then
 				checkvar := WriteValueToComponent(child, WhateverYouNeed[parent][child], checkvar)
 
-			elif member(child, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
+			elif member(cat("-",child), WhateverYouNeed["componentvariables"]["var_ComboBox"]) then			
+				# "-variable" will be ignored
+
+			# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
+			# those Comboboxes do not change values in other Comboboxe
+			elif member(child, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		
 				ModifyComboVariables(cat("ComboBox_", child), "Write", WhateverYouNeed[parent][child], table());	# write new values to combobox
 
 			elif type(WhateverYouNeed[parent][child], table) then	# ["calculations"]["structure"]
@@ -2135,7 +2140,11 @@ for dummy in storeitems do
 					elif type(WhateverYouNeed[parent][child][j], 'with_unit') then
 						checkvar := WriteValueToComponent(j, convert(convert(WhateverYouNeed[parent][child][j], 'unit_free'), string), checkvar)
 
-					elif member(j, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
+					elif member(cat("-",j), WhateverYouNeed["componentvariables"]["var_ComboBox"]) then
+						# "-variable" will be ignored
+
+					# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
+					elif member(j, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		
 						if ComponentExists(cat("ComboBox_", j)) then
 							ModifyComboVariables(cat("ComboBox_", j), "Write", WhateverYouNeed[parent][child][j], table());	# write new values to combobox
 						else
@@ -2154,6 +2163,9 @@ for dummy in storeitems do
 
 							elif type(WhateverYouNeed[parent][child][j][k], 'with_unit') then
 								checkvar := WriteValueToComponent(k, convert(convert(WhateverYouNeed[parent][child][j][k], 'unit_free'), string), checkvar)
+
+							elif member(cat("-",k), WhateverYouNeed["componentvariables"]["var_ComboBox"]) then
+								# "-variable" will be ignored
 
 							elif member(k, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
 								ModifyComboVariables(cat("ComboBox_", k), "Write", WhateverYouNeed[parent][child][j][k], table());	# write new values to combobox
@@ -2193,6 +2205,9 @@ for dummy in storeitems do
 
 			elif type(WhateverYouNeed[dummy], 'with_unit') then
 				checkvar := WriteValueToComponent(dummy, convert(convert(WhateverYouNeed[dummy], 'unit_free'), string), checkvar)	
+
+			elif member(cat("-",dummy), WhateverYouNeed["componentvariables"]["var_ComboBox"]) then
+				# "-variable" will be ignored
 
 			# tables where we just fill comboboxes
 			elif member(dummy, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
