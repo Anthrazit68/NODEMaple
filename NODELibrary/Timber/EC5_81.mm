@@ -630,7 +630,7 @@ EC5_814 := proc(WhateverYouNeed::table)
 			alpha := alphaForce - alphaBeam;
 
 			F_vEd := evalf(F_Ed * sin(alpha));	# force normal to graindirection
-			eta[part] := abs(evalf(F_vEd  / F_90Rd[part]));
+			eta[cat("814", part)] := abs(evalf(F_vEd  / F_90Rd[part]));
 
 			if ComponentExists(cat("MathContainer_F_vEd", part)) then
 				SetProperty(cat("MathContainer_F_vEd", part), 'value', round2(F_vEd, 1))
@@ -729,7 +729,7 @@ EC5_814_NA_DE := proc(WhateverYouNeed::table, h_e::table, a_r::table)
 			
 			if h_e[part] / h > 0.7 then		# not necessary to check
 
-				eta[part] := 0;
+				eta[cat("814_NA_DE", part)] := 0;
 
 			else
 			
@@ -737,7 +737,7 @@ EC5_814_NA_DE := proc(WhateverYouNeed::table, h_e::table, a_r::table)
 					Alert("8.1.4 NA DE: a_r / h > 1,0 and F_vEd > 0.5 * F_90Rd: connection too weak", warnings, 3)
 				end if;		
 			
-				eta[part] := abs(evalf(F_vEd / F_90Rd_NA_DE));
+				eta[cat("814_NA_DE", part)] := abs(evalf(F_vEd / F_90Rd_NA_DE));
 
 			end if;
 
@@ -975,7 +975,7 @@ EC5_62net := proc(WhateverYouNeed::table)
 			
 		end if;
 
-		eta[part] := eta_F + eta_M;
+		eta[cat("62net", part)] := eta_F + eta_M;
 			
 		# if ComponentExists(cat("TextArea_eta62net", part)) then
 		#	SetProperty(cat("TextArea_eta62net", part), 'value', round2(eta[part], 2))
