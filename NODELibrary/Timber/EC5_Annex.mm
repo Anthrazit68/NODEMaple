@@ -1,12 +1,12 @@
 AnnexA := proc(WhateverYouNeed::table)
 	description "Block Shear check acc. Annex A";
-	local BlockShear, A_net_t, A_net_v, lvl, lvr, L_net_v, L_net_t, fastenervalues, structure, t_eff, b1outside, connection, d, t_ef, M_yRk, f_hk, F_hd, F_vd, alphaForce, activeloadcase,
+	local BlockShear, A_net_t, A_net_v, lvl, lvr, L_net_v, L_net_t, fastenervalues, structure, t_eff, bout1, connection, d, t_ef, M_yRk, f_hk, F_hd, F_vd, alphaForce, activeloadcase,
 		dummy, dummy1, t_steel, sectiondataAll, shearplanes, timberlayers, t_1, i, usedcode, comments, warnings, F_bsRk, F_bsRd, f_t0k, f_vk, k_mod, gamma_M, alphaBeam, alpha, F_gd, eta;
 
 	structure := WhateverYouNeed["calculations"]["structure"];
 	connection := structure["connection"];
 	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];	
-	b1outside := connection["b1outside"];
+	bout1 := connection["bout1"];
 	sectiondataAll := WhateverYouNeed["sectiondataAll"];
 	d := structure["fastener"]["fastener_d"];	
 	M_yRk := fastenervalues["M_yRk"];
@@ -14,7 +14,7 @@ AnnexA := proc(WhateverYouNeed::table)
 	shearplanes := fastenervalues["shearplanes"];
 	timberlayers := WhateverYouNeed["calculatedvalues"]["layers"];
 	warnings := WhateverYouNeed["warnings"];
-	gamma_M := 1.3; 		# NS-EN 1995, NA.2.4.1
+	gamma_M := NODETimberEN1995:-gamma_M("Connections"); 		# NS-EN 1995, NA.2.4.1
 
 	lvl := WhateverYouNeed["calculatedvalues"]["distance"]["dist"]["a_lvl"];
 	lvr := WhateverYouNeed["calculatedvalues"]["distance"]["dist"]["a_lvr"];
@@ -40,14 +40,14 @@ AnnexA := proc(WhateverYouNeed::table)
 	# f_hk, needs to be f_h0k, as block failure checks capacity of connection for force in grain direction
 	f_hk := table();
 	if connection["connection1"] = "Timber" and connection["connection2"] = "Steel" then			# Timber - Steel
-		f_hk := fastenervalues["f_h0k"]["1"];
+		f_hk := WhateverYouNeed["calculatedvalues"]["f_h0k"]["1"];
 		f_t0k := WhateverYouNeed["materialdataAll"]["1"]["f_t0k"];
 		f_vk := WhateverYouNeed["materialdataAll"]["1"]["f_vk"];
 		k_mod := WhateverYouNeed["materialdataAll"]["1"]["k_mod"];
 		alphaBeam := evalf(WhateverYouNeed["calculations"]["structure"]["connection"]["graindirection1"]);
 	
 	elif connection["connection1"] = "Steel" and connection["connection2"] = "Timber" then		# Steel - Timber
-		f_hk := fastenervalues["f_h0k"]["2"];
+		f_hk := WhateverYouNeed["calculatedvalues"]["f_h0k"]["2"];
 		f_t0k := WhateverYouNeed["materialdataAll"]["2"]["f_t0k"];
 		f_vk := WhateverYouNeed["materialdataAll"]["2"]["f_vk"];
 		k_mod := WhateverYouNeed["materialdataAll"]["2"]["k_mod"];
@@ -86,8 +86,8 @@ AnnexA := proc(WhateverYouNeed::table)
 
 		# check if reduced outside layers
 		t_eff["1o"] := fastenervalues["t_eff"]["1"];
-		if b1outside <> "false" and b1outside < t_eff["1o"] then
-			t_eff["1o"] := b1outside
+		if bout1 <> "false" and bout1 < t_eff["1o"] then
+			t_eff["1o"] := bout1
 		end if;	
 
 		# 1 shear plane

@@ -1,7 +1,6 @@
 # calculate_83
 # calculate_t
 # calculate_F_axR
-# checkAnchorageLength
 # checkPredrilled
 # calculate_f_h0k
 # calculate_n_ef
@@ -15,8 +14,8 @@
 # 8.3.1.1(1)
 calculate_t := proc(WhateverYouNeed::table)
 	description "Calculate t and t_pen / effective part thickness and penetration depth";
-	local shearplanes, t_total, t, t_eff, t_ef_814_NA_DE, t_pen, n_tip, n_head, ls, d, doublesided, chosenFastener, connection, overlap, alphaScrew;
-	local checkPassed, structure, sectiondataAll, warnings, comments, fastenervalues, timberlayers, i;
+	local shearplanes, t_total, t, t_eff, t_ef_814_NA_DE, t_pen, n_tip, n_head, ls, d, chosenFastener, connection, alphaScrew;
+	local checkPassed, structure, sectiondataAll, warnings, comments, fastenervalues, timberlayers, i, nailSurface;
 
 	# define local variables
 	structure := WhateverYouNeed["calculations"]["structure"];
@@ -30,7 +29,7 @@ calculate_t := proc(WhateverYouNeed::table)
 	ls := structure["fastener"]["fastener_ls"];					# length of fastener
 	alphaScrew := structure["fastener"]["alphaScrew"];	# inclination of fastener
 	d := structure["fastener"]["fastener_d"];					# diameter
-	doublesided := WhateverYouNeed["calculations"]["structure"]["fastener"]["doublesided"];
+	nailSurface := structure["fastener"]["nailSurface"];
 	
 	# structure / connection
 	connection := structure["connection"];
@@ -62,16 +61,20 @@ calculate_t := proc(WhateverYouNeed::table)
 	t_eff := table();
 	t_ef_814_NA_DE := table();
 	
-	overlap := false;
-	comments["doublesided"] := evaln(comments["doublesided"]);
+	# reset specific settings for overlap and doublesided
+	# fastenervalues["overlap"] := evaln(fastenervalues["overlap"]);
+	# fastenervalues["doublesided"] := evaln(fastenervalues["doublesided"]);
+	# fastenervalues["SingleShearplane"] := evaln(fastenervalues["SingleShearplane"]);
+	fastenervalues["overlap"] := false;
+	fastenervalues["doublesided"] := false;
+	fastenervalues["SingleShearplane"] := false;
+
 	comments["overlap"] := evaln(comments["overlap"]);
+	comments["doublesided"] := evaln(comments["doublesided"]);
+	comments["SingleShearplane"] := evaln(comments["SingleShearplane"]);
 	
 	# t_eff["1"], t_eff["2"]
 	if chosenFastener = "Bolt" or chosenFastener = "Dowel" then
-
-		doublesided := false;
-		SetProperty("CheckBox_doublesided", value, "false");
-		SetProperty("CheckBox_doublesided", 'enabled', "false");
 
 		if ls < t_total then		# needs to go through the whole section
 			Alert("Fastener too short", warnings, 5);
@@ -121,9 +124,8 @@ calculate_t := proc(WhateverYouNeed::table)
 		t_pen := 0;
 	
 	elif chosenFastener = "Nail" or chosenFastener = "Screw" then
-		# extending formula for inclined screws
-		SetProperty("CheckBox_doublesided", 'enabled', "true");
 
+		# extending formula for inclined screws
 		if alphaScrew <> 90  * Unit('degree') then
 			comments["alphaScrew"] := cat("screw inclined ", convert(alphaScrew, 'unit_free'), " degrees")
 		elif assigned(comments["alphaScrew"]) then 
@@ -137,122 +139,171 @@ calculate_t := proc(WhateverYouNeed::table)
 
 		if shearplanes = 1 then			# just 2 parts
 			
-			doublesided := false;
-			SetProperty("CheckBox_doublesided", value, "false");
-			SetProperty("CheckBox_doublesided", 'enabled', "false");
-
 			# for timber - timber connections with one shearplane, fastener tip is always considered to be in part 2
 			if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then		# figure 8.2 a - f
+
 				t_eff["1"] := min(t["1"], ls * sin(alphaScrew));						
 				t_eff["2"] := evalf(min(t["2"], ls * sin(alphaScrew) - t["1"]));				# figure 8.4(a)
 				t_pen := t_eff["2"];
 				n_tip := "2";				# number of part with the tip
 				n_head := "1";
-				# t_pen := (ls * sin(alphaScrew) - t_total + t["2"]) / sin(alphaScrew);		# samme som ls - t["1"], utvidet for st�l p� utsiden
+
+				if (chosenFastener = "Nail" and nailSurface = "smooth" and t_pen < 8 * d) or t_pen < 6 * d then		# 8.3.1.2				
+					Alert(cat("calculate_t: ", chosenFastener, " too short"), warnings, 5);
+					return
+				else
+					fastenervalues["doublesided"] := false;
+				end if;
 
 			# for timber - steel connections with one shearplane, fastener tip is always considered to go into part 1 (different from above)
 			elif connection["connection1"] = "Timber" and connection["connection2"] = "Steel" then		# Figur 8.3 a - e
+
 				t_eff["1"] := evalf(min(t["1"], ls * sin(alphaScrew) - t["steel"]));	
 				t_eff["2"] := 0;
 				t_pen := t_eff["1"];
 				n_tip := "1";
 				n_head := 0;
+
+				if (chosenFastener = "Nail" and nailSurface = "smooth" and t_pen < 8 * d) or t_pen < 6 * d then		# 8.3.1.2				
+					Alert(cat("calculate_t: ", chosenFastener, " too short"), warnings, 5);
+					return
+				else
+					fastenervalues["doublesided"] := false;
+				end if;
+
 			else
-				Alert("error during calculation of t_pen", warnings, 3)
+
+				Alert("calculate_t: undefined material combination with 1 shearplane", warnings, 5);
+				return
+
 			end if;
 						
-		elif shearplanes = 2 then
-			
-			if doublesided = false then
-				
-				if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then	# figure 8.2 g - k
-					t_eff["1"] := evalf(min(t["1"], ls  * sin(alphaScrew) - t["2"] - t["1"]));	# 8.4(b)
+		elif shearplanes = 2 then		# 3 parts, 2 outer, 1 inner
+	
+			# check if connection should be doublesided
+			if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then	# figure 8.2 g - k
+
+				# check if nail is in part 1, 2 or 3
+
+				if ls * sin(alphaScrew) <= t["1"] then		# fastener in part 1, too short
+
+					Alert(cat("calculate_t: ", chosenFastener, " tip in part 1, too short"), warnings, 5);
+					return
+
+				elif ls * sin(alphaScrew) > t["1"] and ls * sin(alphaScrew) <= t["1"] + t["2"] then	# fastener in part 2
+					
+					t_eff["1"] := t["1"];
+					t_eff["2"] := evalf(ls * sin(alphaScrew) - t["1"]);
+					t_pen := t_eff["2"] / sin(alphaScrew);
+					n_tip := "2";
+					n_head := "1";
+
+					if t["2"] - t_pen < 4 * d then	# 8.3.1.1(7)
+						Alert("8.3.1.1(7): Warning: t-t2 < 4d, overlap not allowed", warnings, 3);
+						fastenervalues["overlap"] := false;
+					else
+						fastenervalues["overlap"] := true;
+					end if;
+
+					if (chosenFastener = "Nail" and nailSurface = "smooth" and t_pen < 8 * d) or t_pen < 6 * d then		# 8.3.1.2				
+						Alert(cat("calculate_t: ", chosenFastener, " tip in part 2, anchorage length too short"), warnings, 5);
+						return
+					else
+						fastenervalues["doublesided"] := true;
+						fastenervalues["SingleShearplane"] := true;
+						comments["SingleShearplane"] := cat(chosenFastener, " tip in part 2 -> doublesided, single shearplane");
+					end if;					
+
+				else	# fastener in part 3
+
+					t_eff["1"] := evalf(min(t["1"], ls * sin(alphaScrew) - t["2"] - t["1"]));	# 8.4(b)
 					t_eff["2"] := t["2"];
 					t_pen := t_eff["1"] / sin(alphaScrew);
 					n_tip := "1";
-					n_head := "2";
-					
-				else
-					Alert("One sided nail / screw connection with 2 shearplanes not possible with steel", warnings, 5);
-					return
-				end if;	
+					n_head := "1";
 
-			# doublesided screws or nails could eventually be used with steel and timber
-			# connections with overlap need to be with timber and nail fasteners
-			# otherwise minimum distance between fasteners a1 needs to be fulfilled				
-			else	
-			
-				if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then		# figure 8.2 g - k
-					# check if screw goes through both shearplanes
-					
-					if evalf(ls * sin(alphaScrew)) > evalf(t["1"] + t["2"]) then		# as onesided, but screws are placed from 2 sides, no overlap
-						t_eff["1"] := evalf(min(t["1"], ls  * sin(alphaScrew) - t["2"] - t["1"]));
+					# might be too short for proper 2 shearplane connection
+					if (chosenFastener = "Nail" and nailSurface = "smooth" and t_pen < 8 * d) or t_pen < 6 * d then		# 8.3.1.2
+
+						fastenervalues["doublesided"] := true;
+						fastenervalues["SingleShearplane"] := true;
+						fastenervalues["overlap"] := false;						
+						comments["SingleShearplane"] := cat(chosenFastener, " anchorage length too short in part 3, single shearplane");
+						t_eff["1"] := t["1"];
 						t_eff["2"] := t["2"];
-						t_pen := t_eff["1"] / sin(alphaScrew);
-						n_tip := "1";
-						n_head := "2";
-						fastenervalues["t_pen"] := t_pen;		# need to assign t_pen here because checkAnchorageLength reads from global variable
+						t_pen := t["2"];
+						n_tip := "2";
+						n_head := "1";						
 
-						# if screw / nail is not embedded fully, connection can still be working, but needs to be reduced to one shearplane
-						checkPassed := checkAnchorageLength(true, WhateverYouNeed);	# check for single shear plane
-						if checkPassed = false then
-							fastenervalues["shearplanes"] := 1;
-							t_eff["1"] := min(t["1"], ls * sin(alphaScrew));
-							t_eff["2"] := t["2"];
-							t_pen := t_eff["2"] / sin(alphaScrew);		# check of reduced penetration depth will be done in Main
-							n_tip := "2";
-							n_head := "1";
-						end if;
-						
-					else	# screw goes into midtpiece
-						comments["doublesided"] := "doublesided fasteners";
-						# fastenervalues["shearplanes"] := 1;			# shearplanes should not change, due to doublesided fasteners
-						t_eff["1"] := min(t["1"], ls * sin(alphaScrew));
-						t_eff["2"] := ls * sin(alphaScrew) - t["1"];
-						t_pen := t_eff["2"] / sin(alphaScrew);
-						n_tip := "2";
-						n_head := "1";
-						if chosenFastener = "Nail" and t["2"] - t_eff["2"] > 4 * d then
-							overlap := true;
-							comments["overlap"] := "fastener overlap";
-						end if;
+					else
+
+						fastenervalues["doublesided"] := false;
+						fastenervalues["SingleShearplane"] := false;
+						fastenervalues["overlap"] := false;
+
 					end if;
-										
-				elif connection["connection1"] = "Timber" and connection["connection2"] = "Steel" then	# figure 8.3 f - h
-					Alert("Doublesided nail / screw not possible with steel on inside", warnings, 5);
+
+				end if;
+
+			elif connection["connection1"] = "Steel" then	# steel - timber - steel / nail screw must always be doublesided
+
+				t_eff["1"] := 0;
+				t_eff["2"] := evalf(min(t["2"], ls * sin(alphaScrew) - t["steel"]));					
+				t_pen := t_eff["2"] / sin(alphaScrew);
+				n_tip := "2";
+				n_head := 0;
+				fastenervalues["doublesided"] := true;
+				fastenervalues["SingleShearplane"] := true;
+
+				if t["2"] - t_pen < 4 * d then	# 8.3.1.1(7)
+					Alert("8.3.1.1(7): Warning: t-t2 < 4d, overlap not allowed", warnings, 3);
+					fastenervalues["overlap"] := false;
+				else
+					comments["SingleShearplane"] := cat(chosenFastener, " overlap in part 2, single shearplane");
+					fastenervalues["overlap"] := true;
+				end if;
+
+				if ls * sin(alphaScrew) > t["2"] + t["steel"] then
+
+					Alert(cat(chosenFastener, " too long", warnings, 5));
 					return
-					
-				elif connection["connection1"] = "Steel" and connection["connection2"] = "Timber" then		# figure 8.3 j/l - m
-					if evalf(ls * sin(alphaScrew)) > t["steel"] + t["2"] then		# like onesided, but screw from both sides, no overlap
-						Alert("Doublesided nail / screw too long", warnings, 5);
-						return
-	
-					else	# screw goes into midtpiece
-						comments["doublesided"] := "doublesided fasteners";
-						# fastenervalues["shearplanes"] := 1;
-						t_eff["1"] := 0;
-						t_eff["2"] := evalf(min(t["2"], ls * sin(alphaScrew) - t["steel"]));
-						t_pen := t_eff["2"] / sin(alphaScrew);
-						n_tip := "2";
-						n_head := 0;
-						if chosenFastener = "Nail" and t["2"] - t_eff["2"] > 4 * d then
-							overlap := true
-						end if;
-					end if;
-					
-				end if;	
-			end if;		
+
+				elif (chosenFastener = "Nail" and nailSurface = "smooth" and t_pen < 8 * d) or t_pen < 6 * d then		# 8.3.1.2				
+
+					Alert(cat("calculate_t: ", chosenFastener, " in part 2, anchorage length too short"), warnings, 5);
+					return
+
+				end if;					
+
+			elif connection["connection2"] = "Steel" then	# Rothoblaas Alumini / Alumega
+
+				t_eff["1"] := evalf(min(t["1"], ls * sin(alphaScrew) - t["1"] - t["steel"]));
+				t_eff["2"] := 0;
+				t_pen := t_eff["1"] / sin(alphaScrew);
+				n_tip := "1";
+				n_head := "1";
+
+				fastenervalues["doublesided"] := false;
+				fastenervalues["SingleShearplane"] := false;
+				fastenervalues["overlap"] := false;
+								
+				if (chosenFastener = "Nail" and nailSurface = "smooth" and t_pen < 8 * d) or t_pen < 6 * d then		# 8.3.1.2
+
+					Alert(cat("calculate_t: ", chosenFastener, " anchorage length too short"), warnings, 5);
+					return
+
+				end if;				
+
+			end if;			
 			
-		else
-			
-			SetProperty("CheckBox_doublesided", value, "false");
+		else	# more than 2 shearplanes
+					
 			Alert("Connection with > 2 shearplanes can not be dimensioned with nails / screws", warnings, 5);			
 			return
 			
 		end if;
 		
 		# t_ef for 8.1.4 NA DE
-		# special connections not implemented yet (splittring, skjærplate og tannet forbindelse)
 		for i in {"1", "2"} do
 			
 			if timberlayers[i] > 0 then
@@ -298,30 +349,29 @@ calculate_t := proc(WhateverYouNeed::table)
 		Alert("calculate_t: unknown fastener type", warnings, 3);
 
 	end if;
-	
-	if overlap then
-		comments["overlap"] := "overlap";
-	elif assigned(comments["overlap"]) then
-		comments["overlap"] := evaln(comments["overlap"])		# remove entry
-	end if;
-	fastenervalues["overlap"] := overlap;	
 
-	SetProperty("MathContainer_t1", value, round(t["1"]));
-	SetProperty("MathContainer_t2", value, round(t["2"]));
-	SetProperty("MathContainer_t_eff1", value, round(t_eff["1"]));
-	SetProperty("MathContainer_t_eff2", value, round(t_eff["2"]));
-	SetProperty("MathContainer_t_pen", value, round(t_pen));
-	SetProperty("TextArea_shearplanes", value, fastenervalues["shearplanes"]);
+	for i in {"overlap", "doublesided"} do		# "SingleShearplane" is defined directly
+		if assigned(fastenervalues[i]) then
+			if fastenervalues[i] = true then
+				comments[i] := i;
+			else
+				comments[i] := cat("no ", i);	# write text that says 
+			end if;
+		end if;
+	end do;
+	
+	SetProperty("MathContainer_t1", 'value', round(t["1"]));
+	SetProperty("MathContainer_t2", 'value', round(t["2"]));
+	SetProperty("MathContainer_t_eff1", 'value', round(t_eff["1"]));
+	SetProperty("MathContainer_t_eff2", 'value', round(t_eff["2"]));
+	SetProperty("MathContainer_t_pen", 'value', round(t_pen));
+	SetProperty("TextArea_shearplanes", 'value', fastenervalues["shearplanes"]);
 
 	fastenervalues["t_eff"] := eval(t_eff);
 	fastenervalues["t_ef_814_NA_DE"] := t_ef_814_NA_DE;
 	fastenervalues["t_pen"] := t_pen;
 	fastenervalues["n_tip"] := n_tip;
 	fastenervalues["n_head"] := n_head;
-
-	if t_pen < 0 then
-		Alert("Fastener too short, t_pen < 0", warnings, 5);
-	end if;
 
 end proc:
 
@@ -335,7 +385,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 	local structure, materialdataAll, sectiondataAll, warnings, comments, fastenervalues, numberOfFasteners, k_ef;
 
 	# define local variables
-	gamma_M := 1.3; 		# NS-EN 1995, NA.2.4.1
+	gamma_M := NODETimberEN1995:-gamma_M("Connections"); 		# NS-EN 1995, NA.2.4.1
 	structure := WhateverYouNeed["calculations"]["structure"];
 	materialdataAll := WhateverYouNeed["materialdataAll"];	
 	sectiondataAll := WhateverYouNeed["sectiondataAll"];
@@ -393,15 +443,15 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 	end if;
 	
 	if n_tip <> 0 then
-		SetProperty(cat("TextArea_alpha_rho", n_tip), value, round2(alpha_rho[n_tip], 2));
+		SetProperty(cat("TextArea_alpha_rho", n_tip), 'value', round2(alpha_rho[n_tip], 2));
 	else
-		SetProperty("TextArea_alpha_rho1", value, 1);
+		SetProperty("TextArea_alpha_rho1", 'value', 1);
 	end if;
 	
 	if n_head <> 0 then
-		SetProperty(cat("TextArea_alpha_rho", n_head), value, round2(alpha_rho[n_head], 2));
+		SetProperty(cat("TextArea_alpha_rho", n_head), 'value', round2(alpha_rho[n_head], 2));
 	else
-		SetProperty("TextArea_alpha_rho2", value, 1);
+		SetProperty("TextArea_alpha_rho2", 'value', 1);
 	end if;
 
 	# checking agains calculated fastener, might be nail, bolt or dowel (not screw)
@@ -523,22 +573,22 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 	F_axRk := convert(F_axRk, 'units', 'kN');
 
 
-	SetProperty("MathContainer_R_axk1", value, 0);
-	SetProperty("MathContainer_R_axk2", value, 0);
-	SetProperty("MathContainer_R_headk1", value, 0);
-	SetProperty("MathContainer_R_headk2", value, 0);
+	SetProperty("MathContainer_R_axk1", 'value', 0);
+	SetProperty("MathContainer_R_axk2", 'value', 0);
+	SetProperty("MathContainer_R_headk1", 'value', 0);
+	SetProperty("MathContainer_R_headk2", 'value', 0);
 	if n_tip = "1" or n_tip = "2" then
-		SetProperty(cat("MathContainer_R_axk", n_tip), value, round2(R_axk, 1))
+		SetProperty(cat("MathContainer_R_axk", n_tip), 'value', round2(R_axk, 1))
 	end if;
 	if n_head = "1" or n_head = "2" then
-		SetProperty(cat("MathContainer_R_axk", n_head), value, round2(R_axk_n_head, 1))
+		SetProperty(cat("MathContainer_R_axk", n_head), 'value', round2(R_axk_n_head, 1))
 	end if;
 	
 	if n_head = "1" or n_head = "2" then
-		SetProperty(cat("MathContainer_R_headk", n_head), value, round2(R_headk, 1))
+		SetProperty(cat("MathContainer_R_headk", n_head), 'value', round2(R_headk, 1))
 	end if;
 	
-	SetProperty("MathContainer_F_axRk", value, round2(F_axRk, 1));
+	SetProperty("MathContainer_F_axRk", 'value', round2(F_axRk, 1));
 
 	# calculate F_axRd	
 	k_mod := 0;
@@ -555,13 +605,13 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 	
 	# F_axRd is for single shearplane, one fastener
 	F_axRd := eval(F_axRk * k_mod / gamma_M);
-	SetProperty("MathContainer_F_axRd", value, round2(F_axRd, 1));
+	SetProperty("MathContainer_F_axRd", 'value', round2(F_axRd, 1));
 
 	F_axRd_fastener := F_axRd * (numberOfFasteners ^ k_ef / numberOfFasteners);
-	SetProperty("MathContainer_F_axRd_fastener", value, round2(F_axRd_fastener, 1));
+	SetProperty("MathContainer_F_axRd_fastener", 'value', round2(F_axRd_fastener, 1));
 
 	if ComponentExists("TextArea_gamma_M") then
-		SetProperty("TextArea_gamma_M", value, round2(gamma_M, 2))
+		SetProperty("TextArea_gamma_M", 'value', round2(gamma_M, 2))
 	end if;
 	
 	fastenervalues["R_headk"] := R_headk;
@@ -570,86 +620,6 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 	fastenervalues["F_axRd"] := F_axRd;
 	fastenervalues["F_axRd_fastener"] := F_axRd_fastener;
 
-end proc:
-
-
-checkAnchorageLength := proc(checkSingleShearplane, WhateverYouNeed::table)
-	description "Check anchorage length for nails and screws";
-	local chosenFastener, calculatedFastener, connection, nailSurface, d, timbertype, checkPassed, t_pen, calculateAsNail;
-	local structure, materialdataAll, warnings, comments, fastenervalues;
-
-	# define local variables
-	structure := WhateverYouNeed["calculations"]["structure"];
-	materialdataAll := WhateverYouNeed["materialdataAll"];	
-	warnings := WhateverYouNeed["warnings"];
-	comments := WhateverYouNeed["results"]["comments"];
-	t_pen := WhateverYouNeed["calculatedvalues"]["fastenervalues"]["t_pen"];
-
-	timbertype := table();
-	timbertype["1"] := materialdataAll["1"]["timbertype"];
-	timbertype["2"] := materialdataAll["2"]["timbertype"];
-
-	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
-	chosenFastener := structure["fastener"]["chosenFastener"];
-	calculatedFastener := fastenervalues["calculatedFastener"];
-	calculateAsNail := structure["fastener"]["calculateAsNail"];
-	nailSurface := structure["fastener"]["nailSurface"];
-	d := structure["fastener"]["fastener_d"];
-	
-	connection := structure["connection"];
-	
-	checkPassed := true;
-
-	if calculatedFastener = "Nail" or (chosenFastener = "Screw" and calculateAsNail = "true") then
-		if connection["connection1"] = "Timber" then
-			if chosenFastener = "Nail" and nailSurface = "smooth" then			# 8.3.1.2
-				if t_pen < 8 * d then
-					if checkSingleShearplane then
-						comments["SingleShearplane"] := cat(chosenFastener, " anchorage length too short for two shearplanes, trying one")
-					else
-						if assigned(comments["SingleShearplane"]) then
-							comments["SingleShearplane"] := evaln(comments["SingleShearplane"]);
-						end if;
-						Alert(cat(chosenFastener, " too short: t_pen = ", round2(t_pen, 0), " < 8 * d"), warnings, 3);
-					end if;
-					checkPassed := false
-					# check["8.3.1.2"] := false;
-				end if;
-			else	# non smooth nail or screw
-				if t_pen < 6 * d then
-					if checkSingleShearplane then
-						comments["SingleShearplane"] := cat(chosenFastener, " anchorage length too short for two shearplanes, trying one")
-					else
-						if assigned(comments["SingleShearplane"]) then
-							comments["SingleShearplane"] := evaln(comments["SingleShearplane"]);
-						end if;
-						Alert(cat(chosenFastener, " too short: t_pen = ", round2(t_pen, 0), " < 6 * d"), warnings, 3);
-					end if;
-					
-					checkPassed := false
-					# check["8.3.1.2"] := false;
-				end if;
-			end if;
-		end if;
-
-	# 8.7.2(3)
-	elif calculatedFastener = "Screw" then
-		# CLT check is more difficult, as it is load dependent (axial load
-		# if timbertype[n_tip] = "CLT" and axialbelastet and CLT[n_tip] = "kant" and t_pen < 10 * d then		# Rothoblaas side 34, gjelder bare hvis CLT er kant
-		#	returncode := cat("Skrue for kort (CLT): t_pen = ", round2(t_pen, 0), " < 10 * d")
-		if t_pen < 6 * d then
-			if checkSingleShearplane then
-				comments["SingleShearplane"] := "Screw anchorage length too short for two shearplanes, trying one"
-			elif assigned(comments["SingleShearplane"]) then
-				comments["SingleShearplane"] := evaln(comments["SingleShearplane"]);
-				Alert(cat("Screw too short: t_pen = ", round2(t_pen, 0), " < 6 * d"), warnings, 3);
-			end if;
-	
-			checkPassed := false
-		end if;
-	end if;
-	
-	return checkPassed
 end proc:
 
 
@@ -774,7 +744,7 @@ GetFastenervalues := proc(WhateverYouNeed::table)
 
 		fastenervalues["M_yRk"] := M_yRk;
 		comments["M_yRk"] := "M_yRk calculated";
-		SetProperty("MathContainer_M_yRk", value, round2(fastenervalues["M_yRk"], 2));	
+		SetProperty("MathContainer_M_yRk", 'value', round2(fastenervalues["M_yRk"], 2));	
 			
 	elif assigned(comments["M_yRk"]) then
 			
@@ -793,7 +763,7 @@ GetFastenervalues := proc(WhateverYouNeed::table)
 
 		fastenervalues["f_tensk"] := f_tensk;
 		comments["f_tensk"] := "f_tensk calculated";
-		SetProperty("MathContainer_f_tensk", value, round2(fastenervalues["f_tensk"], 2));
+		SetProperty("MathContainer_f_tensk", 'value', round2(fastenervalues["f_tensk"], 2));
 
 	elif assigned(comments["f_tensk"]) then
 
@@ -805,39 +775,51 @@ end proc:
 
 
 # 8.3.1.1(5)
-calculate_f_h0k := proc(WhateverYouNeed::table, part::string)
-	local f_h0k, calculatedFastener, d, predrilled, chosenFastener, calculateAsNail, structure, rho_k, material;
+calculate_f_h0k := proc(WhateverYouNeed::table)
+	description "precalculate f_h0k for each beam, called by Main";
+	local calculatedvalues, calculatedFastener, d, predrilled, chosenFastener, calculateAsNail, structure, rho_k, material, f_h0k, part;
 
 	structure := WhateverYouNeed["calculations"]["structure"];
-
+	calculatedvalues := WhateverYouNeed["calculatedvalues"];
 	calculatedFastener := WhateverYouNeed["calculatedvalues"]["fastenervalues"]["calculatedFastener"];
 	chosenFastener := structure["fastener"]["chosenFastener"];
 	calculateAsNail := structure["fastener"]["calculateAsNail"];
 	predrilled := structure["fastener"]["predrilled"];
 	d := structure["fastener"]["fastener_d"];
-	rho_k := WhateverYouNeed["materialdataAll"][part]["rho_k"];
-	material := WhateverYouNeed["materialdataAll"][part]["material"];
+
+	f_h0k := table();
+
+	for part in {"1", "2"} do
+
+		material := WhateverYouNeed["materialdataAll"][part]["material"];
+		rho_k := WhateverYouNeed["materialdataAll"][part]["rho_k"];
 	
-	if material = "timber" then
-		if calculatedFastener = "Nail" or (chosenFastener = "Screw" and calculateAsNail = "true") then
-			if predrilled = "true" then
-				f_h0k := (0.082 * (1 - 0.01 * convert(d, 'unit_free')) * convert(rho_k, 'unit_free')) * Unit('N'/'mm^2');
-			else
-				f_h0k := (0.082 * convert(rho_k, 'unit_free') * convert(d, 'unit_free')^(-0.3)) * Unit('N'/'mm^2')
+		if material = "timber" then
+
+			if calculatedFastener = "Nail" or (chosenFastener = "Screw" and calculateAsNail = "true") then
+
+				if predrilled = "true" then
+					f_h0k[part] := (0.082 * (1 - 0.01 * convert(d, 'unit_free')) * convert(rho_k, 'unit_free')) * Unit('N'/'mm^2');
+				else
+					f_h0k[part] := (0.082 * convert(rho_k, 'unit_free') * convert(d, 'unit_free')^(-0.3)) * Unit('N'/'mm^2')
+				end if;
+				
+			elif calculatedFastener = "Bolt" or calculatedFastener = "Dowel" then
+				
+				f_h0k[part] := (0.082 * (1 - 0.01 * convert(d, 'unit_free')) * convert(rho_k, 'unit_free')) * Unit('N'/'mm^2');
+				
 			end if;
-			
-		elif calculatedFastener = "Bolt" or calculatedFastener = "Dowel" then
-			
-			f_h0k := (0.082 * (1 - 0.01 * convert(d, 'unit_free')) * convert(rho_k, 'unit_free')) * Unit('N'/'mm^2');
-			
+
+		else
+
+			f_h0k[part] := 0
+
 		end if;
-
-	else
-		f_h0k := 0
-
-	end if;
+		
+	end do;
 	
-	return f_h0k
+	WhateverYouNeed["calculatedvalues"]["f_h0k"] := f_h0k;
+
 end proc:
 
 
@@ -845,17 +827,24 @@ end proc:
 # calculating k_n_ef as a reduction factor for capacity due to number of fasteners in a row
 calculate_n_ef := proc(WhateverYouNeed::table)
 	description "calculate reduction factor of capacity of one single fastener";
-	local staggered_90, calculatedFastener, a1, d, chosenFastener, calculateAsNail, part, structure, distance, k_ef, n_ef0, n1, k_n_ef0;
+	local staggered, calculatedFastener, a1, d, chosenFastener, calculateAsNail, part, structure, distance, k_ef, n_ef0, n1, k_n_ef0, comments, ShearConnector;
 
 	structure := WhateverYouNeed["calculations"]["structure"];	
 	chosenFastener := structure["fastener"]["chosenFastener"];	
 	calculateAsNail := structure["fastener"]["calculateAsNail"];
 	calculatedFastener := WhateverYouNeed["calculatedvalues"]["fastenervalues"]["calculatedFastener"];
-	staggered_90 := structure["fastener"]["staggered_90"];
 	distance := WhateverYouNeed["calculatedvalues"]["distance"];
-	d := structure["fastener"]["fastener_d"];	
+	d := structure["fastener"]["fastener_d"];
+	comments := WhateverYouNeed["results"]["comments"];
+	ShearConnector := WhateverYouNeed["calculations"]["structure"]["fastener"]["ShearConnector"];
 
 	for part in {"1", "2"} do
+
+		staggered := structure["fastener"][cat("staggered", part)];
+		if staggered = "false" then		# staggered parallel to grain direction with distance d
+			comments[cat("staggered", part)] := evaln(comments[cat("staggered", part)]);
+		end if;
+
 		if structure["connection"][cat("connection", part)] = "Timber" then
 
 			if assigned(WhateverYouNeed["calculatedvalues"]["distance"]["a1_nFastenersInRow"][part]) then
@@ -864,11 +853,15 @@ calculate_n_ef := proc(WhateverYouNeed::table)
 				n1 := 1
 			end if;
 			
-			if calculatedFastener = "Nail" or (chosenFastener = "Screw" and calculateAsNail = "true") then
-				if staggered_90 = "false" then
+			if ShearConnector = "Split ring" then
+				n_ef0 := evalf(2 + (1 - n1/20) * (n1 - 2));		# (8.71)
+
+			elif calculatedFastener = "Nail" or (chosenFastener = "Screw" and calculateAsNail = "true") then
+				if staggered = "false" then		# staggered parallel to grain direction with distance d
 					k_ef := calculate_k_ef(part, WhateverYouNeed);
 					n_ef0 := n1^k_ef;			# (8.17)
 				else
+					comments[cat("staggered", part)] := cat("row parallel to grain ", part, " staggered");
 					k_ef := 1;
 					n_ef0 := n1
 				end if;
@@ -892,13 +885,13 @@ calculate_n_ef := proc(WhateverYouNeed::table)
 			WhateverYouNeed["calculatedvalues"][cat("k_n_ef0", part)] := k_n_ef0;	# reduction factor for n_ef
 
 			if ComponentExists(cat("TextArea_k_ef", part)) then
-				SetProperty(cat("TextArea_k_ef", part), value, round2(k_ef, 2))
+				SetProperty(cat("TextArea_k_ef", part), 'value', round2(k_ef, 2))
 			end if;
 			if ComponentExists(cat("TextArea_n_ef0", part)) then
-				SetProperty(cat("TextArea_n_ef0", part), value, round2(n_ef0, 2))
+				SetProperty(cat("TextArea_n_ef0", part), 'value', round2(n_ef0, 2))
 			end if;
 			if ComponentExists(cat("TextArea_k_n_ef0", part)) then
-				SetProperty(cat("TextArea_k_n_ef0", part), value, round2(k_n_ef0, 2))
+				SetProperty(cat("TextArea_k_n_ef0", part), 'value', round2(k_n_ef0, 2))
 			end if;
 
 #			if part = 1 or assigned(WhateverYouNeed["calculatedvalues"]["k_n_ef"]) = false then
@@ -974,7 +967,7 @@ calculate_f_axk := proc(WhateverYouNeed::table)
 	if calculatedvalue then
 		SetProperty("MathContainer_f_axk", 'fillcolor', "coral");
 		WhateverYouNeed["calculatedvalues"]["fastenervalues"]["f_axk"] := eval(f_axk);
-		SetProperty("MathContainer_f_axk", value, round2(f_axk, 2))
+		SetProperty("MathContainer_f_axk", 'value', round2(f_axk, 2))
 	else
 		SetProperty("MathContainer_f_axk", 'fillcolor', "white")
 	end if;
@@ -1002,7 +995,7 @@ calculate_f_headk := proc(WhateverYouNeed::table)
 	if calculatedvalue then
 		SetProperty("MathContainer_f_headk", 'fillcolor', "orange");
 		fastenervalues["f_headk"] := eval(f_headk);
-		SetProperty("MathContainer_f_headk", value, round2(f_headk, 2));
+		SetProperty("MathContainer_f_headk", 'value', round2(f_headk, 2));
 	else
 		SetProperty("MathContainer_f_headk", 'fillcolor', "white");
 	end if;

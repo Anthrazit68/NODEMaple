@@ -199,7 +199,7 @@
 		end if;		
 
 		if action = "overwrite" then	# lager ny fil
-			xmlversion := "2023.12";
+			xmlversion := "2024.11";
 			software := "NODE common file format, generated via Maple";
 			xmltree := XMLElement("database", ["version" = xmlversion, "source_software" = software]);	# general information
 		else	# merge
@@ -1239,7 +1239,7 @@ runAfterXMLImport := proc(successful::boolean, WhateverYouNeed::table)
 
 				posnumber := ListTools:-Search(activematerial, GetProperty("ComboBox_materials", 'itemlist'));
 				if posnumber = 0 or posnumber > numelems(GetProperty("ComboBox_materials", 'itemlist')) then
-					Alert("activematerial not in list of materials", warnings, 1);
+					Alert(cat("Active material ", activematerial, " not in list of materials"), warnings, 1);
 					SetProperty("ComboBox_materials", 'selectedindex', 0);	 # pick first element in the list
 				else
 					SetProperty("ComboBox_materials", 'selectedindex', posnumber-1);	 # Combobox start with 0, lists with 1
@@ -1273,8 +1273,8 @@ runAfterXMLImport := proc(successful::boolean, WhateverYouNeed::table)
 				XMLImportlog := cat(XMLImportlog, "...Combobox_sections - ", material, " \n");
 
 				posnumber := ListTools:-Search(activesection, GetProperty("ComboBox_sections", 'itemlist'));
-				if posnumber = 0 or posnumber > numelems(GetProperty("ComboBox_materials", 'itemlist')) then
-					Alert("activesection not in list of sections", warnings, 1);
+				if posnumber = 0 or posnumber > numelems(GetProperty("ComboBox_sections", 'itemlist')) then
+					Alert(cat("Active section ",activesection, " not in list of stored sections"), warnings, 1);
 					SetProperty("ComboBox_sections", 'selectedindex', 0);	 # pick first element in the list
 				else
 					SetProperty("ComboBox_sections", 'selectedindex', posnumber-1);	 # Combobox start with 0, lists with 1
@@ -1284,7 +1284,7 @@ runAfterXMLImport := proc(successful::boolean, WhateverYouNeed::table)
 			elif i = "loadcases" and ComponentExists("ComboBox_loadcases") then
 				posnumber := ListTools:-Search(activeloadcase, GetProperty("ComboBox_loadcases", 'itemlist'));
 				if posnumber = 0 or posnumber > numelems(GetProperty("ComboBox_loadcases", 'itemlist')) then
-					Alert("activeloadcase not in list of loadcases", warnings, 1);
+					Alert(cat("Active loadcase ", activeloadcase, " not in list of stored loadcases"), warnings, 1);
 					SetProperty("ComboBox_loadcases", 'selectedindex', 0);	 # pick first element in the list
 				else
 					SetProperty("ComboBox_loadcases", 'selectedindex', posnumber-1);	 # Combobox start with 0, lists with 1
@@ -1297,7 +1297,7 @@ runAfterXMLImport := proc(successful::boolean, WhateverYouNeed::table)
 			elif i = "FastenerPatterns" and ComponentExists("ComboBox_FastenerPatterns") then
 				posnumber := ListTools:-Search(activeFastenerPattern, GetProperty("ComboBox_FastenerPatterns", 'itemlist'));
 				if posnumber = 0 or posnumber > numelems(GetProperty("ComboBox_FastenerPatterns", 'itemlist')) then
-					Alert("activeFastenerPattern not in list of FastenerPatterns", warnings, 1);
+					Alert(cat("Active fastener pattern ", activeFastenerPattern, " not in list of FastenerPatterns"), warnings, 1);
 					SetProperty("ComboBox_FastenerPatterns", 'selectedindex', 0);	 # pick first element in the list
 				else
 					SetProperty("ComboBox_FastenerPatterns", 'selectedindex', posnumber-1);	 # Combobox start with 0, lists with 1

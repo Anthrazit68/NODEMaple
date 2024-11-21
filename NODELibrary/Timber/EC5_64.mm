@@ -45,17 +45,17 @@ EC5_643 := proc(WhateverYouNeed::table)
 
 	# if ComponentExists("TextArea_eta_643") then
 	#	HighlightResults({"eta_643"}, "highlight");
-	#	SetProperty("TextArea_eta_643", value, round2(eta_643, 2));
+	#	SetProperty("TextArea_eta_643", 'value', round2(eta_643, 2));
 	# end if;
 
 	if ComponentExists("MathContainer_tau_d_64") then
 		HighlightResults({"tau_d_64"}, "highlight");
-		SetProperty("MathContainer_tau_d_64", value, round2(tau_d_64, 2));
+		SetProperty("MathContainer_tau_d_64", 'value', round2(tau_d_64, 2));
 	end if;
 
 	if ComponentExists("MathContainer_sigma_t90d_64") then
 		HighlightResults({"sigma_t90d_64"}, "highlight");
-		SetProperty("MathContainer_sigma_t90d_64", value, round2(sigma_t90d_64, 2));
+		SetProperty("MathContainer_sigma_t90d_64", 'value', round2(sigma_t90d_64, 2));
 	end if;
 
 	return eta_643, usedcode, comments
