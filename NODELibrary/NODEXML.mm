@@ -476,6 +476,10 @@
 	
 
 		xmltree := CleanXML(ParseFile(afilename, prolog = true));	# https://www.mapleprimes.com/questions/230537-XMLTools--FirstChild
+
+		# .xsd file check - unsure if it is working yet
+		# https://www.mapleprimes.com/questions/239423-XMLTools--Validate--Schema-Location?sq=239423
+		# XMLTools:-Validate(xmltree, schema = "NODEMaple.xsd");
 		
 		# logfile := FileTools[Text][Open]((cat(afilename,".log"), create, overwrite));		# create logfile in same directory as xml file
 		# FileTools[Text][WriteString](logfile, cat("logfile for file ", afilename, "\n"));

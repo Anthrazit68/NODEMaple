@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Created with Liquid Technologies Online Tools 1.0 (https://www.liquid-technologies.com) -->
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="database">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="projectdata">
+          <xs:complexType>
+            <xs:attribute name="projecttitle" type="xs:string"/>
+            <xs:attribute name="projectnumber" type="xs:string"/>
+            <xs:attribute name="client" type="xs:string"/>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="materials">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="timber" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="sections">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="timber" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="calculations">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="calculation">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="calculation">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="activesettings">
+                            <xs:complexType>
+                              <xs:attribute name="activeloadcase" type="xs:string"/>
+                              <xs:attribute name="activematerial1" type="xs:string"/>
+                              <xs:attribute name="activematerial2" type="xs:string"/>
+                              <xs:attribute name="activesection1" type="xs:string"/>
+                              <xs:attribute name="activesection2" type="xs:string"/>
+                              <xs:attribute name="activeFastenerPattern" type="xs:string"/>
+                              <xs:attribute name="calculate_814_NA_DE" type="xs:string"/>
+                            </xs:complexType>
+                          </xs:element>
+                          <xs:element name="loadcases">
+                            <xs:complexType>
+                              <xs:sequence>
+                                <xs:element maxOccurs="unbounded" name="loadcase">
+                                  <xs:complexType>
+                                    <xs:attribute name="name" type="xs:string"/>
+                                    <xs:attribute name="F_axGk" type="xs:string"/>
+                                    <xs:attribute name="F_axQk" type="xs:string"/>
+                                    <xs:attribute name="F_axd" type="xs:string"/>
+                                    <xs:attribute name="F_hGk" type="xs:string"/>
+                                    <xs:attribute name="F_hQk" type="xs:string"/>
+                                    <xs:attribute name="F_hd" type="xs:string"/>
+                                    <xs:attribute name="F_vGk" type="xs:string"/>
+                                    <xs:attribute name="F_vQk" type="xs:string"/>
+                                    <xs:attribute name="F_vd" type="xs:string"/>
+                                    <xs:attribute name="M_yGk" type="xs:string"/>
+                                    <xs:attribute name="M_yQk" type="xs:string"/>
+                                    <xs:attribute name="M_yd" type="xs:string"/>
+                                    <xs:attribute name="f_814" type="xs:string"/>
+                                    <xs:attribute name="loadcenter_x" type="xs:string"/>
+                                    <xs:attribute name="loadcenter_y" type="xs:string"/>
+                                  </xs:complexType>
+                                </xs:element>
+                              </xs:sequence>
+                            </xs:complexType>
+                          </xs:element>
+                          <xs:element name="structure">
+                            <xs:complexType>
+                              <xs:sequence>
+                                <xs:element name="connection">
+                                  <xs:complexType>
+                                    <xs:attribute name="Cutleft1" type="xs:string"/>
+                                    <xs:attribute name="Cutleft2" type="xs:string"/>
+                                    <xs:attribute name="Cutleftsteel" type="xs:string"/>
+                                    <xs:attribute name="Cutright1" type="xs:string"/>
+                                    <xs:attribute name="Cutright2" type="xs:string"/>
+                                    <xs:attribute name="Cutrightsteel" type="xs:string"/>
+                                    <xs:attribute name="bout1" type="xs:string"/>
+                                    <xs:attribute name="connection1" type="xs:string"/>
+                                    <xs:attribute name="connection2" type="xs:string"/>
+                                    <xs:attribute name="graindirection1" type="xs:string"/>
+                                    <xs:attribute name="graindirection2" type="xs:string"/>
+                                    <xs:attribute name="lengthleft1" type="xs:string"/>
+                                    <xs:attribute name="lengthleft2" type="xs:string"/>
+                                    <xs:attribute name="lengthleftsteel" type="xs:string"/>
+                                    <xs:attribute name="lengthright1" type="xs:string"/>
+                                    <xs:attribute name="lengthright2" type="xs:string"/>
+                                    <xs:attribute name="connectionInsideLayers" type="xs:string"/>
+                                    <xs:attribute name="graindirectionsteel" type="xs:string"/>
+                                    <xs:attribute name="lengthrightsteel" type="xs:string"/>
+                                    <xs:attribute name="connectionInsideTolerance" type="xs:string"/>
+                                  </xs:complexType>
+                                </xs:element>
+                                <xs:element name="fastener">
+                                  <xs:complexType>
+                                    <xs:attribute name="ShearConnector" type="xs:string"/>
+                                    <xs:attribute name="SplitRingdc" type="xs:string"/>
+                                    <xs:attribute name="SplitRingtype" type="xs:string"/>
+                                    <xs:attribute name="ToothedPlatedc" type="xs:string"/>
+                                    <xs:attribute name="alphaScrew" type="xs:string"/>
+                                    <xs:attribute name="calculateAsNail" type="xs:string"/>
+                                    <xs:attribute name="chosenFastener" type="xs:string"/>
+                                    <xs:attribute name="fastenerProduct" type="xs:string"/>
+                                    <xs:attribute name="fastener_d" type="xs:string"/>
+                                    <xs:attribute name="fastener_dh" type="xs:string"/>
+                                    <xs:attribute name="fastener_ls" type="xs:string"/>
+                                    <xs:attribute name="nailForm" type="xs:string"/>
+                                    <xs:attribute name="nailSurface" type="xs:string"/>
+                                    <xs:attribute name="predrilled" type="xs:string"/>
+                                    <xs:attribute name="screwWithWasher" type="xs:string"/>
+                                    <xs:attribute name="staggered1" type="xs:string"/>
+                                    <xs:attribute name="staggered2" type="xs:string"/>
+                                    <xs:attribute name="washerProducer" type="xs:string"/>
+                                    <xs:attribute name="washerProduct" type="xs:string"/>
+                                    <xs:attribute name="SharpMetalLength" type="xs:string"/>
+                                    <xs:attribute name="SharpMetalProducer" type="xs:string"/>
+                                    <xs:attribute name="SharpMetalProduct" type="xs:string"/>
+                                    <xs:attribute name="SharpMetalStripes" type="xs:string"/>
+                                    <xs:attribute name="ToothedPlatesides" type="xs:string"/>
+                                    <xs:attribute name="ToothedPlatetype" type="xs:string"/>
+                                    <xs:attribute name="fastenerProducer" type="xs:string"/>
+                                    <xs:attribute name="ignoreReqPredrilled" type="xs:string"/>
+                                  </xs:complexType>
+                                </xs:element>
+                                <xs:element name="FastenerPatterns">
+                                  <xs:complexType>
+                                    <xs:sequence>
+                                      <xs:element name="FastenerPattern">
+                                        <xs:complexType>
+                                          <xs:attribute name="name" type="xs:string"/>
+                                          <xs:attribute name="grid_x1" type="xs:string"/>
+                                          <xs:attribute name="grid_y1" type="xs:string"/>
+                                          <xs:attribute name="center_x1" type="xs:string"/>
+                                          <xs:attribute name="center_y1" type="xs:string"/>
+                                          <xs:attribute name="grid_alpha_11" type="xs:string"/>
+                                          <xs:attribute name="grid_alpha_21" type="xs:string"/>
+                                          <xs:attribute name="reactionforces" type="xs:string"/>
+                                          <xs:attribute name="FastenerPatternType1" type="xs:string"/>
+                                          <xs:attribute name="FastenerPatternType2" type="xs:string"/>
+                                          <xs:attribute name="FastenerPatternType3" type="xs:string"/>
+                                          <xs:attribute name="FastenerPatternUnits" type="xs:string"/>
+                                          <xs:attribute name="FastenerPatternCoordinates" type="xs:string"/>
+                                        </xs:complexType>
+                                      </xs:element>
+                                    </xs:sequence>
+                                  </xs:complexType>
+                                </xs:element>
+                              </xs:sequence>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                        <xs:attribute name="calculationtype" type="xs:string"/>
+                        <xs:attribute name="positionnumber" type="xs:string"/>
+                        <xs:attribute name="positiontitle" type="xs:string"/>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                  <xs:attribute name="calculationtype" type="xs:string"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      <xs:attribute name="version" type="xs:string"/>
+      <xs:attribute name="source_software" type="xs:string"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
