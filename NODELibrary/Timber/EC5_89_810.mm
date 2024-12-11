@@ -1,3 +1,19 @@
+# EC5_89_810.mm : Eurocode 5 chapter 8.9 and 8.10
+# Copyright (C) 2024  Andreas Zieritz
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 calculate_F_vR_89_810 := proc(WhateverYouNeed::table, alpha)
 	description "Split Ring and Toothed Plate Connectors";
 	local structure, warnings, fastener, platesides, ShearConnector, connectortype, dc, he, F_vRk, F_vRd, k1, k2, k3, k4, t, a3t, rho_k, rho_k_, k_mod, gamma_M,
