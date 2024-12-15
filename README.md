@@ -7,7 +7,8 @@ If new to Maple, it is recommended to take a quick introduction tour through the
 ## Why NODE...?
 The NODE prefix of the filenames is meant as a credit to my employer NODE rådgivende ingeniører AS, situated on the Norwegian west coast.
 For more information see https://www.node.no.
-NODE rådgivende ingeniører AS does neither own this software or is legally responsible in any way.
+
+NODE rådgivende ingeniører AS does neither own this software nor is legally responsible in any way.
 
 # Installation
 - A valid license of Maple (see https://www.maplesoft.com/products/Maple/) is required to run this software. Usually the latest release of the program is required.
