@@ -485,7 +485,7 @@ PlotResults := proc(WhateverYouNeed::table)
 					if i = "1" then
 						clr := "Orange" 
 					elif i = "2"then
-						clr := "Green"
+						clr := "Olive"
 					elif i = "steel" then
 						clr := "Turquoise"
 					end if;
@@ -504,8 +504,8 @@ PlotResults := proc(WhateverYouNeed::table)
 					geometryList := [op(geometryList), 
 							parse(cat("BL", i))('color' = "Black", 'linestyle' = 'solid'),
 							parse(cat("BR", i))('color' = "Black", 'linestyle' = 'solid'),
-							parse(cat("BS", i))('color' = "Black", 'linestyle' = 'solid'),
-							parse(cat("BE", i))('color' = "Black", 'linestyle' = 'solid')];
+							parse(cat("BS", i))('color' = "Red", 'linestyle' = 'solid'),		# left, port side
+							parse(cat("BE", i))('color' = "Green", 'linestyle' = 'solid')];		# right, starboard side
 				end if;
 			end do;
 
