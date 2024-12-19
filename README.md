@@ -1,10 +1,13 @@
 # NODEMaple
-NODEMaple consistes of a set of Maple workbooks and a library for structural design based on the Eurocode.
+
+NODEMaple consists of a set of Maple workbooks and a library for structural design based on the Eurocode.
+
 Currently the main development of the workbooks is focused on "Eurocode 5: Design of timber structures" with the Norwegian Annex.
 
 If new to Maple, it is recommended to take a quick introduction tour through the software before using NODEMaple.
 
 ## Why NODE...?
+
 The NODE prefix of the filenames is meant as a credit to my employer NODE rådgivende ingeniører AS, situated on the Norwegian west coast.
 
 For more information see https://www.node.no.
@@ -38,7 +41,6 @@ I would like to thank everyone who helped with this project.
 
 # License
 Copyright (C) 2024  Andreas Zieritz
-
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
