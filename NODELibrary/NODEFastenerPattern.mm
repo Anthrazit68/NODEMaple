@@ -1,7 +1,20 @@
-# Calculation of forces in fasteners in layout
-# ============================================
-# https://mechanicalc.com/calculators/bolt-pattern-force-distribution/
+# NODEFastenerPattern.mm : calculation of geometry and forces in fasteners
+# Copyright (C) 2024  Andreas Zieritz
 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+# https://mechanicalc.com/calculators/bolt-pattern-force-distribution/
 
 CalculateForcesInConnection := proc(WhateverYouNeed::table)
 	description "Calculation of inplane forces";
@@ -154,7 +167,7 @@ PlotResults := proc(WhateverYouNeed::table)
 	structure := WhateverYouNeed["calculations"]["structure"];
 	graphicsElements := table();
 	WhateverYouNeed["calculatedvalues"]["graphicsElements"] := graphicsElements;		# stores beamBoundarylines, etc.
-	minimumangle := 30 * Unit('degree');
+	minimumangle := 15 * Unit('degree');
 	geometryList := [];	# list of geometry elements to be plotted
 	# displayPoints := [];
 	fastenerPointlist := [];
@@ -472,7 +485,7 @@ PlotResults := proc(WhateverYouNeed::table)
 					if i = "1" then
 						clr := "Orange" 
 					elif i = "2"then
-						clr := "Green"
+						clr := "Olive"
 					elif i = "steel" then
 						clr := "Turquoise"
 					end if;
@@ -491,8 +504,8 @@ PlotResults := proc(WhateverYouNeed::table)
 					geometryList := [op(geometryList), 
 							parse(cat("BL", i))('color' = "Black", 'linestyle' = 'solid'),
 							parse(cat("BR", i))('color' = "Black", 'linestyle' = 'solid'),
-							parse(cat("BS", i))('color' = "Black", 'linestyle' = 'solid'),
-							parse(cat("BE", i))('color' = "Black", 'linestyle' = 'solid')];
+							parse(cat("BS", i))('color' = "Red", 'linestyle' = 'solid'),		# left, port side
+							parse(cat("BE", i))('color' = "Green", 'linestyle' = 'solid')];		# right, starboard side
 				end if;
 			end do;
 
@@ -1786,7 +1799,7 @@ if structure["connection"]["connection1"] = "Steel" or structure["connection"]["
 						lrminPoints := lrminPoints union {i}
 					end if;
 
-					# check if existing points in list is outside new llmin + d
+					# check if existing points in list is outside new lrmin + d
 					for j in lrminPoints do
 
 						dummy1 := cat("a_", convert(fastenerPointlist[j], string), convert(beamBoundarylines[beamBoundaryline], string));	# a_F1BLL1							

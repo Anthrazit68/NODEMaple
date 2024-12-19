@@ -1,5 +1,18 @@
-# calculate_F_vR
-# calculate_alpha_rope
+# EC5_82.mm : Eurocode 5 chapter 8.2
+# Copyright (C) 2024  Andreas Zieritz
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # 8.2.2
 # F_vR is calculated for each fastener and each loadcase with angle alpha, between force and grain direction, called by EC5_812
@@ -7,7 +20,8 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 	description "Calculate Fv,R according to 8.2.2";
 
 	local f_hk, t_eff, t_steel, d, F_axRk, M_yRk, shearplanes, F_vRk, F_vRd, beta, dummy, F_vRkmin, alpha_rope, gamma_M, k_mod, structure,
-	materialdataAll, sectiondataAll, comments, fastenervalues, warnings, connectionInsideLayers, i, F_vRkfin, f, bout1, connection, OutsideLayerDifferent;
+	materialdataAll, sectiondataAll, comments, fastenervalues, warnings, connectionInsideLayers, i, F_vRkfin, f, bout1, connection, OutsideLayerDifferent,
+	calculatedFastener;
 
 	# local variables
 	warnings := WhateverYouNeed["warnings"];
@@ -17,6 +31,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 	sectiondataAll := WhateverYouNeed["sectiondataAll"];
 	comments := WhateverYouNeed["results"]["comments"];
 	connection := structure["connection"];
+	calculatedFastener := WhateverYouNeed["calculatedvalues"]["fastenervalues"]["calculatedFastener"];
 	
 	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
 	shearplanes := fastenervalues["shearplanes"];		# number of shearplanes due to geometry (theoretical, independent of fasteners)
@@ -46,7 +61,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 			OutsideLayerDifferent := true;
 		end if;
 	end if;	
-
+# DEBUG();
 	# 8.2.2 timber - timber connection
 	if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then
 
@@ -226,19 +241,38 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 			F_vRk["m"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
 
 		# else	# real situation with steel outside, timber inside
-		elif connection["connection1"] = "Steel" and connection["connection2"] = "Timber" then		
-			
+		elif connection["connection1"] = "Steel" and connection["connection2"] = "Timber" then
+
 			f_hk["2"] := calculate_f_hk(WhateverYouNeed, "2", alpha["2"]);
-			
-			F_vRk["j"] := evalf(0.5 * f_hk["2"] * t_eff["2"] * d);
 
-			dummy := 1.15 * sqrt(2 * M_yRk * f_hk["2"] * d);
-			F_vRk["k"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
+			if fastenervalues["doublesided"] = true and fastenervalues["SingleShearplane"] = true then	# nail or screw, calculate 2x single connection
 
-			F_vRk["l"] := evalf(0.5 * f_hk["2"] * t_eff["2"] * d);
+				F_vRk["a"] := evalf(0.4 * f_hk["2"] * t_eff["2"] * d);
 
-			dummy := 2.3 * sqrt(M_yRk * f_hk["2"] * d);
-			F_vRk["m"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
+				dummy := 1.15 * sqrt(2 * M_yRk * f_hk["2"] * d);
+				F_vRk["b"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
+
+				F_vRk["c"] := evalf(f_hk["2"] * t_eff["2"] * d);
+
+				dummy := f_hk["2"] * t_eff["2"] * d * (sqrt(2 + 4 * M_yRk / (f_hk["2"] * d * t_eff["2"]^2)) - 1);
+				F_vRk["d"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
+
+				dummy := 2.3 * sqrt(M_yRk * f_hk["2"] * d);
+				F_vRk["e"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
+
+			else	# bolt 	
+				
+				F_vRk["j"] := evalf(0.5 * f_hk["2"] * t_eff["2"] * d);
+
+				dummy := 1.15 * sqrt(2 * M_yRk * f_hk["2"] * d);
+				F_vRk["k"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
+
+				F_vRk["l"] := evalf(0.5 * f_hk["2"] * t_eff["2"] * d);
+
+				dummy := 2.3 * sqrt(M_yRk * f_hk["2"] * d);
+				F_vRk["m"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
+
+			end if;
 			
 		end if;
 
@@ -269,11 +303,19 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 			if assigned(F_vRk["c"]) and assigned(F_vRk["d"]) and assigned(F_vRk["e"]) then
 				F_vRkmin["1Sa"] := F_vRk["c"];					# fig. 8.3, 1 shearplane, thick, straight steel
 				F_vRkmin["1Sb"] := min(F_vRk["d"], F_vRk["e"]);		# fig. 8.3, 1 shearplane, thick, bent steel
-				F_vRkmin["2Sa"] := F_vRk["l"];					# fig. 8.3, 2 shearplanes, thick, straight steel
+				
+				if assigned(F_vRk["l"]) then
+					F_vRkmin["2Sa"] := F_vRk["l"];					# fig. 8.3, 2 shearplanes, thick, straight steel (bolts)
+				else
+					F_vRkmin["2Sa"] := 0;						# might be 2x single shearplane situation (nails or screws)
+				end if;
+
 			else
+
 				F_vRkmin["1Sa"] := 0;
 				F_vRkmin["1Sb"] := 0;
 				F_vRkmin["2Sa"] := 0;
+
 			end if;
 
 			if assigned(F_vRk["m"]) then
@@ -282,6 +324,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 				F_vRkmin["2Sb"] := 0
 			end if;
 			comments["F_vRk_steel"] := "thick plate";
+
 		end if;
 			
 		if t_steel > 0.5 * d and t_steel < d then  # medium thick plate			
@@ -324,6 +367,10 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 						end if;
 					end if;
 				end do;
+
+				if fastenervalues["doublesided"] = true and fastenervalues["overlap"] = true then	# overlap situation, double capacity of single connection
+					F_vRkfin := F_vRkfin * 2
+				end if;
 				
 			elif shearplanes = 2 then		# timber - steel - timber with fully anchored fastener
 
@@ -378,8 +425,23 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 			if connectionInsideLayers = 0 then
 				
 				Alert("Steel - Timber with one shearplane not allowed", warnings, 3)
+			
+			elif connectionInsideLayers = 1 and fastenervalues["SingleShearplane"] = true then	# nails or screws
 
-			elif connectionInsideLayers = 1 then		# 2 shearplanes
+				for i in indices(F_vRkmin, 'nolist') do 
+					if substring(i, 1..1) = "1" then
+						if F_vRkfin = 0 or F_vRkmin[i] < F_vRkfin then
+							F_vRkfin := F_vRkmin[i];
+							comments["F_vRkmin"] := cat("Fv,Rk acc. to 8.2.3 (a-f), internal index ", i)
+						end if;
+					end if;
+				end do;
+
+				if fastenervalues["doublesided"] = true and fastenervalues["overlap"] = true then	# overlap situation, double capacity of single connection
+					F_vRkfin := F_vRkfin * 2
+				end if;
+
+			elif connectionInsideLayers = 1 and fastenervalues["SingleShearplane"] = false then		# 2 shearplanes
 
 				for i in indices(F_vRkmin, 'nolist') do 
 					if substring(i, 1..1) = "2" then
@@ -389,7 +451,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 						end if;
 					end if;
 				end do;
-			
+
 				F_vRkfin  := F_vRkfin * shearplanes;
 				
 			elif connectionInsideLayers > 1 then
@@ -400,7 +462,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 
 		else
 			
-			Alert("Error in calculate_F_vR, line 367", warnings, 1);
+			Alert("Error in calculate_F_vR, line 445", warnings, 1);
 			
 		end if;
 	
