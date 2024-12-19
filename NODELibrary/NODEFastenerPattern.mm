@@ -1799,7 +1799,7 @@ if structure["connection"]["connection1"] = "Steel" or structure["connection"]["
 						lrminPoints := lrminPoints union {i}
 					end if;
 
-					# check if existing points in list is outside new llmin + d
+					# check if existing points in list is outside new lrmin + d
 					for j in lrminPoints do
 
 						dummy1 := cat("a_", convert(fastenerPointlist[j], string), convert(beamBoundarylines[beamBoundaryline], string));	# a_F1BLL1							
