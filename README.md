@@ -41,6 +41,7 @@ I would like to thank everyone who helped with this project.
 
 # License
 Copyright (C) 2024  Andreas Zieritz
+
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
