@@ -176,9 +176,8 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 		end if;
 
 		comments["F_vRk_steel"] := evaln(comments["F_vRk_steel"]);
-		
-	# (8.2.3) steel either on inside our outside
-	else	
+			
+	else	# (8.2.3) steel either on inside our outside
 
 		f_hk["1"] := calculate_f_hk(WhateverYouNeed, "1", alpha["1"]);		# only used if timber is outside
 
@@ -301,21 +300,17 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 		if t_steel > 0.5 * d then	# medium or thick steel plate
 
 			if assigned(F_vRk["c"]) and assigned(F_vRk["d"]) and assigned(F_vRk["e"]) then
-				F_vRkmin["1Sa"] := F_vRk["c"];					# fig. 8.3, 1 shearplane, thick, straight steel
-				F_vRkmin["1Sb"] := min(F_vRk["d"], F_vRk["e"]);		# fig. 8.3, 1 shearplane, thick, bent steel
-				
-				if assigned(F_vRk["l"]) then
-					F_vRkmin["2Sa"] := F_vRk["l"];					# fig. 8.3, 2 shearplanes, thick, straight steel (bolts)
-				else
-					F_vRkmin["2Sa"] := 0;						# might be 2x single shearplane situation (nails or screws)
-				end if;
-
+				F_vRkmin["1Sa"] := F_vRk["c"];						# fig. 8.3, 1 shearplane, thick, straight steel
+				F_vRkmin["1Sb"] := min(F_vRk["d"], F_vRk["e"]);		# fig. 8.3, 1 shearplane, thick, bent steel			
 			else
-
 				F_vRkmin["1Sa"] := 0;
 				F_vRkmin["1Sb"] := 0;
-				F_vRkmin["2Sa"] := 0;
-
+			end if;
+				
+			if assigned(F_vRk["l"]) then
+				F_vRkmin["2Sa"] := F_vRk["l"];					# fig. 8.3, 2 shearplanes, thick, straight steel (bolts)
+			else
+				F_vRkmin["2Sa"] := 0;							# might be 2x single shearplane situation (nails or screws)
 			end if;
 
 			if assigned(F_vRk["m"]) then
