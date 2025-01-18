@@ -160,8 +160,8 @@ PlotResults := proc(WhateverYouNeed::table)
 	uses plots, plottools;
 	description "Plot results of calculation";
 	local structure, i, displayForceVectors, fastener, fasteners, fastenervalues, fastenerPointlist, results, scalefactor, r, len, alpha, geometryList, graphicsElements, warnings,
-		sectiondataAll, h, beamBoundarylines, annotations_a, annotations, x, y, lengthleft, lengthright, beams, clr, beamPoints, minimumangle,
-		plotitems, beamnumber, displayBlockShear, cutleft, cutright, part;
+		sectiondataAll, h, beamBoundarylines, annotations_a, annotations, x, y, lengthleft, lengthright, angleleft, angleright, beams, clr, beamPoints, minimumangle,
+		plotitems, beamnumber, displayBlockShear, cutleft, cutright, part, deltaangle;
 
 	warnings := WhateverYouNeed["warnings"];
 	structure := WhateverYouNeed["calculations"]["structure"];
@@ -287,13 +287,13 @@ PlotResults := proc(WhateverYouNeed::table)
 				end if;
 
 				i := beamnumber[part];		# "1", "2", "steel"
-	
+
 				if assigned(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", i)]) and WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", i)] <> "false" then
 		
 					alpha[i] := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", i)]);
 		
 					# center line			
-					# BPC...Beam Point Center
+					# BPC...Beam Point Center (point)
 					geometry:-point(parse(cat("BPC", i)), [len * cos(alpha[i]), len * sin(alpha[i])]);			
 					beamPoints := [op(beamPoints), parse(cat("BPC", i))];
 					# BC...Beam Center (line)
@@ -301,62 +301,104 @@ PlotResults := proc(WhateverYouNeed::table)
 					# centerlines[i] := line(A, B, color = red, linestyle = dash)
 					geometryList := [op(geometryList), parse(cat("BC", i))('color' = "Red", 'linestyle' = 'dashdot')];
 		
-					# beam boundary lines
 					h := convert(sectiondataAll[i]["h"], 'unit_free');
 					lengthleft := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthleft", i)], 'unit_free');				# could be "false"
 					lengthright := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthright", i)], 'unit_free');
+
+					angleleft := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleleft", i)]);				# could be "false"
+					angleright := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleright", i)]);
 					
 					cutleft := WhateverYouNeed["calculations"]["structure"]["connection"][cat("Cutleft", i)];
-					cutright := WhateverYouNeed["calculations"]["structure"]["connection"][cat("Cutright", i)];
-				
-					# BOL...Beam Origo Left, BOR...Beam Origo Right
-					geometry:-point(parse(cat("BOL", i)), [geometry:-coordinates(O)[1] - h / 2 * sin(alpha[i]), geometry:-coordinates(O)[2] + h / 2 * cos(alpha[i])]);		# point on left side of beam grid line
-					geometry:-point(parse(cat("BOR", i)), [geometry:-coordinates(O)[1] + h / 2 * sin(alpha[i]), geometry:-coordinates(O)[1] - h / 2 * cos(alpha[i])]);		# point on right side of beam grid line
-					beamPoints := [op(beamPoints), parse(cat("BOL", i)), parse(cat("BOR", i))];
+					cutright := WhateverYouNeed["calculations"]["structure"]["connection"][cat("Cutright", i)];					
 
+					# BSC...Beam Start Center, BEC...Beam End Center (points), calculated with lengths
+					# length... = "false" should not be possible anymore, as we allow for parallel lines to other beam with values
+					x := geometry:-coordinates(O)[1] - lengthleft * cos(alpha[i]);
+					y := geometry:-coordinates(O)[2] - lengthleft * sin(alpha[i]);
+					geometry:-point(parse(cat("BSC", i)), [x, y]);
+
+					x := geometry:-coordinates(O)[1] + lengthright * cos(alpha[i]);
+					y := geometry:-coordinates(O)[2] + lengthright * sin(alpha[i]);
+					geometry:-point(parse(cat("BEC", i)), [x, y]);
+								
+					# BOL...Beam Origo Left, BOR...Beam Origo Right
+					# geometry:-point(parse(cat("BOL", i)), [geometry:-coordinates(O)[1] - h / 2 * sin(alpha[i]), geometry:-coordinates(O)[2] + h / 2 * cos(alpha[i])]);		# point on left side of beam grid line
+					# geometry:-point(parse(cat("BOR", i)), [geometry:-coordinates(O)[1] + h / 2 * sin(alpha[i]), geometry:-coordinates(O)[1] - h / 2 * cos(alpha[i])]);		# point on right side of beam grid line
+					# beamPoints := [op(beamPoints), parse(cat("BOL", i)), parse(cat("BOR", i))];					
+					
 					# BSL...Beam Start Left, BSR...Beam Start Right
 					# BEL...Beam End Left, BER...Beam End Right
-					# "false" should not be possible anymore, as allow for parallel lines to other beam with values
+					if angleleft <> "false" then
+						if angleleft < minimumangle or angleleft > 180 * Unit('degree') - minimumangle then
+							Alert("Angle left outside range", warnings, 2);
+							angleleft := 90 * Unit('degree');
+							WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleleft", i)] := angleleft;
+							SetProperty(cat("TextArea_angleleft", i), 'value', round2(convert(angleleft, 'unit_free'), 2))
+						end if;
+						deltaangle := alpha[i] + angleleft;
+					else
+						deltaangle := alpha[i] + 90 * Unit('degree');	# temporary solution, should be cut to other beam
+					end if;
+
+					geometry:-point(parse(cat("BSL", i)), [geometry:-coordinates(parse(cat("BSC", i)))[1] - h / 2 * cos(deltaangle), geometry:-coordinates(parse(cat("BSC", i)))[2] + h / 2 * sin(deltaangle)]);
+					geometry:-point(parse(cat("BSR", i)), [geometry:-coordinates(parse(cat("BSC", i)))[1] + h / 2 * cos(deltaangle), geometry:-coordinates(parse(cat("BSC", i)))[2] - h / 2 * sin(deltaangle)]);					
+
+					if angleright <> "false" then
+						if angleright < minimumangle or angleright > 180 * Unit('degree') - minimumangle then
+							Alert("Angle right outside range", warnings, 2);
+							angleright := 90 * Unit('degree');
+							WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleright", i)] := angleright;
+							SetProperty(cat("TextArea_angleright", i), 'value', round2(convert(angleright, 'unit_free'), 2))
+						end if;
+						deltaangle := alpha[i] + angleright;
+					else
+						deltaangle := alpha[i] + 90 * Unit('degree');	# temporary solution, should be cut to other beam
+					end if;
+
+					geometry:-point(parse(cat("BEL", i)), [geometry:-coordinates(parse(cat("BEC", i)))[1] - h / 2 * cos(deltaangle), geometry:-coordinates(parse(cat("BEC", i)))[2] + h / 2 * sin(deltaangle)]);					
+					geometry:-point(parse(cat("BER", i)), [geometry:-coordinates(parse(cat("BEC", i)))[1] + h / 2 * cos(deltaangle), geometry:-coordinates(parse(cat("BEC", i)))[2] - h / 2 * sin(deltaangle)]);
+										
 					# if lengthleft <> "false" then
 #						if cutleft = "false" then
-						x := geometry:-coordinates(parse(cat("BOL", i)))[1] - lengthleft * cos(alpha[i]);
-						y := geometry:-coordinates(parse(cat("BOL", i)))[2] - lengthleft * sin(alpha[i]);						
+#						x := geometry:-coordinates(parse(cat("BOL", i)))[1] - lengthleft * cos(alpha[i]);
+#						y := geometry:-coordinates(parse(cat("BOL", i)))[2] - lengthleft * sin(alpha[i]);						
 #						else
 #							x := geometry:-coordinates(parse(cat("BOL", i)))[1] - dummylength * cos(alpha[i]);
 #							y := geometry:-coordinates(parse(cat("BOL", i)))[2] - dummylength * sin(alpha[i]);
 #						end if;
-					geometry:-point(parse(cat("BSL", i)), [x, y]);
+#					geometry:-point(parse(cat("BSL", i)), [x, y]);
 
 					# if lengthright <> "false" then
 #						if cutright = "false" then
-						x := geometry:-coordinates(parse(cat("BOL", i)))[1] + lengthright * cos(alpha[i]);
-						y := geometry:-coordinates(parse(cat("BOL", i)))[2] + lengthright * sin(alpha[i]);									
+#						x := geometry:-coordinates(parse(cat("BOL", i)))[1] + lengthright * cos(alpha[i]);
+#						y := geometry:-coordinates(parse(cat("BOL", i)))[2] + lengthright * sin(alpha[i]);									
 #						else
 #							x := geometry:-coordinates(parse(cat("BOL", i)))[1] + dummylength * cos(alpha[i]);
 #							y := geometry:-coordinates(parse(cat("BOL", i)))[2] + dummylength * sin(alpha[i]);
 #						end if;
-					geometry:-point(parse(cat("BEL", i)), [x, y]);
+#					geometry:-point(parse(cat("BEL", i)), [x, y]);
 
 #						if lengthleft <> "false" then
 #						if cutleft = "false" then
-						x := geometry:-coordinates(parse(cat("BOR", i)))[1] - lengthleft * cos(alpha[i]);
-						y := geometry:-coordinates(parse(cat("BOR", i)))[2] - lengthleft * sin(alpha[i]);
+#						x := geometry:-coordinates(parse(cat("BOR", i)))[1] - lengthleft * cos(alpha[i]);
+#						y := geometry:-coordinates(parse(cat("BOR", i)))[2] - lengthleft * sin(alpha[i]);
 #						else
 #							x := geometry:-coordinates(parse(cat("BOR", i)))[1] - dummylength * cos(alpha[i]);
 #							y := geometry:-coordinates(parse(cat("BOR", i)))[2] - dummylength * sin(alpha[i]);
 #						end if;
-					geometry:-point(parse(cat("BSR", i)), [x, y]);
+#					geometry:-point(parse(cat("BSR", i)), [x, y]);
 
 #						if lengthright <> "false" then
 #						if cutright = "false" then
-						x := geometry:-coordinates(parse(cat("BOR", i)))[1] + lengthright * cos(alpha[i]);
-						y := geometry:-coordinates(parse(cat("BOR", i)))[2] + lengthright * sin(alpha[i]);			
+#						x := geometry:-coordinates(parse(cat("BOR", i)))[1] + lengthright * cos(alpha[i]);
+#						y := geometry:-coordinates(parse(cat("BOR", i)))[2] + lengthright * sin(alpha[i]);			
 #						else
 #							x := geometry:-coordinates(parse(cat("BOR", i)))[1] + dummylength * cos(alpha[i]);
 #							y := geometry:-coordinates(parse(cat("BOR", i)))[2] + dummylength * sin(alpha[i]);
 #						end if;
-					geometry:-point(parse(cat("BER", i)), [x, y]);
+#					geometry:-point(parse(cat("BER", i)), [x, y]);
 				
+					beamPoints := [op(beamPoints), parse(cat("BSC", i)), parse(cat("BEC", i))];
 					beamPoints := [op(beamPoints), parse(cat("BSL", i)), parse(cat("BEL", i)), parse(cat("BSR", i)), parse(cat("BER", i))];
 
 					# operations working on lines apparently do not work on segments
@@ -366,7 +408,10 @@ PlotResults := proc(WhateverYouNeed::table)
 					# 1. part, sidelines
 					geometry:-line(parse(cat("BLL", i)), [parse(cat("BSL", i)), parse(cat("BEL", i))]);
 					geometry:-line(parse(cat("BLR", i)), [parse(cat("BSR", i)), parse(cat("BER", i))]);
-		
+
+					# 2. part, start and endlines (might need to be redefined afterwards)
+					geometry:-line(parse(cat("BLS", i)), [parse(cat("BSL", i)), parse(cat("BSR", i))]);
+					geometry:-line(parse(cat("BLE", i)), [parse(cat("BEL", i)), parse(cat("BER", i))]);
 				end if;
 			end do;
 
@@ -378,11 +423,14 @@ PlotResults := proc(WhateverYouNeed::table)
 
 				lengthleft := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthleft", i)], 'unit_free');				# could be "false"
 				lengthright := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthright", i)], 'unit_free');
+
+				angleleft := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleleft", i)]);				# could be "false"
+				angleright := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleright", i)]);
 				
 				cutleft := WhateverYouNeed["calculations"]["structure"]["connection"][cat("Cutleft", i)];
 				cutright := WhateverYouNeed["calculations"]["structure"]["connection"][cat("Cutright", i)];
 				
-				if cutleft = "true" then
+				if cutleft = "cut profile" then		# angleleft = false
 					
 					if abs(alpha[beamnumber[2]] - alpha[beamnumber[1]]) >= minimumangle and abs(alpha[beamnumber[2]] - alpha[beamnumber[1]]) <= 90 * Unit('degree') then							
 						
@@ -428,7 +476,7 @@ PlotResults := proc(WhateverYouNeed::table)
 					
 				end if;
 				
-				if cutright = "true" then
+				if cutright = "cut profile" then
 					
 					if abs(alpha[beamnumber[2]] - alpha[beamnumber[1]]) >= minimumangle and abs(alpha[beamnumber[2]] - alpha[beamnumber[1]]) <= 90 * Unit('degree') then
 					
