@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- (c) NODE radgivende ingenioerer AS 2020, https://www.node.no -->
-<database version = '2023.12' source_software = 'NODE common file format, generated via Maple'>
-  <projectdata client = 'NODE rådgivende ingeniører AS' projectnumber = '0320.03' projecttitle = 'Limtreboka Beregningseksempler'/>
+<database version = '2024.11' source_software = 'NODE common file format, generated via Maple'>
+  <projectdata client = 'NODE rådgivende ingeniører AS' projecttitle = 'Limtreboka Beregningseksempler' projectnumber = '0320.03'/>
   <materials>
     <timber/>
   </materials>
@@ -16,8 +16,8 @@
           <loadcase name = '1' F_axGk = '0' F_axQk = '0' F_axd = '0' F_hGk = '0' F_hQk = '0' F_hd = '0' F_vGk = 'false' F_vQk = 'false' F_vd = '-65*Units:-Unit(kN)' M_yGk = '0' M_yQk = '0' M_yd = '0' f_814 = '1' loadcenter_x = '0' loadcenter_y = '-610*Units:-Unit(mm)'/>
         </loadcases>
         <structure>
-          <connection Cutleft1 = 'false' Cutleft2 = 'false' Cutleftsteel = 'false' Cutright1 = 'false' Cutright2 = 'false' Cutrightsteel = 'false' bout1 = 'false' connection1 = 'Steel' connection2 = 'Timber' graindirection1 = 'false' graindirection2 = '0' lengthleft1 = 'false' lengthleft2 = '500*Units:-Unit(mm)' lengthleftsteel = '650*Units:-Unit(mm)' lengthright1 = 'false' lengthright2 = '500*Units:-Unit(mm)' connectionInsideLayers = '1' graindirectionsteel = '90*Units:-Unit(arcdeg)' lengthrightsteel = '50*Units:-Unit(mm)' connectionInsideTolerance = '0'/>
-          <fastener ShearConnector = '-' SplitRingdc = 'false' SplitRingtype = 'false' ToothedPlatedc = 'false' alphaScrew = 'false' calculateAsNail = 'false' chosenFastener = 'Bolt' fastenerProduct = 'MGS 8.8' fastener_d = '16.0*Units:-Unit(mm)' fastener_dh = '16*Units:-Unit(mm)' fastener_ls = '1000*Units:-Unit(mm)' nailForm = 'false' nailSurface = 'false' predrilled = 'true' screwWithWasher = 'false' staggered1 = 'true' staggered2 = 'true' washerProducer = 'ROTHOBLAAS' washerProduct = 'ULS DIN 1052' SharpMetalLength = '0' SharpMetalProducer = 'false' SharpMetalProduct = 'false' SharpMetalStripes = 'false' ToothedPlatesides = 'false' ToothedPlatetype = 'false' fastenerProducer = 'ROTHOBLAAS' ignoreReqPredrilled = 'false'/>
+          <connection bout1 = 'false' Cutleft1 = 'false' Cutleft2 = 'cut rect.' Cutleftsteel = 'cut angle' Cutright1 = 'false' Cutright2 = 'cut rect.' Cutrightsteel = 'cut angle' angleleft1 = 'false' angleleft2 = '90*Units:-Unit(arcdeg)' angleleftsteel = '90*Units:-Unit(arcdeg)' angleright1 = 'false' angleright2 = '90*Units:-Unit(arcdeg)' anglerightsteel = '90*Units:-Unit(arcdeg)' connection1 = 'Steel' connection2 = 'Timber' graindirection1 = 'false' graindirection2 = '0' lengthleft1 = 'false' lengthleft2 = '500*Units:-Unit(mm)' lengthleftsteel = '650*Units:-Unit(mm)' lengthright1 = 'false' lengthright2 = '500*Units:-Unit(mm)' connectionInsideLayers = '1' graindirectionsteel = '90*Units:-Unit(arcdeg)' lengthrightsteel = '50*Units:-Unit(mm)' connectionInsideTolerance = '0'/>
+          <fastener ShearConnector = '-' SplitRingdc = 'false' SplitRingtype = 'false' ToothedPlatedc = 'false' alphaScrew = 'false' calculateAsNail = 'false' chosenFastener = 'Bolt' fastenerProduct = 'MGS 8.8' fastener_d = '16.0*Units:-Unit(mm)' fastener_dh = '16*Units:-Unit(mm)' fastener_ls = '1000*Units:-Unit(mm)' nailForm = 'false' nailSurface = 'false' predrilled = 'true' screwWithWasher = 'false' staggered1 = 'false' staggered2 = 'false' washerProducer = 'ROTHOBLAAS' washerProduct = 'ULS DIN 1052' SharpMetalLength = '0' SharpMetalProducer = 'false' SharpMetalProduct = 'false' SharpMetalStripes = 'false' ToothedPlatesides = 'false' ToothedPlatetype = 'false' fastenerProducer = 'ROTHOBLAAS' ignoreReqPredrilled = 'false'/>
           <FastenerPatterns>
             <FastenerPattern name = '1' grid_x1 = '0' grid_y1 = '2*100' center_x1 = '0' center_y1 = '-100' grid_alpha_11 = '0' grid_alpha_21 = '0' reactionforces = 'false' FastenerPatternType1 = 'grid' FastenerPatternType2 = '-' FastenerPatternType3 = '-' FastenerPatternUnits = 'mm' FastenerPatternCoordinates = 'false'/>
           </FastenerPatterns>
