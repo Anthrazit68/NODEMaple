@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- (c) NODE radgivende ingenioerer AS 2020, https://www.node.no -->
-<database version = '2023.12' source_software = 'NODE common file format, generated via Maple'>
-  <projectdata projecttitle = 'Holzbau Taschenbuch' client = 'NODE rådgivende ingeniører AS' projectnumber = ''/>
+<database version = '2024.11' source_software = 'NODE common file format, generated via Maple'>
+  <projectdata client = 'NODE rådgivende ingeniører AS' projectnumber = '' projecttitle = 'Holzbau Taschenbuch'/>
   <materials>
     <timber/>
   </materials>
@@ -11,12 +11,12 @@
   <calculations>
     <calculation calculationtype = 'NS-EN 1995-1-1, Section 8: Fasteners'>
       <calculation calculationtype = 'NS-EN 1995-1-1, Section 8: Fasteners' positionnumber = 'B.2.2' positiontitle = 'Zugstoss mit Dübeln besonderer Bauart'>
-        <activesettings activeloadcase = 'Zug' activematerial1 = 'C30 / Service class 2 / Medium-term' activematerial2 = 'C30 / Service class 2 / Medium-term' activesection1 = 'Rectangular / 80(60)x160' activesection2 = 'Rectangular / 80x160' activeFastenerPattern = '1' calculate_814_NA_DE = 'true'/>
+        <activesettings activeloadcase = 'Zug' activematerial1 = 'C30 / Service class 2 / Medium-term' activematerial2 = 'C30 / Service class 2 / Medium-term' activesection1 = 'Rectangular / 80(36)x160' activesection2 = 'Rectangular / 80x160' activeFastenerPattern = '1' calculate_814_NA_DE = 'true'/>
         <loadcases>
           <loadcase name = 'Zug' F_axGk = 'false' F_axQk = 'false' F_axd = '0' F_hGk = '20*Units:-Unit(kN)' F_hQk = '65*Units:-Unit(kN)' F_hd = '124.50*Units:-Unit(kN)' F_vGk = 'false' F_vQk = 'false' F_vd = '0' M_yGk = '0' M_yQk = '0' M_yd = '0' f_814 = '1' loadcenter_x = '0' loadcenter_y = '0'/>
         </loadcases>
         <structure>
-          <connection bout1 = '60*Units:-Unit(mm)' Cutleft1 = 'false' Cutleft2 = 'false' Cutleftsteel = 'false' Cutright1 = 'false' Cutright2 = 'false' Cutrightsteel = 'false' connection1 = 'Timber' connection2 = 'Timber' graindirection1 = '0' graindirection2 = '0' lengthleft1 = '600*Units:-Unit(mm)' lengthleft2 = '800*Units:-Unit(mm)' lengthleftsteel = 'false' lengthright1 = '200*Units:-Unit(mm)' lengthright2 = '0' connectionInsideLayers = '3' graindirectionsteel = 'false' lengthrightsteel = 'false' connectionInsideTolerance = '0'/>
+          <connection bout1 = '36*Units:-Unit(mm)' Cutleft1 = 'cut rect.' Cutleft2 = 'cut rect.' Cutleftsteel = 'false' Cutright1 = 'cut rect.' Cutright2 = 'cut rect.' Cutrightsteel = 'false' angleleft1 = '90*Units:-Unit(arcdeg)' angleleft2 = '90*Units:-Unit(arcdeg)' angleleftsteel = 'false' angleright1 = '90*Units:-Unit(arcdeg)' angleright2 = '90*Units:-Unit(arcdeg)' anglerightsteel = 'false' connection1 = 'Timber' connection2 = 'Timber' graindirection1 = '0' graindirection2 = '0' lengthleft1 = '600*Units:-Unit(mm)' lengthleft2 = '800*Units:-Unit(mm)' lengthleftsteel = 'false' lengthright1 = '200*Units:-Unit(mm)' lengthright2 = '0' connectionInsideLayers = '3' graindirectionsteel = 'false' lengthrightsteel = 'false' connectionInsideTolerance = '0'/>
           <fastener ShearConnector = 'Split ring' SplitRingdc = '95*Units:-Unit(mm)' SplitRingtype = 'A1' ToothedPlatedc = 'false' alphaScrew = 'false' calculateAsNail = 'false' chosenFastener = 'Bolt' fastenerProduct = 'MGS 8.8' fastener_d = '12.0*Units:-Unit(mm)' fastener_dh = '12*Units:-Unit(mm)' fastener_ls = '1000*Units:-Unit(mm)' nailForm = 'false' nailSurface = 'false' predrilled = 'true' screwWithWasher = 'false' staggered1 = 'false' staggered2 = 'false' washerProducer = 'ROTHOBLAAS' washerProduct = 'HUS' SharpMetalLength = '0' SharpMetalProducer = 'false' SharpMetalProduct = 'false' SharpMetalStripes = 'false' ToothedPlatesides = 'false' ToothedPlatetype = 'false' fastenerProducer = 'ROTHOBLAAS' ignoreReqPredrilled = 'false'/>
           <FastenerPatterns>
             <FastenerPattern name = '1' grid_x1 = '200' grid_y1 = '0' center_x1 = '-300' center_y1 = '0' grid_alpha_11 = '0' grid_alpha_21 = '0' reactionforces = 'true' FastenerPatternType1 = 'grid' FastenerPatternType2 = '-' FastenerPatternType3 = '-' FastenerPatternUnits = 'mm' FastenerPatternCoordinates = 'false'/>
