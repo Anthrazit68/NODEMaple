@@ -587,8 +587,7 @@ end proc:
 maxFIndexFastener := proc(results::list)
 	description "returns index of fastener with Fmax";
 
-	return max[index](convert(convert(results, Matrix)[3], list))	# https://www.mapleprimes.com/questions/233500-UnitsSimplemaxindex-#comment289958
-	# return maxindex(convert(convert(results, Matrix)[3], list))
+	return max[index](convert(convert(results, Matrix)[3], list))
 end proc:
 
 
