@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- (c) NODE radgivende ingenioerer AS 2020, https://www.node.no -->
-<database version = '2024.11' source_software = 'NODE common file format, generated via Maple'>
-  <projectdata client = 'NODE rådgivende ingeniører AS' projectnumber = '' projecttitle = 'Holzbau Taschenbuch'/>
+<database version = '2025-01' source_software = 'https://github.com/Anthrazit68/NODEMaple' created = '2025-01-25T11:45:12 CET'>
+  <projectdata projectnumber = '' projecttitle = 'Holzbau Taschenbuch' client = 'NODE rådgivende ingeniører AS'/>
   <materials>
     <timber/>
   </materials>
@@ -16,7 +15,7 @@
           <loadcase name = 'Zug' F_axGk = 'false' F_axQk = 'false' F_axd = '0' F_hGk = '0' F_hQk = '0' F_hd = '0.' F_vGk = '-10*Units:-Unit(kN)' F_vQk = '-12.5*Units:-Unit(kN)' F_vd = '-32.25*Units:-Unit(kN)' M_yGk = '0' M_yQk = '0' M_yd = '0' f_814 = '1' loadcenter_x = '0' loadcenter_y = '-300*Units:-Unit(mm)'/>
         </loadcases>
         <structure>
-          <connection bout1 = 'false' Cutleft1 = 'cut rect.' Cutleft2 = 'cut rect.' Cutleftsteel = 'false' Cutright1 = 'cut rect.' Cutright2 = 'cut profile' Cutrightsteel = 'false' angleleft1 = '90*Units:-Unit(arcdeg)' angleleft2 = '90*Units:-Unit(arcdeg)' angleleftsteel = 'false' angleright1 = '90*Units:-Unit(arcdeg)' angleright2 = 'false' anglerightsteel = 'false' connection1 = 'Timber' connection2 = 'Timber' graindirection1 = '0' graindirection2 = '90*Units:-Unit(arcdeg)' lengthleft1 = '200*Units:-Unit(mm)' lengthleft2 = '300*Units:-Unit(mm)' lengthleftsteel = 'false' lengthright1 = '200*Units:-Unit(mm)' lengthright2 = '0' connectionInsideLayers = '1' graindirectionsteel = 'false' lengthrightsteel = 'false' connectionInsideTolerance = '0'/>
+          <connection bout1 = 'false' Cutleft1 = 'cut rect.' Cutleft2 = 'cut rect.' Cutleftsteel = 'false' Cutright1 = 'cut rect.' Cutright2 = 'cut profile' Cutrightsteel = 'false' angleleft1 = '90*Units:-Unit(arcdeg)' angleleft2 = '90*Units:-Unit(arcdeg)' angleleftsteel = 'false' angleright1 = '90*Units:-Unit(arcdeg)' angleright2 = '90*Units:-Unit(arcdeg)' anglerightsteel = 'false' connection1 = 'Timber' connection2 = 'Timber' graindirection1 = '0' graindirection2 = '90*Units:-Unit(arcdeg)' lengthleft1 = '200*Units:-Unit(mm)' lengthleft2 = '300*Units:-Unit(mm)' lengthleftsteel = 'false' lengthright1 = '200*Units:-Unit(mm)' lengthright2 = '0' connectionInsideLayers = '1' graindirectionsteel = 'false' lengthrightsteel = 'false' connectionInsideTolerance = '0'/>
           <fastener ShearConnector = '-' SplitRingdc = 'false' SplitRingtype = 'false' ToothedPlatedc = 'false' alphaScrew = '90*Units:-Unit(arcdeg)' calculateAsNail = 'false' chosenFastener = 'Nail' fastenerProduct = 'FIRKSQG' fastener_d = '4.2*Units:-Unit(mm)' fastener_dh = '9*Units:-Unit(mm)' fastener_ls = '125*Units:-Unit(mm)' nailForm = 'round' nailSurface = 'smooth' predrilled = 'true' screwWithWasher = 'false' staggered1 = 'false' staggered2 = 'false' washerProducer = 'false' washerProduct = 'false' SharpMetalLength = '0' SharpMetalProducer = 'false' SharpMetalProduct = 'false' SharpMetalStripes = 'false' ToothedPlatesides = 'false' ToothedPlatetype = 'false' fastenerProducer = 'STRONGTIE' ignoreReqPredrilled = 'false'/>
           <FastenerPatterns>
             <FastenerPattern name = '1' grid_x1 = '5*25' grid_y1 = '3*45' center_x1 = '0' center_y1 = '-12.5' grid_alpha_11 = '0' grid_alpha_21 = '0' reactionforces = 'true' FastenerPatternType1 = 'grid' FastenerPatternType2 = '-' FastenerPatternType3 = '-' FastenerPatternUnits = 'mm' FastenerPatternCoordinates = 'false'/>

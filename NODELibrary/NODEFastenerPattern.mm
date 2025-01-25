@@ -178,10 +178,6 @@ PlotResults := proc(WhateverYouNeed::table)
 		r := 20
 	end if;
 
-	# dummylength := 100;		# if length is not provided we need to use a temporary distance
-
-	# one can either use the geometry or the plot package
-
 	if MASTERALARM(warnings) = false then
 
 		results := WhateverYouNeed["results"]["FastenerGroup"]["ForcesInConnection"];			
@@ -190,7 +186,13 @@ PlotResults := proc(WhateverYouNeed::table)
 		fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
 		sectiondataAll := WhateverYouNeed["sectiondataAll"];
 
-		scalefactor := GetProperty("Slider_scalefactor", value);
+		if ComponentExists("Slider_scalefactor") then
+			scalefactor := GetProperty("Slider_scalefactor", value);
+		elif ComponentExists("TextArea_scalefactor") then
+			scalefactor := parse(GetProperty("TextArea_scalefactor", value));
+		else
+			scalefactor := 1
+		end if;
 
 		# pointplot works with units, textplot doesn't
 		# https://www.mapleprimes.com/questions/234265-Textplot-With-Units?sq=234265
@@ -273,8 +275,7 @@ PlotResults := proc(WhateverYouNeed::table)
 		beamnumber := table();
 		# centerlines := table();
 
-		# find item number of 2 beams
-		if assigned(structure["connection"]) then
+		if assigned(structure["connection"]) then       # find item number of 2 beams, will not be run in "Loads on Fastener Group"
 			
 			for part from 1 to 2 do
 				
@@ -572,7 +573,7 @@ PlotResults := proc(WhateverYouNeed::table)
 
 			SetProperty("Plot_result", 'value', display(geometry:-draw(geometryList), plotitems));		# combine geometry and plots elements
 			
-		else	# if assigned(WhateverYouNeed["calculations"]["structure"]["connection"]) = false
+		else	# e.g. "Loads on Fastener Group"
 
 			SetProperty("Plot_result", 'value', display(displayForceVectors, annotations));		# combine geometry and plots elements
 			
@@ -1894,36 +1895,43 @@ CheckPointInPolygon := proc(WhateverYouNeed::table)::boolean;
 	beamnumber := table();
 	InsidePolygon := true;
 
-	for part from 1 to 2 do
-		
-		polygon := [];
+	if WhateverYouNeed["calculations"]["calculationtype"] = "NS-EN 1995-1-1, Section 8: Fasteners" then
+		for part from 1 to 2 do
+			
+			polygon := [];
 
-		# get index of part
-		if assigned(structure["connection"][cat("connection", part)]) then
-			if structure["connection"][cat("connection", part)] = "Timber" then
-				beamnumber[part] := convert(part, string)
-			elif structure["connection"][cat("connection", part)] = "Steel" then
-				beamnumber[part] := "steel"
-			end if
-		end if;
+			# get index of part
+			if assigned(structure["connection"][cat("connection", part)]) then
+				if structure["connection"][cat("connection", part)] = "Timber" then
+					beamnumber[part] := convert(part, string)
+				elif structure["connection"][cat("connection", part)] = "Steel" then
+					beamnumber[part] := "steel"
+				end if
+			end if;
 
-		for dummy in ["BSL", "BEL", "BER", "BSR"] do		
-			for j in entries(beamPoints, 'nolist') do
-				if convert(j, string) = cat(dummy, beamnumber[part]) then
-					polygon := [op(polygon), geometry:-coordinates(j)];			# add element to the list					
+			for dummy in ["BSL", "BEL", "BER", "BSR"] do		
+				for j in entries(beamPoints, 'nolist') do
+					if convert(j, string) = cat(dummy, beamnumber[part]) then
+						polygon := [op(polygon), geometry:-coordinates(j)];			# add element to the list					
+					end if;
+				end do;
+			end do;
+
+			# check if fastener points are inside polygon
+			for i from 1 to numelems(fastenerPointlist) do
+				if ComputationalGeometry:-PointInPolygon(geometry:-coordinates(fastenerPointlist[i]), polygon) <> "inside" then
+					InsidePolygon := false;
+					Alert(cat("Fastener point ", i, " is outside beam ", i), WhateverYouNeed["warnings"], 4);
 				end if;
 			end do;
+
 		end do;
 
-		# check if fastener points are inside polygon
-		for i from 1 to numelems(fastenerPointlist) do
-			if ComputationalGeometry:-PointInPolygon(geometry:-coordinates(fastenerPointlist[i]), polygon) <> "inside" then
-				InsidePolygon := false;
-				Alert(cat("Fastener point ", i, " is outside beam ", i), WhateverYouNeed["warnings"], 4);
-			end if;
-		end do;
+	else	# no check necessary for other calculation types
+		
+		InsidePolygon := true;
 
-	end do;
+	end if;
 
 	return InsidePolygon
 

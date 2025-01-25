@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- (c) NODE radgivende ingenioerer AS 2020, https://www.node.no -->
 <database version = '2024.11' source_software = 'NODE common file format, generated via Maple'>
   <projectdata client = 'NODE rådgivende ingeniører AS' projecttitle = 'NTNU beregningseksempler tre' projectnumber = '7204.6'/>
   <materials>
