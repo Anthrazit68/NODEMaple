@@ -569,9 +569,9 @@ PlotResults := proc(WhateverYouNeed::table)
 					end if;
 				end if;			
 
-			end if;
+				SetProperty("Plot_result", 'value', display(geometry:-draw(geometryList), plotitems));		# combine geometry and plots elements
 
-			SetProperty("Plot_result", 'value', display(geometry:-draw(geometryList), plotitems));		# combine geometry and plots elements
+			end if;		
 			
 		else	# e.g. "Loads on Fastener Group"
 
