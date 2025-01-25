@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- (c) NODE radgivende ingenioerer AS 2020, https://www.node.no -->
 <database version = '2023.12' source_software = 'NODE common file format, generated via Maple'>
   <projectdata projecttitle = 'Limtreboka Beregningseksempler' projectnumber = '0320.03' client = 'NODE rådgivende ingeniører AS'/>
   <materials>

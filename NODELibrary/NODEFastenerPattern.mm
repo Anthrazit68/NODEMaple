@@ -160,8 +160,8 @@ PlotResults := proc(WhateverYouNeed::table)
 	uses plots, plottools;
 	description "Plot results of calculation";
 	local structure, i, displayForceVectors, fastener, fasteners, fastenervalues, fastenerPointlist, results, scalefactor, r, len, alpha, geometryList, graphicsElements, warnings,
-		sectiondataAll, h, beamBoundarylines, annotations_a, annotations, x, y, lengthleft, lengthright, beams, clr, beamPoints, minimumangle,
-		plotitems, beamnumber, displayBlockShear, cutleft, cutright, part;
+		sectiondataAll, h, beamBoundarylines, annotations_a, annotations, x, y, lengthleft, lengthright, angleleft, angleright, beams, clr, beamPoints, minimumangle,
+		plotitems, beamnumber, displayBlockShear, cutleft, cutright, part, deltaangle;
 
 	warnings := WhateverYouNeed["warnings"];
 	structure := WhateverYouNeed["calculations"]["structure"];
@@ -178,10 +178,6 @@ PlotResults := proc(WhateverYouNeed::table)
 		r := 20
 	end if;
 
-	# dummylength := 100;		# if length is not provided we need to use a temporary distance
-
-	# one can either use the geometry or the plot package
-
 	if MASTERALARM(warnings) = false then
 
 		results := WhateverYouNeed["results"]["FastenerGroup"]["ForcesInConnection"];			
@@ -190,7 +186,13 @@ PlotResults := proc(WhateverYouNeed::table)
 		fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
 		sectiondataAll := WhateverYouNeed["sectiondataAll"];
 
-		scalefactor := GetProperty("Slider_scalefactor", value);
+		if ComponentExists("Slider_scalefactor") then
+			scalefactor := GetProperty("Slider_scalefactor", value);
+		elif ComponentExists("TextArea_scalefactor") then
+			scalefactor := parse(GetProperty("TextArea_scalefactor", value));
+		else
+			scalefactor := 1
+		end if;
 
 		# pointplot works with units, textplot doesn't
 		# https://www.mapleprimes.com/questions/234265-Textplot-With-Units?sq=234265
@@ -273,8 +275,7 @@ PlotResults := proc(WhateverYouNeed::table)
 		beamnumber := table();
 		# centerlines := table();
 
-		# find item number of 2 beams
-		if assigned(structure["connection"]) then
+		if assigned(structure["connection"]) then       # find item number of 2 beams, will not be run in "Loads on Fastener Group"
 			
 			for part from 1 to 2 do
 				
@@ -287,86 +288,104 @@ PlotResults := proc(WhateverYouNeed::table)
 				end if;
 
 				i := beamnumber[part];		# "1", "2", "steel"
-	
+
 				if assigned(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", i)]) and WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", i)] <> "false" then
 		
 					alpha[i] := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", i)]);
 		
-					# center line			
-					# BPC...Beam Point Center
+					# 1.) create center points and line
+					# 1a) BPC...Beam Point Center (point)
 					geometry:-point(parse(cat("BPC", i)), [len * cos(alpha[i]), len * sin(alpha[i])]);			
 					beamPoints := [op(beamPoints), parse(cat("BPC", i))];
 					# BC...Beam Center (line)
 					geometry:-line(parse(cat("BC", i)),  [O, parse(cat("BPC", i))]);			# centerline, from origo, letter "O" to beam endpoint B1, or B2
-					# centerlines[i] := line(A, B, color = red, linestyle = dash)
+
+					# 1b) centerlines[i] := line(A, B, color = red, linestyle = dash)
 					geometryList := [op(geometryList), parse(cat("BC", i))('color' = "Red", 'linestyle' = 'dashdot')];
 		
-					# beam boundary lines
 					h := convert(sectiondataAll[i]["h"], 'unit_free');
-					lengthleft := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthleft", i)], 'unit_free');				# could be "false"
-					lengthright := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthright", i)], 'unit_free');
-					
-					cutleft := WhateverYouNeed["calculations"]["structure"]["connection"][cat("Cutleft", i)];
-					cutright := WhateverYouNeed["calculations"]["structure"]["connection"][cat("Cutright", i)];
 				
-					# BOL...Beam Origo Left, BOR...Beam Origo Right
+					# 2.) create left and right beam sides
+					# 2a.)BOL...Beam Origo Left, BOR...Beam Origo Right
 					geometry:-point(parse(cat("BOL", i)), [geometry:-coordinates(O)[1] - h / 2 * sin(alpha[i]), geometry:-coordinates(O)[2] + h / 2 * cos(alpha[i])]);		# point on left side of beam grid line
 					geometry:-point(parse(cat("BOR", i)), [geometry:-coordinates(O)[1] + h / 2 * sin(alpha[i]), geometry:-coordinates(O)[1] - h / 2 * cos(alpha[i])]);		# point on right side of beam grid line
 					beamPoints := [op(beamPoints), parse(cat("BOL", i)), parse(cat("BOR", i))];
 
+					# 2b.) BLL...beam line left, BLR...beam line right
+					geometry:-ParallelLine(parse(cat("BLL", i)), parse(cat("BOL", i)), parse(cat("BC", i)));
+					geometry:-ParallelLine(parse(cat("BLR", i)), parse(cat("BOR", i)), parse(cat("BC", i)));
+
+					# 3.) create Beam Start and End Center points
+					lengthleft := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthleft", i)], 'unit_free');				# could be "false"
+					lengthright := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthright", i)], 'unit_free');
+
+					angleleft := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleleft", i)]);				# could be "false"
+					angleright := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleright", i)]);
+					
+					cutleft := WhateverYouNeed["calculations"]["structure"]["connection"][cat("Cutleft", i)];
+					cutright := WhateverYouNeed["calculations"]["structure"]["connection"][cat("Cutright", i)];					
+
+					# BSC...Beam Start Center, BEC...Beam End Center (points), calculated with lengths
+					# length... = "false" should not be possible anymore, as we allow for parallel lines to other beam with values
+					x := geometry:-coordinates(O)[1] - lengthleft * cos(alpha[i]);
+					y := geometry:-coordinates(O)[2] - lengthleft * sin(alpha[i]);
+					geometry:-point(parse(cat("BSC", i)), [x, y]);
+
+					x := geometry:-coordinates(O)[1] + lengthright * cos(alpha[i]);
+					y := geometry:-coordinates(O)[2] + lengthright * sin(alpha[i]);
+					geometry:-point(parse(cat("BEC", i)), [x, y]);
+		
+					# 4.) create start and end line of beam
+					# 4a.) start (left) side beam
+					if angleleft <> "false" then
+						if angleleft < minimumangle or angleleft > 180 * Unit('degree') - minimumangle then
+							Alert("Angle left outside range", warnings, 2);
+							angleleft := 90 * Unit('degree');
+							WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleleft", i)] := angleleft;
+							SetProperty(cat("TextArea_angleleft", i), 'value', round2(convert(angleleft, 'unit_free'), 2))
+						end if;
+						deltaangle := alpha[i] + angleleft;
+					else
+						deltaangle := alpha[i] + 90 * Unit('degree');	# temporary solution, should be cut to other beam
+					end if;
+
+					# coordinate for direction
+					x := geometry:-coordinates(parse(cat("BSC", i)))[1] + len * cos(deltaangle);
+					y := geometry:-coordinates(parse(cat("BSC", i)))[2] + len * sin(deltaangle);
+					geometry:-point(parse(cat("BSC_", i)), [x, y]);
+
+					# BLS...beam line start
+					geometry:-line(parse(cat("BLS", i)), [parse(cat("BSC", i)), parse(cat("BSC_", i))]);
+
+					# 4b.) end (right) side beam
+					if angleright <> "false" then
+						if angleright < minimumangle or angleright > 180 * Unit('degree') - minimumangle then
+							Alert("Angle right outside range", warnings, 2);
+							angleright := 90 * Unit('degree');
+							WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleright", i)] := angleright;
+							SetProperty(cat("TextArea_angleright", i), 'value', round2(convert(angleright, 'unit_free'), 2))
+						end if;
+						deltaangle := alpha[i] + angleright;
+					else
+						deltaangle := alpha[i] + 90 * Unit('degree');	# temporary solution, should be cut to other beam
+					end if;
+
+					# coordinate for direction
+					x := geometry:-coordinates(parse(cat("BEC", i)))[1] + len * cos(deltaangle);
+					y := geometry:-coordinates(parse(cat("BEC", i)))[2] + len * sin(deltaangle);
+					geometry:-point(parse(cat("BEC_", i)), [x, y]);
+
+					# BLE...beam line end
+					geometry:-line(parse(cat("BLE", i)), [parse(cat("BEC", i)), parse(cat("BEC_", i))]);
+
+					# 5.) corner points of beams as intersection
 					# BSL...Beam Start Left, BSR...Beam Start Right
 					# BEL...Beam End Left, BER...Beam End Right
-					# "false" should not be possible anymore, as allow for parallel lines to other beam with values
-					# if lengthleft <> "false" then
-#						if cutleft = "false" then
-						x := geometry:-coordinates(parse(cat("BOL", i)))[1] - lengthleft * cos(alpha[i]);
-						y := geometry:-coordinates(parse(cat("BOL", i)))[2] - lengthleft * sin(alpha[i]);						
-#						else
-#							x := geometry:-coordinates(parse(cat("BOL", i)))[1] - dummylength * cos(alpha[i]);
-#							y := geometry:-coordinates(parse(cat("BOL", i)))[2] - dummylength * sin(alpha[i]);
-#						end if;
-					geometry:-point(parse(cat("BSL", i)), [x, y]);
-
-					# if lengthright <> "false" then
-#						if cutright = "false" then
-						x := geometry:-coordinates(parse(cat("BOL", i)))[1] + lengthright * cos(alpha[i]);
-						y := geometry:-coordinates(parse(cat("BOL", i)))[2] + lengthright * sin(alpha[i]);									
-#						else
-#							x := geometry:-coordinates(parse(cat("BOL", i)))[1] + dummylength * cos(alpha[i]);
-#							y := geometry:-coordinates(parse(cat("BOL", i)))[2] + dummylength * sin(alpha[i]);
-#						end if;
-					geometry:-point(parse(cat("BEL", i)), [x, y]);
-
-#						if lengthleft <> "false" then
-#						if cutleft = "false" then
-						x := geometry:-coordinates(parse(cat("BOR", i)))[1] - lengthleft * cos(alpha[i]);
-						y := geometry:-coordinates(parse(cat("BOR", i)))[2] - lengthleft * sin(alpha[i]);
-#						else
-#							x := geometry:-coordinates(parse(cat("BOR", i)))[1] - dummylength * cos(alpha[i]);
-#							y := geometry:-coordinates(parse(cat("BOR", i)))[2] - dummylength * sin(alpha[i]);
-#						end if;
-					geometry:-point(parse(cat("BSR", i)), [x, y]);
-
-#						if lengthright <> "false" then
-#						if cutright = "false" then
-						x := geometry:-coordinates(parse(cat("BOR", i)))[1] + lengthright * cos(alpha[i]);
-						y := geometry:-coordinates(parse(cat("BOR", i)))[2] + lengthright * sin(alpha[i]);			
-#						else
-#							x := geometry:-coordinates(parse(cat("BOR", i)))[1] + dummylength * cos(alpha[i]);
-#							y := geometry:-coordinates(parse(cat("BOR", i)))[2] + dummylength * sin(alpha[i]);
-#						end if;
-					geometry:-point(parse(cat("BER", i)), [x, y]);
-				
-					beamPoints := [op(beamPoints), parse(cat("BSL", i)), parse(cat("BEL", i)), parse(cat("BSR", i)), parse(cat("BER", i))];
-
-					# operations working on lines apparently do not work on segments
-					# https://mapleprimes.com/questions/236432-Geometryprojection-ParallelLine-On-Segment
-					# lines
-					# BLL...beam line left, BLR...beam line right, BLS...beam line start, BLE...beam line end
-					# 1. part, sidelines
-					geometry:-line(parse(cat("BLL", i)), [parse(cat("BSL", i)), parse(cat("BEL", i))]);
-					geometry:-line(parse(cat("BLR", i)), [parse(cat("BSR", i)), parse(cat("BER", i))]);
-		
+					geometry:-intersection(parse(cat("BSL", i)), parse(cat("BLL", i)), parse(cat("BLS", i)));
+					geometry:-intersection(parse(cat("BEL", i)), parse(cat("BLL", i)), parse(cat("BLE", i)));
+					geometry:-intersection(parse(cat("BSR", i)), parse(cat("BLR", i)), parse(cat("BLS", i)));
+					geometry:-intersection(parse(cat("BER", i)), parse(cat("BLR", i)), parse(cat("BLE", i)));
+					
 				end if;
 			end do;
 
@@ -378,11 +397,14 @@ PlotResults := proc(WhateverYouNeed::table)
 
 				lengthleft := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthleft", i)], 'unit_free');				# could be "false"
 				lengthright := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthright", i)], 'unit_free');
+
+				angleleft := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleleft", i)]);				# could be "false"
+				angleright := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleright", i)]);
 				
 				cutleft := WhateverYouNeed["calculations"]["structure"]["connection"][cat("Cutleft", i)];
 				cutright := WhateverYouNeed["calculations"]["structure"]["connection"][cat("Cutright", i)];
 				
-				if cutleft = "true" then
+				if cutleft = "cut profile" then		# angleleft = false
 					
 					if abs(alpha[beamnumber[2]] - alpha[beamnumber[1]]) >= minimumangle and abs(alpha[beamnumber[2]] - alpha[beamnumber[1]]) <= 90 * Unit('degree') then							
 						
@@ -390,10 +412,7 @@ PlotResults := proc(WhateverYouNeed::table)
 							
 							if alpha[beamnumber[2]] - alpha[beamnumber[1]] > 0 and alpha[beamnumber[2]] - alpha[beamnumber[1]] < 180 then
 								geometry:-intersection(parse(cat("BSL", i)), parse(cat("BLL", beamnumber[1])), parse(cat("BLL", beamnumber[2])));
-								geometry:-intersection(parse(cat("BSR", i)), parse(cat("BLR", beamnumber[1])), parse(cat("BLL", beamnumber[2])));							
-								# geometry:-intersection(parse(cat("BSL", i)), parse("BLL1"), parse("BLL2"));
-								# geometry:-intersection(parse(cat("BSR", i)), parse("BLR1"), parse("BLL2"));
-								
+								geometry:-intersection(parse(cat("BSR", i)), parse(cat("BLR", beamnumber[1])), parse(cat("BLL", beamnumber[2])));															
 							else
 								geometry:-intersection(parse(cat("BSL", i)), parse(cat("BLL", beamnumber[1])), parse(cat("BLR", beamnumber[2])));
 								geometry:-intersection(parse(cat("BSR", i)), parse(cat("BLR", beamnumber[1])), parse(cat("BLR", beamnumber[2])));							
@@ -408,8 +427,7 @@ PlotResults := proc(WhateverYouNeed::table)
 								geometry:-intersection(parse(cat("BSL", i)), parse(cat("BLL", beamnumber[1])), parse(cat("BLL", beamnumber[2])));
 								geometry:-intersection(parse(cat("BSR", i)), parse(cat("BLL", beamnumber[1])), parse(cat("BLR", beamnumber[2])));
 							end if;
-							# geometry:-intersection(parse(cat("BSL", i)), parse("BLR1"), parse("BLL2"));
-							# geometry:-intersection(parse(cat("BSR", i)), parse("BLR1"), parse("BLR2"));
+
 						end if;
 
 						x := geometry:-coordinates(parse(cat("BSL", i)))[1] - lengthleft * cos(alpha[i]);
@@ -428,7 +446,7 @@ PlotResults := proc(WhateverYouNeed::table)
 					
 				end if;
 				
-				if cutright = "true" then
+				if cutright = "cut profile" then
 					
 					if abs(alpha[beamnumber[2]] - alpha[beamnumber[1]]) >= minimumangle and abs(alpha[beamnumber[2]] - alpha[beamnumber[1]]) <= 90 * Unit('degree') then
 					
@@ -440,19 +458,17 @@ PlotResults := proc(WhateverYouNeed::table)
 								geometry:-intersection(parse(cat("BEL", i)), parse(cat("BLL", beamnumber[1])), parse(cat("BLL", beamnumber[2])));
 								geometry:-intersection(parse(cat("BER", i)), parse(cat("BLR", beamnumber[1])), parse(cat("BLL", beamnumber[2])));							
 							end if;
-							# geometry:-intersection(parse(cat("BEL", i)), parse("BLL1"), parse("BLR2"));
-							# geometry:-intersection(parse(cat("BER", i)), parse("BLR1"), parse("BLR2"));
 							
 						elif part = 2 then
+
 							if alpha[beamnumber[2]] - alpha[beamnumber[1]] > 0 and alpha[beamnumber[2]] - alpha[beamnumber[1]] < 180 then
 								geometry:-intersection(parse(cat("BEL", i)), parse(cat("BLL", beamnumber[1])), parse(cat("BLL", beamnumber[2])));
 								geometry:-intersection(parse(cat("BER", i)), parse(cat("BLL", beamnumber[1])), parse(cat("BLR", beamnumber[2])));							
-								# geometry:-intersection(parse(cat("BEL", i)), parse("BLL1"), parse("BLL2"));
-								# geometry:-intersection(parse(cat("BER", i)), parse("BLL1"), parse("BLR2"));
 							else
 								geometry:-intersection(parse(cat("BEL", i)), parse(cat("BLR", beamnumber[1])), parse(cat("BLL", beamnumber[2])));
 								geometry:-intersection(parse(cat("BER", i)), parse(cat("BLR", beamnumber[1])), parse(cat("BLR", beamnumber[2])));							
 							end if;
+
 						end if;
 
 						x := geometry:-coordinates(parse(cat("BEL", i)))[1] + lengthright * cos(alpha[i]);
@@ -474,9 +490,15 @@ PlotResults := proc(WhateverYouNeed::table)
 
 				# BLL...beam line left, BLR...beam line right, BLS...beam line start, BLE...beam line end
 				beamBoundarylines := [op(beamBoundarylines), parse(cat("BLL", i)), parse(cat("BLR", i)), parse(cat("BLS", i)), parse(cat("BLE", i))];
+
+				# add beam points to list													
+				beamPoints := [op(beamPoints), parse(cat("BSC", i)), parse(cat("BEC", i))];
+				beamPoints := [op(beamPoints), parse(cat("BSL", i)), parse(cat("BEL", i)), parse(cat("BSR", i)), parse(cat("BER", i))];
+
 			end do;
 
-			graphicsElements["beamBoundarylines"] := beamBoundarylines;				
+			graphicsElements["beamBoundarylines"] := beamBoundarylines;
+			graphicsElements["beamPoints"] := beamPoints;
 			
 			# plot polygons
 			for i in {"1", "2", "steel"} do
@@ -509,46 +531,49 @@ PlotResults := proc(WhateverYouNeed::table)
 				end if;
 			end do;
 
-			annotations_a := calculate_a(WhateverYouNeed);			# calculate a-values according to EC5
-			if MASTERALARM(warnings) = true then
-				return
-			end if;
+			if CheckPointInPolygon(WhateverYouNeed) then		# check if fasteners er inside of parts
 
-			displayBlockShear := BlockShearPath(WhateverYouNeed);	# calculate BlockShear
-			# geometryList := [op(geometryList), op(segmentlist)];
-
-			beams := convert(beams, list);
-
-			plotitems := [op(beams)];
-
-			if GetProperty("CheckBox_GraphicsShowAnnotations", value) = "true" then
-				if numelems(annotations) > 0 then
-					plotitems := [op(plotitems), op(annotations)]
+				annotations_a := calculate_a(WhateverYouNeed);			# calculate a-values according to EC5
+				if MASTERALARM(warnings) = true then
+					return
 				end if;
-			end if;
-		
-			if GetProperty("CheckBox_GraphicsShowDistances", value) = "true" then
-				if numelems(annotations_a) > 0 then
-					plotitems := [op(plotitems), op(annotations_a)]
+
+				displayBlockShear := BlockShearPath(WhateverYouNeed);	# calculate BlockShear
+				# geometryList := [op(geometryList), op(segmentlist)];
+
+				beams := convert(beams, list);
+
+				plotitems := [op(beams)];
+
+				if GetProperty("CheckBox_GraphicsShowAnnotations", value) = "true" then
+					if numelems(annotations) > 0 then
+						plotitems := [op(plotitems), op(annotations)]
+					end if;
 				end if;
-			end if;
-		
-			if GetProperty("CheckBox_GraphicsShowForces", value) = "true" then
-				if numelems(displayForceVectors) > 0 then
-					plotitems := [op(plotitems), op(displayForceVectors)]
-				end if
-			end if;
 			
-			if GetProperty("CheckBox_GraphicsShowBlockShear", value) = "true" then
-				if numelems(displayBlockShear) > 0 then
-					plotitems := [op(plotitems), geometry:-draw(displayBlockShear)]
+				if GetProperty("CheckBox_GraphicsShowDistances", value) = "true" then
+					if numelems(annotations_a) > 0 then
+						plotitems := [op(plotitems), op(annotations_a)]
+					end if;
 				end if;
-			end if;			
+			
+				if GetProperty("CheckBox_GraphicsShowForces", value) = "true" then
+					if numelems(displayForceVectors) > 0 then
+						plotitems := [op(plotitems), op(displayForceVectors)]
+					end if
+				end if;
+				
+				if GetProperty("CheckBox_GraphicsShowBlockShear", value) = "true" then
+					if numelems(displayBlockShear) > 0 then
+						plotitems := [op(plotitems), geometry:-draw(displayBlockShear)]
+					end if;
+				end if;			
 
-		
+			end if;
+
 			SetProperty("Plot_result", 'value', display(geometry:-draw(geometryList), plotitems));		# combine geometry and plots elements
 			
-		else	# if assigned(WhateverYouNeed["calculations"]["structure"]["connection"]) = false
+		else	# e.g. "Loads on Fastener Group"
 
 			SetProperty("Plot_result", 'value', display(displayForceVectors, annotations));		# combine geometry and plots elements
 			
@@ -563,8 +588,7 @@ end proc:
 maxFIndexFastener := proc(results::list)
 	description "returns index of fastener with Fmax";
 
-	return max[index](convert(convert(results, Matrix)[3], list))	# https://www.mapleprimes.com/questions/233500-UnitsSimplemaxindex-#comment289958
-	# return maxindex(convert(convert(results, Matrix)[3], list))
+	return max[index](convert(convert(results, Matrix)[3], list))
 end proc:
 
 
@@ -1075,7 +1099,7 @@ calculate_a := proc(WhateverYouNeed::table)			# calculate a-values according to 
 			dummy := cat("a_", convert(fastenerPointlist[i], string), convert(beamBoundarylines[beamBoundaryline], string));	
 			
 			if beamside = "L" or beamside = "R" then
-				# projection point from fastener on left or right boundary line
+				# projection point from fastener on left or right boundary line (normal to grain direction)
 				geometry:-projection(parse(dummy), fastenerPointlist[i], beamBoundarylines[beamBoundaryline]);	
 				
 			elif beamside = "S" or beamside = "E" then
@@ -1094,7 +1118,7 @@ calculate_a := proc(WhateverYouNeed::table)			# calculate a-values according to 
 		
 	end do;
 
-	# check if point is outside of beam, and calculate a4
+	# calculate a4
 	for beamBoundaryline from 1 to numelems(beamBoundarylines) do		# we do have left and right sides
 		
 		# if searchtext("steel", beamBoundarylines[beamBoundaryline]) > 0 then
@@ -1117,31 +1141,34 @@ calculate_a := proc(WhateverYouNeed::table)			# calculate a-values according to 
 
 				intPointL := cat("a_", convert(fastenerPointlist[i], string), "BLL", beamindex);	# a_F1BLL1
 				intPointR := cat("a_", convert(fastenerPointlist[i], string), "BLR", beamindex);				
-			
-				if round(dist[intPointL] + dist[intPointR]) > round(evalf(geometry:-distance(parse(intPointL), parse(intPointR)))) then
-					Alert(cat("Fastener Point ",convert(fastenerPointlist[i], string), " outside of beam ", beamindex) , warnings, 5);
-					distance[cat("a4", beamindex)] := 0;
-					return;
-					
-				else
-					# need to store a4 values for each fastener point for calculation of splitting capacity
-					distance[intPointL] := evalf(dist[intPointL]);
-					distance[intPointR] := evalf(dist[intPointR]);
 
-					# check if new a4 value
-					if assigned(distance[cat("a4", beamindex)]) = false or convert(distance[cat("a4", beamindex)], 'unit_free') > min(evalf(dist[intPointL]), evalf(dist[intPointR])) then						
-						distance[cat("a4", beamindex)] := min(evalf(dist[intPointL]), evalf(dist[intPointR])) * Unit('mm');
-						if evalf(dist[intPointL]) < evalf(dist[intPointR]) then
-							segm4 := geometry:-segment(parse(cat("a4", beamindex)), op(segments[intPointL]));
-							
-						else
-							segm4 := geometry:-segment(parse(cat("a4", beamindex)), op(segments[intPointR]));
-						end if;
-						dummy1 := cat("a4", beamindex, "=", convert(round(convert(distance[cat("a4", beamindex)], 'unit_free')), string), "mm");
-						annotation4 := plots:-textplot([op(geometry:-coordinates(geometry:-midpoint(parse(cat("a4", beamindex, "M")), segm4))) , dummy1],
-								'align' = {'above', 'right'}, 'color' = "Blue", 'rotation' = alpha);
-					end if;	
-				end if;					
+#				We do not check inside / outside beam anymore, as this is done in CheckPointInPolygon
+
+#				if round(dist[intPointL] + dist[intPointR]) > round(evalf(geometry:-distance(parse(intPointL), parse(intPointR)))) then
+#					Alert(cat("Fastener Point ",convert(fastenerPointlist[i], string), " outside of beam ", beamindex) , warnings, 5);
+#					distance[cat("a4", beamindex)] := 0;
+#					return;
+					
+#				else
+					# need to store a4 values for each fastener point for calculation of splitting capacity
+
+				distance[intPointL] := evalf(dist[intPointL]);
+				distance[intPointR] := evalf(dist[intPointR]);
+
+				# check if new a4 value
+				if assigned(distance[cat("a4", beamindex)]) = false or convert(distance[cat("a4", beamindex)], 'unit_free') > min(evalf(dist[intPointL]), evalf(dist[intPointR])) then						
+					distance[cat("a4", beamindex)] := min(evalf(dist[intPointL]), evalf(dist[intPointR])) * Unit('mm');
+					if evalf(dist[intPointL]) < evalf(dist[intPointR]) then
+						segm4 := geometry:-segment(parse(cat("a4", beamindex)), op(segments[intPointL]));
+						
+					else
+						segm4 := geometry:-segment(parse(cat("a4", beamindex)), op(segments[intPointR]));
+					end if;
+					dummy1 := cat("a4", beamindex, "=", convert(round(convert(distance[cat("a4", beamindex)], 'unit_free')), string), "mm");
+					annotation4 := plots:-textplot([op(geometry:-coordinates(geometry:-midpoint(parse(cat("a4", beamindex, "M")), segm4))) , dummy1],
+							'align' = {'above', 'right'}, 'color' = "Blue", 'rotation' = alpha);
+				end if;	
+#				end if;					
 			end do;
 			
 			if distance[cat("a4", beamindex)] <> 0 then
@@ -1163,26 +1190,30 @@ calculate_a := proc(WhateverYouNeed::table)			# calculate a-values according to 
 				intPointS := cat("a_", convert(fastenerPointlist[i], string), "BLS", beamindex);	# a_F1BLS1
 				intPointE := cat("a_", convert(fastenerPointlist[i], string), "BLE", beamindex);				
 			
-				if round(dist[intPointS] + dist[intPointE]) > round(evalf(geometry:-distance(parse(intPointS), parse(intPointE)))) then
-					Alert(cat("Fastener Point ",convert(fastenerPointlist[i], string), " outside of beam ", beamindex) , warnings, 5);	
-					distance[cat("a3", beamindex)] := 0;
-					return;
-				else
-					if assigned(distance[cat("a3", beamindex)]) = false or convert(distance[cat("a3", beamindex)], 'unit_free') > min(evalf(dist[intPointS]), evalf(dist[intPointE])) then						
-						distance[cat("a3", beamindex)] := min(evalf(dist[intPointS]), evalf(dist[intPointE])) * Unit('mm');
-						if evalf(dist[intPointS]) < evalf(dist[intPointE]) then
-							segm3 := geometry:-segment(parse(cat("a3", beamindex)), op(segments[intPointS]));
-							distance[cat("a3", beamindex, "side")] := "S"		# need to store which side has shortest distance for calculation of block shear
-							
-						else
-							segm3 := geometry:-segment(parse(cat("a3", beamindex)), op(segments[intPointE]));
-							distance[cat("a3", beamindex, "side")] := "E"		# need to store which side has shortest distance for calculation of block shear
-						end if;
-						dummy1 := cat("a3", beamindex, "=", convert(round(convert(distance[cat("a3", beamindex)], 'unit_free')), string), "mm");
-						annotation3 := plots:-textplot([op(geometry:-coordinates(geometry:-midpoint(parse(cat("a3", beamindex, "M")), segm3))) , dummy1],
-								'align' = {'above', 'right'}, 'color' = "Blue", 'rotation' = alpha);
-					end if;	
-				end if;					
+#				We do not check inside / outside beam anymore, as this is done in CheckPointInPolygon			
+#				if round(dist[intPointS] + dist[intPointE]) > round(evalf(geometry:-distance(parse(intPointS), parse(intPointE)))) then
+#					Alert(cat("Fastener Point ",convert(fastenerPointlist[i], string), " outside of beam ", beamindex) , warnings, 5);	
+#					distance[cat("a3", beamindex)] := 0;
+#					return;
+#				else
+
+				if assigned(distance[cat("a3", beamindex)]) = false or convert(distance[cat("a3", beamindex)], 'unit_free') > min(evalf(dist[intPointS]), evalf(dist[intPointE])) then						
+					distance[cat("a3", beamindex)] := min(evalf(dist[intPointS]), evalf(dist[intPointE])) * Unit('mm');
+					if evalf(dist[intPointS]) < evalf(dist[intPointE]) then
+						segm3 := geometry:-segment(parse(cat("a3", beamindex)), op(segments[intPointS]));
+						distance[cat("a3", beamindex, "side")] := "S"		# need to store which side has shortest distance for calculation of block shear
+						
+					else
+						segm3 := geometry:-segment(parse(cat("a3", beamindex)), op(segments[intPointE]));
+						distance[cat("a3", beamindex, "side")] := "E"		# need to store which side has shortest distance for calculation of block shear
+					end if;
+					dummy1 := cat("a3", beamindex, "=", convert(round(convert(distance[cat("a3", beamindex)], 'unit_free')), string), "mm");
+					annotation3 := plots:-textplot([op(geometry:-coordinates(geometry:-midpoint(parse(cat("a3", beamindex, "M")), segm3))) , dummy1],
+							'align' = {'above', 'right'}, 'color' = "Blue", 'rotation' = alpha);
+				end if;	
+
+#				end if;					
+
 			end do;
 			
 			if distance[cat("a3", beamindex)] <> 0 then
@@ -1697,158 +1728,211 @@ end proc:
 
 
 BlockShearPath := proc(WhateverYouNeed::table)::list;
-uses NODEFunctions, DocumentTools, Units[Simple];
-description "Block Shear and Plug Shear failure at multiple dowel-type steel-to-timber connections";
-local structure, fasteners, fastenerPointlist, beamBoundarylines, FastenersInColumn, i, beamBoundaryline, dummy, beamindex, beamside, dist, segments, 
-		lvmax, llmin, lrmin, lvmaxPoints, llminPoints, lrminPoints, BlockShear, a3side, distance, dummy1, j, d_,
-		lparline, rparline, vperpline, Ptvl, Ptvr, Pl, Pr, geometryList, lvl, lvr, lt;
+	uses NODEFunctions, DocumentTools, Units[Simple];
+	description "Block Shear and Plug Shear failure at multiple dowel-type steel-to-timber connections";
+	local structure, fasteners, fastenerPointlist, beamBoundarylines, FastenersInColumn, i, beamBoundaryline, dummy, beamindex, beamside, dist, segments, 
+			lvmax, llmin, lrmin, lvmaxPoints, llminPoints, lrminPoints, BlockShear, a3side, distance, dummy1, j, d_,
+			lparline, rparline, vperpline, Ptvl, Ptvr, Pl, Pr, geometryList, lvl, lvr, lt;
 
-structure := WhateverYouNeed["calculations"]["structure"]; 
-fasteners := WhateverYouNeed["results"]["FastenerGroup"]["Fasteners"];     					# matrix with fastener point coordinates	
-fastenerPointlist := WhateverYouNeed["calculatedvalues"]["graphicsElements"]["fastenerPointlist"];
-beamBoundarylines := WhateverYouNeed["calculatedvalues"]["graphicsElements"]["beamBoundarylines"];	# BLL1: boundary line beam 1, Left (Right, Start, End)
-FastenersInColumn := WhateverYouNeed["calculatedvalues"]["distance"]["FastenersInColumn"];
-distance := WhateverYouNeed["calculatedvalues"]["distance"];
-d_ := convert(structure["fastener"]["fastener_d"], 'unit_free');
+	structure := WhateverYouNeed["calculations"]["structure"]; 
+	fasteners := WhateverYouNeed["results"]["FastenerGroup"]["Fasteners"];     					# matrix with fastener point coordinates	
+	fastenerPointlist := WhateverYouNeed["calculatedvalues"]["graphicsElements"]["fastenerPointlist"];
+	beamBoundarylines := WhateverYouNeed["calculatedvalues"]["graphicsElements"]["beamBoundarylines"];	# BLL1: boundary line beam 1, Left (Right, Start, End)
+	FastenersInColumn := WhateverYouNeed["calculatedvalues"]["distance"]["FastenersInColumn"];
+	distance := WhateverYouNeed["calculatedvalues"]["distance"];
+	d_ := convert(structure["fastener"]["fastener_d"], 'unit_free');
 
-dist := distance["dist"]; 		# calculated in NODEFastenerPattern:-calculate_a
-segments := distance["segments"];
-lvmax := 0;
-llmin := 0;
-lrmin := 0;
-lvmaxPoints := {};
-llminPoints := {};
-lrminPoints := {};
-geometryList := [];
+	dist := distance["dist"]; 		# calculated in NODEFastenerPattern:-calculate_a
+	segments := distance["segments"];
+	lvmax := 0;
+	llmin := 0;
+	lrmin := 0;
+	lvmaxPoints := {};
+	llminPoints := {};
+	lrminPoints := {};
+	geometryList := [];
 
-BlockShear := table();
+	BlockShear := table();
 
-if structure["connection"]["connection1"] = "Steel" or structure["connection"]["connection2"] = "Steel" then
-			
-	for i from 1 to numelems(fastenerPointlist) do				# F1, F2,...
-		
-		for beamBoundaryline from 1 to numelems(beamBoundarylines) do	# BLL1: boundary line beam 1, Left (Right, Start, End)
-			
-			if searchtext("steel", beamBoundarylines[beamBoundaryline]) = 0 then
-				beamindex := substring(convert(beamBoundarylines[beamBoundaryline], string), -1..-1);
-				beamside := substring(convert(beamBoundarylines[beamBoundaryline], string), -2..-2);
-			else
-				next
-			end if;
-
-			dummy := cat("a_", convert(fastenerPointlist[i], string), convert(beamBoundarylines[beamBoundaryline], string));	# a_F1BLL1
-
-			a3side := WhateverYouNeed["calculatedvalues"]["distance"][cat("a3", beamindex, "side")];		# beam end side for a3 distance
-			
-			if beamside = a3side then		# S or E, find point furthers away from edge end
-								
-				if dist[dummy] > lvmax then
-					lvmax := dist[dummy];
-					lvmaxPoints := {i};
-					geometry:-PerpendicularLine(vperpline, fastenerPointlist[i], parse(cat("BLL", beamindex)));
+	if structure["connection"]["connection1"] = "Steel" or structure["connection"]["connection2"] = "Steel" then
 				
-				elif dist[dummy] < lvmax + d_ then
-					lvmaxPoints := lvmaxPoints union {i}
+		for i from 1 to numelems(fastenerPointlist) do				# F1, F2,...
+			
+			for beamBoundaryline from 1 to numelems(beamBoundarylines) do	# BLL1: boundary line beam 1, Left (Right, Start, End)
 				
+				if searchtext("steel", beamBoundarylines[beamBoundaryline]) = 0 then
+					beamindex := substring(convert(beamBoundarylines[beamBoundaryline], string), -1..-1);
+					beamside := substring(convert(beamBoundarylines[beamBoundaryline], string), -2..-2);
+				else
+					next
 				end if;
 
-				# check if existing points in list is outside new lvmax - d
-				for j in lvmaxPoints do
+				dummy := cat("a_", convert(fastenerPointlist[i], string), convert(beamBoundarylines[beamBoundaryline], string));	# a_F1BLL1
 
-					dummy1 := cat("a_", convert(fastenerPointlist[j], string), convert(beamBoundarylines[beamBoundaryline], string));	# a_F1BLL1							
-					if dist[dummy1] < lvmax - d_ then
-						lvmaxPoints := lvmaxPoints minus {j};
-					end if;
-						
-				end do;					
+				a3side := WhateverYouNeed["calculatedvalues"]["distance"][cat("a3", beamindex, "side")];		# beam end side for a3 distance
 				
-			elif beamside = "L" or beamside = "R" then
-
-				if beamside = "L" then
-
-					if dist[dummy] < llmin or llmin = 0 then							
-						
-						llmin := dist[dummy];
-						llminPoints := llminPoints union {i};
-						geometry:-ParallelLine(lparline, fastenerPointlist[i], parse(cat("BLL", beamindex)));
-						geometry:-intersection(Pl, lparline, parse(cat("BL", a3side, beamindex)));	# intersection point with beam start/end
-						
-					elif dist[dummy] < llmin + d_ then							
-						llminPoints := llminPoints union {i}						
-					end if;
-
-					# check if existing points in list is outside new llmin + d
-					for j in llminPoints do
-
-						dummy1 := cat("a_", convert(fastenerPointlist[j], string), convert(beamBoundarylines[beamBoundaryline], string));	# a_F1BLL1							
-						if dist[dummy1] > llmin + d_ then					
-							llminPoints := llminPoints minus {j};						
-						end if;
-						
-					end do;					
-				
-				elif beamside = "R" then
-
-					if dist[dummy] < lrmin or lrmin = 0 then
-						lrmin := dist[dummy];
-						lrminPoints := lrminPoints union {i};
-						geometry:-ParallelLine(rparline, fastenerPointlist[i], parse(cat("BLL", beamindex)));
-						geometry:-intersection(Pr, rparline, parse(cat("BL", a3side, beamindex)));	# intersection point with beam start/end
-						
-					elif dist[dummy] < lrmin + d_ then
-						lrminPoints := lrminPoints union {i}
-					end if;
-
-					# check if existing points in list is outside new lrmin + d
-					for j in lrminPoints do
-
-						dummy1 := cat("a_", convert(fastenerPointlist[j], string), convert(beamBoundarylines[beamBoundaryline], string));	# a_F1BLL1							
-						if dist[dummy1] > lrmin + d_ then
-							lrminPoints := lrminPoints minus {j};							
-						end if;
-						
-					end do;
+				if beamside = a3side then		# S or E, find point furthers away from edge end
+									
+					if dist[dummy] > lvmax then
+						lvmax := dist[dummy];
+						lvmaxPoints := {i};
+						geometry:-PerpendicularLine(vperpline, fastenerPointlist[i], parse(cat("BLL", beamindex)));
 					
-				end if;														
+					elif dist[dummy] < lvmax + d_ then
+						lvmaxPoints := lvmaxPoints union {i}
+					
+					end if;
+
+					# check if existing points in list is outside new lvmax - d
+					for j in lvmaxPoints do
+
+						dummy1 := cat("a_", convert(fastenerPointlist[j], string), convert(beamBoundarylines[beamBoundaryline], string));	# a_F1BLL1							
+						if dist[dummy1] < lvmax - d_ then
+							lvmaxPoints := lvmaxPoints minus {j};
+						end if;
+							
+					end do;					
+					
+				elif beamside = "L" or beamside = "R" then
+
+					if beamside = "L" then
+
+						if dist[dummy] < llmin or llmin = 0 then							
+							
+							llmin := dist[dummy];
+							llminPoints := llminPoints union {i};
+							geometry:-ParallelLine(lparline, fastenerPointlist[i], parse(cat("BLL", beamindex)));
+							geometry:-intersection(Pl, lparline, parse(cat("BL", a3side, beamindex)));	# intersection point with beam start/end
+							
+						elif dist[dummy] < llmin + d_ then							
+							llminPoints := llminPoints union {i}						
+						end if;
+
+						# check if existing points in list is outside new llmin + d
+						for j in llminPoints do
+
+							dummy1 := cat("a_", convert(fastenerPointlist[j], string), convert(beamBoundarylines[beamBoundaryline], string));	# a_F1BLL1							
+							if dist[dummy1] > llmin + d_ then					
+								llminPoints := llminPoints minus {j};						
+							end if;
+							
+						end do;					
+					
+					elif beamside = "R" then
+
+						if dist[dummy] < lrmin or lrmin = 0 then
+							lrmin := dist[dummy];
+							lrminPoints := lrminPoints union {i};
+							geometry:-ParallelLine(rparline, fastenerPointlist[i], parse(cat("BLL", beamindex)));
+							geometry:-intersection(Pr, rparline, parse(cat("BL", a3side, beamindex)));	# intersection point with beam start/end
+							
+						elif dist[dummy] < lrmin + d_ then
+							lrminPoints := lrminPoints union {i}
+						end if;
+
+						# check if existing points in list is outside new lrmin + d
+						for j in lrminPoints do
+
+							dummy1 := cat("a_", convert(fastenerPointlist[j], string), convert(beamBoundarylines[beamBoundaryline], string));	# a_F1BLL1							
+							if dist[dummy1] > lrmin + d_ then
+								lrminPoints := lrminPoints minus {j};							
+							end if;
+							
+						end do;
+						
+					end if;														
+					
+				end if;
 				
-			end if;
+			end do;
 			
 		end do;
+
+		# find intersection points between parallel line and perpline
+		geometry:-intersection(Ptvl, lparline, vperpline);				# intersection point between v-line and t-line left side
+		geometry:-intersection(Ptvr, rparline, vperpline);				# intersection point between v-line and t-line right side
+
+		# calculate distances	
+		dist["a_lvl"] := evalf(geometry:-distance(Pl, Ptvl)) - d_ * (numelems(llminPoints) - 0.5);	# assume fastener in edge point
+		dist["a_lvr"] := evalf(geometry:-distance(Pr, Ptvr)) - d_ * (numelems(lrminPoints) - 0.5);
+		dist["a_lt"] := evalf(geometry:-distance(Ptvl, Ptvr))  - d_ * (numelems(lvmaxPoints) - 1);		# assuming fasteners in both edge points
+
+		BlockShear["lvmax"]:= lvmax;
+		BlockShear["llmin"]:= llmin;
+		BlockShear["lrmin"]:= lrmin;
+		BlockShear["lvmaxPoints"] := lvmaxPoints;
+		BlockShear["llminPoints"] := llminPoints;
+		BlockShear["lrminPoints"] := lrminPoints;
+		WhateverYouNeed["calculatedvalues"]["BlockShear"] := BlockShear;
+
+		# segments
+		geometry:-segment(lvl, Pl, Ptvl);
+		geometry:-segment(lvr, Pr, Ptvr);
+		geometry:-segment(lt, Ptvl, Ptvr);
+
+		# send back Block Shear path
+		geometryList := [op(geometryList), lvl('color' = "coral", 'linestyle' = dashdot), 
+									lvr('color' = "coral", 'linestyle' = dashdot),
+									lt('color' = "coral", 'linestyle' = dashdot)];	
+
+	else
+		# no check necessary
 		
-	end do;
+	end if;	
 
-	# find intersection points between parallel line and perpline
-	geometry:-intersection(Ptvl, lparline, vperpline);				# intersection point between v-line and t-line left side
-	geometry:-intersection(Ptvr, rparline, vperpline);				# intersection point between v-line and t-line right side
+	return geometryList
 
-	# calculate distances	
-	dist["a_lvl"] := evalf(geometry:-distance(Pl, Ptvl)) - d_ * (numelems(llminPoints) - 0.5);	# assume fastener in edge point
-	dist["a_lvr"] := evalf(geometry:-distance(Pr, Ptvr)) - d_ * (numelems(lrminPoints) - 0.5);
-	dist["a_lt"] := evalf(geometry:-distance(Ptvl, Ptvr))  - d_ * (numelems(lvmaxPoints) - 1);		# assuming fasteners in both edge points
+end proc:
 
-	BlockShear["lvmax"]:= lvmax;
-	BlockShear["llmin"]:= llmin;
-	BlockShear["lrmin"]:= lrmin;
-	BlockShear["lvmaxPoints"] := lvmaxPoints;
-	BlockShear["llminPoints"] := llminPoints;
-	BlockShear["lrminPoints"] := lrminPoints;
-	WhateverYouNeed["calculatedvalues"]["BlockShear"] := BlockShear;
 
-	# segments
-	geometry:-segment(lvl, Pl, Ptvl);
-	geometry:-segment(lvr, Pr, Ptvr);
-	geometry:-segment(lt, Ptvl, Ptvr);
+CheckPointInPolygon := proc(WhateverYouNeed::table)::boolean;
+	description "Check if point is inside a polygon";
+	local structure, dummy, part, beamPoints, polygon, beamBoundarylines, fastenerPointlist, beamnumber, i, j, InsidePolygon;
 
-	# send back Block Shear path
-	geometryList := [op(geometryList), lvl('color' = "coral", 'linestyle' = dashdot), 
-								lvr('color' = "coral", 'linestyle' = dashdot),
-								lt('color' = "coral", 'linestyle' = dashdot)];	
+	structure := WhateverYouNeed["calculations"]["structure"];
+	beamPoints := WhateverYouNeed["calculatedvalues"]["graphicsElements"]["beamPoints"];
+	fastenerPointlist := WhateverYouNeed["calculatedvalues"]["graphicsElements"]["fastenerPointlist"];
+	beamnumber := table();
+	InsidePolygon := true;
 
-else
-	# no check necessary
-	
-end if;	
+	if WhateverYouNeed["calculations"]["calculationtype"] = "NS-EN 1995-1-1, Section 8: Fasteners" then
+		for part from 1 to 2 do
+			
+			polygon := [];
 
-return geometryList
+			# get index of part
+			if assigned(structure["connection"][cat("connection", part)]) then
+				if structure["connection"][cat("connection", part)] = "Timber" then
+					beamnumber[part] := convert(part, string)
+				elif structure["connection"][cat("connection", part)] = "Steel" then
+					beamnumber[part] := "steel"
+				end if
+			end if;
+
+			for dummy in ["BSL", "BEL", "BER", "BSR"] do		
+				for j in entries(beamPoints, 'nolist') do
+					if convert(j, string) = cat(dummy, beamnumber[part]) then
+						polygon := [op(polygon), geometry:-coordinates(j)];			# add element to the list					
+					end if;
+				end do;
+			end do;
+
+			# check if fastener points are inside polygon
+			for i from 1 to numelems(fastenerPointlist) do
+				if ComputationalGeometry:-PointInPolygon(geometry:-coordinates(fastenerPointlist[i]), polygon) <> "inside" then
+					InsidePolygon := false;
+					Alert(cat("Fastener point ", i, " is outside beam ", i), WhateverYouNeed["warnings"], 4);
+				end if;
+			end do;
+
+		end do;
+
+	else	# no check necessary for other calculation types
+		
+		InsidePolygon := true;
+
+	end if;
+
+	return InsidePolygon
 
 end proc:

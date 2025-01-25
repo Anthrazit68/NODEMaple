@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- (c) NODE radgivende ingenioerer AS 2020, https://www.node.no -->
-<database version = '2023.12' source_software = 'NODE common file format, generated via Maple'>
-  <projectdata projecttitle = 'Limtreboka Beregningseksempler' projectnumber = '0320.03' client = 'NODE rådgivende ingeniører AS'/>
+<database version = '2025-01' source_software = 'NODE common file format, generated via Maple' created = '2025-01-25T11:27:01 CET'>
+  <projectdata client = 'NODE rådgivende ingeniører AS' projecttitle = 'Limtreboka Beregningseksempler' projectnumber = '0320.03'/>
   <materials>
     <timber>
       <material material = 'timber' name = 'GL 30c / Service class 1 / Short-term' timbertype = 'Glued laminated timber' strengthclass = 'GL 30c' serviceclass = '1' loaddurationclass = 'Short-term' gamma_M = '1.15' k_mod = '.90'>

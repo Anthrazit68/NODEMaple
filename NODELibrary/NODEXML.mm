@@ -189,7 +189,7 @@
 	XMLWrite := proc(exportItems::set, WhateverYouNeed::table)
 		description "Write out XML file";
 		uses Maplets[Elements], XMLTools;
-		local xmltree, xmlmaterials, xmlMaterial, xmlencoding, xmlcomment, xmlversion, software, material, materials, ind, ind1, j, n, item;
+		local xmltree, xmlmaterials, xmlMaterial, xmlencoding, xmlversion, software, material, materials, ind, ind1, j, n, item;	# xmlcomment
 		local xmlSection, xmlsections, section, sections;
 		local xmlCalculation, xmlcalculations, xmlcalculationtype, calculationtype;
 		local xmlprojectdata;
@@ -215,9 +215,9 @@
 		end if;		
 
 		if action = "overwrite" then	# lager ny fil
-			xmlversion := "2024.11";
-			software := "NODE common file format, generated via Maple";
-			xmltree := XMLElement("database", ["version" = xmlversion, "source_software" = software]);	# general information
+			xmlversion := "2025-01";
+			software := "https://github.com/Anthrazit68/NODEMaple";
+			xmltree := XMLElement("database", ["version" = xmlversion, "source_software" = software, "created" = convert(Date(), string)]);		# general information
 		else	# merge
 			xmltree := CleanXML(ParseFile(afilename, prolog = true));
 		end if;
@@ -444,8 +444,9 @@
 		# Get afilename
 	
 		xmlencoding := "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-		xmlcomment := "<!-- (c) NODE radgivende ingenioerer AS 2020, https://www.node.no -->\n";
-		xmltree := cat(xmlencoding, xmlcomment, PrintToString(xmltree));
+		# xmlcomment := "<!-- (c) NODE radgivende ingenioerer AS 2020, https://www.node.no -->\n";
+		# xmltree := cat(xmlencoding, xmlcomment, PrintToString(xmltree));
+		xmltree := cat(xmlencoding, PrintToString(xmltree));
 		FileTools:-Text:-WriteString(afilename, xmltree);
 		fclose(afilename);
 
@@ -456,7 +457,7 @@
 		description "Read in XML file";
 		uses Maplets[Elements], XMLTools;
 		# local projecttitle, projectnumber, position, designer;
-		local xmlprojectdata, xmlversion, software, xmlmaterial;
+		local xmlprojectdata, xmlversion, software, created, xmlmaterial;
 		local xmlsection, xmlsections, xmlsectiondefinition;
 		local xmltree, xmlmaterials, xmlmaterialdefinition;
 		local dummy, xmlitems, xmldummy, xmldummy1, xmldummy2;
@@ -515,6 +516,9 @@
 			xmlversion := AttributeValue(xmltree, "version");					# 2020.08
 		end if;
 
+		if HasAttribute(xmltree, "created") then
+			created := AttributeValue(xmltree, "created");
+		end if;
 	
 		# FileTools[Text][WriteString](logfile, cat("source software: ", software, "\t version: ", xmlversion, "\n"));
 

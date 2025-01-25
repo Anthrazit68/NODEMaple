@@ -175,7 +175,6 @@ EC5_63 := proc(WhateverYouNeed::table)
 	# end if;
 
 	max_index := indices(eta, 'nolist')[max[index](convert(eta, list))];		# have to convert table to list, get the index position, and get the index name of the index
-	# max_index := indices(eta, 'nolist')[maxindex(convert(eta, list))];		# have to convert table to list, get the index position, and get the index name of the index
 	
 	# return eta[max_index], cat("6.3 / ", usedcode[max_index]), comments[max_index]
 	max_eta, max_index := maxIndexTable(table(["624" = eta["624"], "616" = eta["616"], "633" = eta["633"]]));

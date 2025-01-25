@@ -62,47 +62,6 @@ ComponentExists := proc(EC::{name,string})
 end proc:
 
 
-# 2022-10-28: Fix introduced in 2022.1 is buggy
-# https://www.mapleprimes.com/questions/233500-UnitsSimplemaxindex-#comment289958
-maxindex := proc(alist::list)::int;
-	description "Implements missing max[index] in the Units[Simple] package";
-	local ind, val, maxindex, maxvalue;
-
-	maxindex := 1;
-	maxvalue := alist[1];
-
-	for ind, val in alist do
-		if val > maxvalue then
-			maxindex := ind;
-			maxvalue := val
-		end if;
-	end do;
-
-	return maxindex
-end proc:
-
-
-FixBugInDataTableComponent := proc(atable::table)
-	description "Fix bug filed as case 00108605 in DataTable Component";
-	local newtable;
-	# https://www.mapleprimes.com/questions/234172-UnitsSimple-invalid-Subscript-Selector
-
-	newtable := table(eval~(atable));
-
-#		for ind, val in atable do
-#			if whattype(val) = indexed or whattype(val) = table then		# include one level down
-#				for ind1, val1 in eval(val) do
-#					newtable[ind][ind1] := eval(val1)
-#				end do;
-#			else
-#				newtable[ind] := eval(val)
-#			end if
-#		end do;
-
-	return newtable
-end proc:
-
-
 # warnings and error messages 	
 Alert := proc(msg::string, warnings::table, level::integer)
 	description "Error and alert message handling";
@@ -156,12 +115,10 @@ Alert := proc(msg::string, warnings::table, level::integer)
 	
 		SetProperty("TextArea_warnings", 'value', dummy);
 	end if;
-	
 end proc:
 
 
-PrintAlert := proc(warnings::table)
-	
+PrintAlert := proc(warnings::table)	
 	local dummy, j;
 
 	dummy := "";
@@ -177,7 +134,6 @@ PrintAlert := proc(warnings::table)
 	
 		SetProperty("TextArea_warnings", 'value', dummy);		
 	end if;
-	
 end proc:
 
 
@@ -335,8 +291,7 @@ WriteValueToComponent := proc(compvariable::string, b, check_calculations::set)
 	end if;
 
 	return upd_check_calculations
-
-end proc:	
+end proc:
 
 
 updateResults := proc(data::table)
@@ -368,523 +323,523 @@ end proc:
 
 
 ReadComponentsCommon := proc(action::string, WhateverYouNeed::table)
-description "Read values from common components in worksheet";
+	description "Read values from common components in worksheet";
 
-local activeloadcase, loadcases, loadvariables, autoloadsave, autocalc, componentvariables, activesettings;
-local material, materials, materialdata, materialdataAll, projectdata, calculations;
-local sections, sectiondataAll;
-local strengthclass, serviceclass, loaddurationclass, calculationtype, exposureclass, durabilityclass;
-local activematerial, activesection, sectionchanged, val, forceSectionUpdate, i, dummy, warnings;
-local steelcode, steelgrade, thicknessclass;
+	local activeloadcase, loadcases, loadvariables, autoloadsave, autocalc, componentvariables, activesettings;
+	local material, materials, materialdata, materialdataAll, projectdata, calculations;
+	local sections, sectiondataAll;
+	local strengthclass, serviceclass, loaddurationclass, calculationtype, exposureclass, durabilityclass;
+	local activematerial, activesection, sectionchanged, val, forceSectionUpdate, i, dummy, warnings;
+	local steelcode, steelgrade, thicknessclass;
 
-# define local variables
-calculations := WhateverYouNeed["calculations"];	
-componentvariables := WhateverYouNeed["componentvariables"];
-loadcases := calculations["loadcases"];
-projectdata := WhateverYouNeed["projectdata"];
-material := WhateverYouNeed["material"];
-materialdataAll := WhateverYouNeed["materialdataAll"];
-materials := WhateverYouNeed["materials"];
-# sectiondata := WhateverYouNeed["sectiondata"];
-sections := WhateverYouNeed["sections"];
-sectiondataAll := WhateverYouNeed["sectiondataAll"];
+	# define local variables
+	calculations := WhateverYouNeed["calculations"];	
+	componentvariables := WhateverYouNeed["componentvariables"];
+	loadcases := calculations["loadcases"];
+	projectdata := WhateverYouNeed["projectdata"];
+	material := WhateverYouNeed["material"];
+	materialdataAll := WhateverYouNeed["materialdataAll"];
+	materials := WhateverYouNeed["materials"];
+	# sectiondata := WhateverYouNeed["sectiondata"];
+	sections := WhateverYouNeed["sections"];
+	sectiondataAll := WhateverYouNeed["sectiondataAll"];
 
-loadvariables := calculations["loadvariables"];
-activesettings := calculations["activesettings"];	
-autoloadsave := calculations["autoloadsave"];
-autocalc := calculations["autocalc"];
-# structure := WhateverYouNeed["calculations"]["structure"];
-warnings := WhateverYouNeed["warnings"];
+	loadvariables := calculations["loadvariables"];
+	activesettings := calculations["activesettings"];	
+	autoloadsave := calculations["autoloadsave"];
+	autocalc := calculations["autocalc"];
+	# structure := WhateverYouNeed["calculations"]["structure"];
+	warnings := WhateverYouNeed["warnings"];
 
-# active***
-if assigned(activesettings["activeloadcase"]) then
-	activeloadcase := activesettings["activeloadcase"];
-else
-	activeloadcase := ""
-end if;
+	# active***
+	if assigned(activesettings["activeloadcase"]) then
+		activeloadcase := activesettings["activeloadcase"];
+	else
+		activeloadcase := ""
+	end if;
 
-if assigned(activesettings["activematerial"]) then
-	activematerial := activesettings["activematerial"];
-else
-	activematerial := ""
-end if;
+	if assigned(activesettings["activematerial"]) then
+		activematerial := activesettings["activematerial"];
+	else
+		activematerial := ""
+	end if;
 
-if assigned(activesettings["activesection"]) then
-	activesection := activesettings["activesection"];
-else
-	activesection := ""
-end if;
+	if assigned(activesettings["activesection"]) then
+		activesection := activesettings["activesection"];
+	else
+		activesection := ""
+	end if;
 
-if assigned(WhateverYouNeed["calculations"]["calculationtype"]) then
-	calculationtype := WhateverYouNeed["calculations"]["calculationtype"];
-else
-	calculationtype := ""
-end if;
+	if assigned(WhateverYouNeed["calculations"]["calculationtype"]) then
+		calculationtype := WhateverYouNeed["calculations"]["calculationtype"];
+	else
+		calculationtype := ""
+	end if;
 
-sectionchanged := false;
+	sectionchanged := false;
 
-# if searchtext("NS-EN 1995-1-1, Section 6", calculationtype) > 0 then
-#	timbertype := WhateverYouNeed["materialdata"]["timbertype"]
-# elif searchtext("NS-EN 1995-1-1, Section 8", calculationtype) > 0 then
-	# materialdataAll[i]["timbertype"]
-# end if;
+	# if searchtext("NS-EN 1995-1-1, Section 6", calculationtype) > 0 then
+	#	timbertype := WhateverYouNeed["materialdata"]["timbertype"]
+	# elif searchtext("NS-EN 1995-1-1, Section 8", calculationtype) > 0 then
+		# materialdataAll[i]["timbertype"]
+	# end if;
 
-# "action" can have these values
-# all
-# projectdata
-# materials
-# sections
-# timbertype
-# material
-# section
-# structure
-# autoloadsave
-# autocalc
-# GetLoadcase
-# CalculateLoads_design
-# CalculateLoads_calculate
-# NewLoadcase
-# StoreLoadcase
-# DeleteLoadcase
-# ResetLoadcase
+	# "action" can have these values
+	# all
+	# projectdata
+	# materials
+	# sections
+	# timbertype
+	# material
+	# section
+	# structure
+	# autoloadsave
+	# autocalc
+	# GetLoadcase
+	# CalculateLoads_design
+	# CalculateLoads_calculate
+	# NewLoadcase
+	# StoreLoadcase
+	# DeleteLoadcase
+	# ResetLoadcase
 
-# project data
-if action = "all" or action = "projectdata" then
-	for i in componentvariables["var_projectdata"] do
-		if ComponentExists(cat("TextArea_", i)) then
-			projectdata[i] := GetProperty(cat("TextArea_", i), value);
-		end if;
-	end do;
-	
-	for i in {"positionnumber", "positiontitle"} do
-		if ComponentExists(cat("TextArea_", i)) then
-			calculations[i] := GetProperty(cat("TextArea_", i), value);
-		end if;
-	end do
-end if;
-
-
-# Readmaterials
-# this one reads strengthclass, serviceclass and loaddurationclass, but just for section 6 calculations where there is a materials
-# Section 8 does not have materialss
-if action = "all" or action = "materials" then
-	
-	forceSectionUpdate := false;
-	
-	if ComponentExists("ComboBox_materials") then
-
-		# Go through list of materials and store all values in materials variable
-		for val in GetProperty("ComboBox_materials", 'itemlist') do
-			if material = "concrete" then
-				NODEConcreteEN1992:-GetMaterialdata(val, WhateverYouNeed)
-					
-			elif material = "steel" then
-				NODESteelEN1993:-GetMaterialdata(val, WhateverYouNeed)
-				
-			elif material = "timber" then
-				NODETimberEN1995:-GetMaterialdata(val, WhateverYouNeed)
-				
+	# project data
+	if action = "all" or action = "projectdata" then
+		for i in componentvariables["var_projectdata"] do
+			if ComponentExists(cat("TextArea_", i)) then
+				projectdata[i] := GetProperty(cat("TextArea_", i), value);
 			end if;
-			
-			if assigned(WhateverYouNeed["materialdata"]["name"]) then
-				materials[WhateverYouNeed["materialdata"]["name"]] := eval(WhateverYouNeed["materialdata"]);
-			else
-				Alert("materialdata name not assigned", warnings, 1);
-			end if;
-			
 		end do;
 		
-		activematerial := GetProperty("ComboBox_materials", value);
-		sectionchanged := MaterialChanged(material, activematerial, WhateverYouNeed, forceSectionUpdate, "");		# partsnumber "" if there is no other timber part
-	
-	else
-		# ComboBox_materials does not exist, check if we need to read something else (8. Mekaniske forbindelser)
-	end if;
-end if;
-
-# sections
-if action = "all" or action = "sections" then
-	
-	forceSectionUpdate := false;
-	
-	if ComponentExists("ComboBox_sections") then
-	
-		for val in GetProperty("ComboBox_sections", 'itemlist') do
-			
-			if material = "steel" then
-				NODESteelEN1993:-GetSectiondata(val, WhateverYouNeed)
-
-			# no sections for concrete at the moment
-			elif material = "concrete" then
-				# sectiondata := NODEConcreteEN1992:-GetSectiondata(val, warnings)					
-				
-			elif material = "timber" then
-				NODETimberEN1995:-GetSectiondata(val, WhateverYouNeed)
-				
+		for i in {"positionnumber", "positiontitle"} do
+			if ComponentExists(cat("TextArea_", i)) then
+				calculations[i] := GetProperty(cat("TextArea_", i), value);
 			end if;
-
-			if assigned(WhateverYouNeed["sectiondata"]["name"]) then
-				sections[WhateverYouNeed["sectiondata"]["name"]] := eval(WhateverYouNeed["sectiondata"]);
-			else
-				Alert("sectiondata name not assigned", warnings, 1);
-			end if;
-			
-		end do;
-
-		activesection := GetProperty("ComboBox_sections", value);
-		SectionChanged(material, activesection, WhateverYouNeed, "");		# partsnumber			
-
-	else
-		# ComboBox_materials does not exist, check if we need to read something else (8. Mekaniske forbindelser)
-	end if;
-end if;
-
-# read direct timber material definitions
-if (action = "all" and searchtext("NS-EN 1995-1-1, Section 8", calculationtype) > 0) or substring(action, 1..10) = "timbertype" then
-
-	forceSectionUpdate := true;
-	if action = "timbertype" then				# it is a Section 6 calculation
-		dummy := {""};						
-	elif action = "all" then					# it is a Section 8 calculation
-		dummy := {"1", "2"}
-	elif substring(action, 1..10) = "timbertype" then
-		dummy := {substring(action, -1..-1)}	# get number timber item
+		end do
 	end if;
 
-	for i in dummy do
-		if i = "" then
-			materialdata := WhateverYouNeed["materialdata"]
-		else
-			materialdata := WhateverYouNeed["materialdataAll"][i]
-		end if;
-		# timbertype := materialdata["timbertype"];
-		serviceclass := GetProperty("ComboBox_serviceclass", value);
-		loaddurationclass := GetProperty("ComboBox_loaddurationclass", value);
 
-		if ComponentExists(cat("ComboBox_timbertype", i)) then
-			if GetProperty(cat("ComboBox_timbertype", i), 'enabled') = "true" then
-				if materialdata["timbertype"] <> GetProperty(cat("ComboBox_timbertype", i), value) then					
+	# Readmaterials
+	# this one reads strengthclass, serviceclass and loaddurationclass, but just for section 6 calculations where there is a materials
+	# Section 8 does not have materialss
+	if action = "all" or action = "materials" then
+		
+		forceSectionUpdate := false;
+		
+		if ComponentExists("ComboBox_materials") then
 
-					# set strengthclass
-					if GetProperty(cat("ComboBox_timbertype", i), value) = "Solid timber" then					# set properties for strengthclass
-						SetProperty(cat("ComboBox_strengthclass", i), 'itemlist', NODETimberMaterial:-Strengthclasses("Solid timber"));
+			# Go through list of materials and store all values in materials variable
+			for val in GetProperty("ComboBox_materials", 'itemlist') do
+				if material = "concrete" then
+					NODEConcreteEN1992:-GetMaterialdata(val, WhateverYouNeed)
+						
+				elif material = "steel" then
+					NODESteelEN1993:-GetMaterialdata(val, WhateverYouNeed)
 					
-					elif GetProperty(cat("ComboBox_timbertype", i), value) = "Glued laminated timber" then
-						SetProperty(cat("ComboBox_strengthclass", i), 'itemlist', NODETimberMaterial:-Strengthclasses("Glued laminated timber"));
-					
-					elif GetProperty(cat("ComboBox_timbertype", i), value) = "CLT" then
-						SetProperty(cat("ComboBox_strengthclass", i), 'itemlist', NODETimberMaterial:-Strengthclasses("CLT"));
-					
-					else
-						SetProperty(cat("ComboBox_strengthclass", i), 'itemlist', NODETimberMaterial:-Strengthclasses("all"));
-					
-					end if;
-
-					SetProperty(cat("ComboBox_strengthclass", i), 'selectedindex', 0);		# pick first value
-					activematerial := cat(GetProperty(cat("ComboBox_strengthclass", i), value)," / Service class ", serviceclass," / ", loaddurationclass);
-					sectionchanged := MaterialChanged(material, activematerial, WhateverYouNeed, forceSectionUpdate, i);
+				elif material = "timber" then
+					NODETimberEN1995:-GetMaterialdata(val, WhateverYouNeed)
 					
 				end if;
 				
-			else	
-				if assigned(materialdataAll[i]) then
-					materialdataAll[i] := evaln(materialdataAll[i]);
-					sectiondataAll[i] := evaln(sectiondataAll[i])
-				end if;	
-			end if;
-		end if;
-	end do;
-end if;
-
-# material data from specific definitions
-if (action = "all" and not ComponentExists("ComboBox_materials")) or action = "material" then
-
-	if material = "concrete" then
-		if ComponentExists("ComboBox_strengthclass") then
-			strengthclass := GetProperty("ComboBox_strengthclass", value);
-			if NODEConcreteEN1992:-strengthclassExists(strengthclass) = false then
-				Alert("Unknown strengthclass", warnings, 5)
-			end if;
-		else
-			Alert("Strengthclass undefined", warnings, 5)
-		end if;
-
-		if ComponentExists("ComboBox_exposureclass") then
-			exposureclass := GetProperty("ComboBox_exposureclass", value)
-		else
-			exposureclass := "-"
-		end if;
-	
-		if ComponentExists("ComboBox_durabilityclass") then
-			durabilityclass := GetProperty("ComboBox_durabilityclass", value)
-		else
-			durabilityclass := "-"
-		end if;
-	
-		activematerial := cat(strengthclass," / ", exposureclass," / ", durabilityclass);
-		sectionchanged := MaterialChanged(material, activematerial, WhateverYouNeed, forceSectionUpdate, "");
-		
-	elif material = "steel" then
-		
-		if ComponentExists("ComboBox_steelcode") and ComponentExists("ComboBox_steelgrade") and ComponentExists("ComboBox_thicknessclass") then
-			steelcode := GetProperty("ComboBox_steelcode", value);
-			steelgrade := GetProperty("ComboBox_steelgrade", value);
-			thicknessclass := GetProperty("ComboBox_thicknessclass", value);
+				if assigned(WhateverYouNeed["materialdata"]["name"]) then
+					materials[WhateverYouNeed["materialdata"]["name"]] := eval(WhateverYouNeed["materialdata"]);
+				else
+					Alert("materialdata name not assigned", warnings, 1);
+				end if;
+				
+			end do;
 			
-			activematerial := cat(steelcode," / ", steelgrade," / ", thicknessclass);
-			sectionchanged := MaterialChanged(material, activematerial, WhateverYouNeed, forceSectionUpdate, "");
+			activematerial := GetProperty("ComboBox_materials", value);
+			sectionchanged := MaterialChanged(material, activematerial, WhateverYouNeed, forceSectionUpdate, "");		# partsnumber "" if there is no other timber part
+		
+		else
+			# ComboBox_materials does not exist, check if we need to read something else (8. Mekaniske forbindelser)
 		end if;
+	end if;
 
-	elif material = "timber" then
+	# sections
+	if action = "all" or action = "sections" then
+		
 		forceSectionUpdate := false;
-		if calculationtype = "NS-EN 1995-1-1, Section 8: Fasteners" then
-			dummy := {"1", "2"}
-		else	
-			dummy := {""}
-		end if;
+		
+		if ComponentExists("ComboBox_sections") then
+		
+			for val in GetProperty("ComboBox_sections", 'itemlist') do
+				
+				if material = "steel" then
+					NODESteelEN1993:-GetSectiondata(val, WhateverYouNeed)
 
-		if ComponentExists("ComboBox_serviceclass") and GetProperty("ComboBox_serviceclass", 'enabled') = "true" then
-			serviceclass := GetProperty("ComboBox_serviceclass", value)
+				# no sections for concrete at the moment
+				elif material = "concrete" then
+					# sectiondata := NODEConcreteEN1992:-GetSectiondata(val, warnings)					
+					
+				elif material = "timber" then
+					NODETimberEN1995:-GetSectiondata(val, WhateverYouNeed)
+					
+				end if;
+
+				if assigned(WhateverYouNeed["sectiondata"]["name"]) then
+					sections[WhateverYouNeed["sectiondata"]["name"]] := eval(WhateverYouNeed["sectiondata"]);
+				else
+					Alert("sectiondata name not assigned", warnings, 1);
+				end if;
+				
+			end do;
+
+			activesection := GetProperty("ComboBox_sections", value);
+			SectionChanged(material, activesection, WhateverYouNeed, "");		# partsnumber			
+
 		else
-			serviceclass := "-"
+			# ComboBox_materials does not exist, check if we need to read something else (8. Mekaniske forbindelser)
 		end if;
-	
-		if ComponentExists("ComboBox_loaddurationclass") and GetProperty("ComboBox_loaddurationclass", 'enabled') = "true" then
-			loaddurationclass := GetProperty("ComboBox_loaddurationclass", value)
-		else
-			loaddurationclass := "-"
+	end if;
+
+	# read direct timber material definitions
+	if (action = "all" and searchtext("NS-EN 1995-1-1, Section 8", calculationtype) > 0) or substring(action, 1..10) = "timbertype" then
+
+		forceSectionUpdate := true;
+		if action = "timbertype" then				# it is a Section 6 calculation
+			dummy := {""};						
+		elif action = "all" then					# it is a Section 8 calculation
+			dummy := {"1", "2"}
+		elif substring(action, 1..10) = "timbertype" then
+			dummy := {substring(action, -1..-1)}	# get number timber item
 		end if;
 
 		for i in dummy do
-			if ComponentExists(cat("ComboBox_strengthclass", i)) and GetProperty(cat("ComboBox_strengthclass", i), 'enabled') = "true" then
-				strengthclass := GetProperty(cat("ComboBox_strengthclass", i), value);
-				
-				if NODETimberEN1995:-strengthclassExists(strengthclass) = false then
-					Alert("Unknown strengthclass", warnings, 5)
-				end if;
-					
-				activematerial := cat(strengthclass," / Service class ", serviceclass," / ", loaddurationclass);
-				sectionchanged := MaterialChanged(material, activematerial, WhateverYouNeed, forceSectionUpdate, i);
-								
+			if i = "" then
+				materialdata := WhateverYouNeed["materialdata"]
 			else
-				if i <> "" then
+				materialdata := WhateverYouNeed["materialdataAll"][i]
+			end if;
+			# timbertype := materialdata["timbertype"];
+			serviceclass := GetProperty("ComboBox_serviceclass", value);
+			loaddurationclass := GetProperty("ComboBox_loaddurationclass", value);
+
+			if ComponentExists(cat("ComboBox_timbertype", i)) then
+				if GetProperty(cat("ComboBox_timbertype", i), 'enabled') = "true" then
+					if materialdata["timbertype"] <> GetProperty(cat("ComboBox_timbertype", i), value) then					
+
+						# set strengthclass
+						if GetProperty(cat("ComboBox_timbertype", i), value) = "Solid timber" then					# set properties for strengthclass
+							SetProperty(cat("ComboBox_strengthclass", i), 'itemlist', NODETimberMaterial:-Strengthclasses("Solid timber"));
+						
+						elif GetProperty(cat("ComboBox_timbertype", i), value) = "Glued laminated timber" then
+							SetProperty(cat("ComboBox_strengthclass", i), 'itemlist', NODETimberMaterial:-Strengthclasses("Glued laminated timber"));
+						
+						elif GetProperty(cat("ComboBox_timbertype", i), value) = "CLT" then
+							SetProperty(cat("ComboBox_strengthclass", i), 'itemlist', NODETimberMaterial:-Strengthclasses("CLT"));
+						
+						else
+							SetProperty(cat("ComboBox_strengthclass", i), 'itemlist', NODETimberMaterial:-Strengthclasses("all"));
+						
+						end if;
+
+						SetProperty(cat("ComboBox_strengthclass", i), 'selectedindex', 0);		# pick first value
+						activematerial := cat(GetProperty(cat("ComboBox_strengthclass", i), value)," / Service class ", serviceclass," / ", loaddurationclass);
+						sectionchanged := MaterialChanged(material, activematerial, WhateverYouNeed, forceSectionUpdate, i);
+						
+					end if;
+					
+				else	
 					if assigned(materialdataAll[i]) then
 						materialdataAll[i] := evaln(materialdataAll[i]);
 						sectiondataAll[i] := evaln(sectiondataAll[i])
+					end if;	
+				end if;
+			end if;
+		end do;
+	end if;
+
+	# material data from specific definitions
+	if (action = "all" and not ComponentExists("ComboBox_materials")) or action = "material" then
+
+		if material = "concrete" then
+			if ComponentExists("ComboBox_strengthclass") then
+				strengthclass := GetProperty("ComboBox_strengthclass", value);
+				if NODEConcreteEN1992:-strengthclassExists(strengthclass) = false then
+					Alert("Unknown strengthclass", warnings, 5)
+				end if;
+			else
+				Alert("Strengthclass undefined", warnings, 5)
+			end if;
+
+			if ComponentExists("ComboBox_exposureclass") then
+				exposureclass := GetProperty("ComboBox_exposureclass", value)
+			else
+				exposureclass := "-"
+			end if;
+		
+			if ComponentExists("ComboBox_durabilityclass") then
+				durabilityclass := GetProperty("ComboBox_durabilityclass", value)
+			else
+				durabilityclass := "-"
+			end if;
+		
+			activematerial := cat(strengthclass," / ", exposureclass," / ", durabilityclass);
+			sectionchanged := MaterialChanged(material, activematerial, WhateverYouNeed, forceSectionUpdate, "");
+			
+		elif material = "steel" then
+			
+			if ComponentExists("ComboBox_steelcode") and ComponentExists("ComboBox_steelgrade") and ComponentExists("ComboBox_thicknessclass") then
+				steelcode := GetProperty("ComboBox_steelcode", value);
+				steelgrade := GetProperty("ComboBox_steelgrade", value);
+				thicknessclass := GetProperty("ComboBox_thicknessclass", value);
+				
+				activematerial := cat(steelcode," / ", steelgrade," / ", thicknessclass);
+				sectionchanged := MaterialChanged(material, activematerial, WhateverYouNeed, forceSectionUpdate, "");
+			end if;
+
+		elif material = "timber" then
+			forceSectionUpdate := false;
+			if calculationtype = "NS-EN 1995-1-1, Section 8: Fasteners" then
+				dummy := {"1", "2"}
+			else	
+				dummy := {""}
+			end if;
+
+			if ComponentExists("ComboBox_serviceclass") and GetProperty("ComboBox_serviceclass", 'enabled') = "true" then
+				serviceclass := GetProperty("ComboBox_serviceclass", value)
+			else
+				serviceclass := "-"
+			end if;
+		
+			if ComponentExists("ComboBox_loaddurationclass") and GetProperty("ComboBox_loaddurationclass", 'enabled') = "true" then
+				loaddurationclass := GetProperty("ComboBox_loaddurationclass", value)
+			else
+				loaddurationclass := "-"
+			end if;
+
+			for i in dummy do
+				if ComponentExists(cat("ComboBox_strengthclass", i)) and GetProperty(cat("ComboBox_strengthclass", i), 'enabled') = "true" then
+					strengthclass := GetProperty(cat("ComboBox_strengthclass", i), value);
+					
+					if NODETimberEN1995:-strengthclassExists(strengthclass) = false then
+						Alert("Unknown strengthclass", warnings, 5)
+					end if;
+						
+					activematerial := cat(strengthclass," / Service class ", serviceclass," / ", loaddurationclass);
+					sectionchanged := MaterialChanged(material, activematerial, WhateverYouNeed, forceSectionUpdate, i);
+									
+				else
+					if i <> "" then
+						if assigned(materialdataAll[i]) then
+							materialdataAll[i] := evaln(materialdataAll[i]);
+							sectiondataAll[i] := evaln(sectiondataAll[i])
+						end if;
 					end if;
 				end if;
-			end if;
-		end do;
+			end do;
 
-		# steel in timber connection
-		if ComponentExists("ComboBox_steelgrade") and GetProperty("ComboBox_steelgrade", 'enabled') = "true" then
+			# steel in timber connection
+			if ComponentExists("ComboBox_steelgrade") and GetProperty("ComboBox_steelgrade", 'enabled') = "true" then
 
-			# steelcode := "NS-EN 10025-2";
-			steelcode := GetProperty("ComboBox_steelcode", value);
-			steelgrade := GetProperty("ComboBox_steelgrade", value);				
-			thicknessclass := GetProperty("ComboBox_thicknessclass", value);
-			
-			activematerial := cat(steelcode," / ", steelgrade," / ", thicknessclass);
-			sectionchanged := MaterialChanged("timber", activematerial, WhateverYouNeed, forceSectionUpdate, "steel");								
-			
-		else
-			if assigned(materialdataAll["steel"]) then
-				materialdataAll["steel"] := evaln(materialdataAll["steel"]);
-				sectiondataAll["steel"] := evaln(sectiondataAll["steel"])
-			end if;
-		end if;
-		
-	end if;
-
-	# what if we have mixed materials?
-	# multiple materials ? need to fix that one as well
-	# if material <> "steel" and ComponentExists("ComboBox_steelgrade") and GetProperty("ComboBox_steelgrade", 'enabled') = "true" then
-		
-	#	assign('steelgrade', GetProperty("ComboBox_steelgrade", value));
-	#	NODESteelEN1993:-GetMaterialdata(cat("NS-EN 10025-2", 40 * Unit('mm'), steelgrade), WhateverYouNeed);
-	#	materialdataAll["steel"] := eval(WhateverYouNeed["materialdata"])
-	# else 
-	#	materialdataAll["steel"] := evaln(materialdataAll["steel"])
-	# end if
-	
-end if;
-
-# ReadSystemSection
-# section data
-if (action = "all" and not ComponentExists("ComboBox_sections")) or action = "section" or sectionchanged then
-	local sectiontype, section;
-
-	if material = "steel" then
-		
-		if ComponentExists("ComboBox_sectiontype") and ComponentExists("ComboBox_section") then
-			sectiontype := GetProperty("ComboBox_sectiontype", value);
-			section := GetProperty("ComboBox_section", value);
-			activesection := cat(sectiontype," / ", section);
-			SectionChanged(material, activesection, WhateverYouNeed, ""); 	# partsnumber
-		end if;		
-		
-	elif material = "timber" then
-	
-		if searchtext("NS-EN 1995-1-1, Section 8", calculationtype) > 0 then
-			dummy := {"1", "2", "steel"}
-		else
-			dummy := {""}
-		end if;
-
-		for i in dummy do
-			if i = "" or assigned(materialdataAll[i]) then			
-				activesection := NODETimberEN1995:-GetActiveSectionName(WhateverYouNeed, i);
-				SectionChanged(material, activesection, WhateverYouNeed, i);
-
-			else	# remove inactive section data
+				# steelcode := "NS-EN 10025-2";
+				steelcode := GetProperty("ComboBox_steelcode", value);
+				steelgrade := GetProperty("ComboBox_steelgrade", value);				
+				thicknessclass := GetProperty("ComboBox_thicknessclass", value);
 				
-				if assigned(sectiondataAll[i]) then
-					sectiondataAll[i] := evaln(sectiondataAll[i])
+				activematerial := cat(steelcode," / ", steelgrade," / ", thicknessclass);
+				sectionchanged := MaterialChanged("timber", activematerial, WhateverYouNeed, forceSectionUpdate, "steel");								
+				
+			else
+				if assigned(materialdataAll["steel"]) then
+					materialdataAll["steel"] := evaln(materialdataAll["steel"]);
+					sectiondataAll["steel"] := evaln(sectiondataAll["steel"])
 				end if;
-				
 			end if;
-		end do;
-	end if;			
-end if;
-
-# autosave settings
-if action = "all" or action = "autoloadsave" then
-	if ComponentExists("CheckBox_autoloadsave") then
-		if GetProperty("CheckBox_autoloadsave",value) = "true" then
-			autoloadsave := true;
-			if ComponentExists("Button_AddLoad") then
-				SetProperty("Button_AddLoad", 'enabled', "false")
-			end if;
-		else 
-			autoloadsave := false;
-			if ComponentExists("Button_AddLoad") then
-				SetProperty("Button_AddLoad", 'enabled', "true")
-			end if;
+			
 		end if;
-		WhateverYouNeed["calculations"]["autoloadsave"] := autoloadsave;
-	end if;
-end if;
 
-# autocalc settings
-if action = "all" or action = "autocalc" then
-	if ComponentExists("CheckBox_autocalc") then
-		if GetProperty("CheckBox_autocalc",value) = "true" then
-			autocalc := true;
-			if ComponentExists("Button_calculate") then
-				SetProperty("Button_calculate", 'enabled', "false")
+		# what if we have mixed materials?
+		# multiple materials ? need to fix that one as well
+		# if material <> "steel" and ComponentExists("ComboBox_steelgrade") and GetProperty("ComboBox_steelgrade", 'enabled') = "true" then
+			
+		#	assign('steelgrade', GetProperty("ComboBox_steelgrade", value));
+		#	NODESteelEN1993:-GetMaterialdata(cat("NS-EN 10025-2", 40 * Unit('mm'), steelgrade), WhateverYouNeed);
+		#	materialdataAll["steel"] := eval(WhateverYouNeed["materialdata"])
+		# else 
+		#	materialdataAll["steel"] := evaln(materialdataAll["steel"])
+		# end if
+		
+	end if;
+
+	# ReadSystemSection
+	# section data
+	if (action = "all" and not ComponentExists("ComboBox_sections")) or action = "section" or sectionchanged then
+		local sectiontype, section;
+
+		if material = "steel" then
+			
+			if ComponentExists("ComboBox_sectiontype") and ComponentExists("ComboBox_section") then
+				sectiontype := GetProperty("ComboBox_sectiontype", value);
+				section := GetProperty("ComboBox_section", value);
+				activesection := cat(sectiontype," / ", section);
+				SectionChanged(material, activesection, WhateverYouNeed, ""); 	# partsnumber
+			end if;		
+			
+		elif material = "timber" then
+		
+			if searchtext("NS-EN 1995-1-1, Section 8", calculationtype) > 0 then
+				dummy := {"1", "2", "steel"}
+			else
+				dummy := {""}
 			end if;
-		else 
-			autocalc := false;
-			if ComponentExists("Button_calculate") then
-				SetProperty("Button_calculate", 'enabled', "true")
+
+			for i in dummy do
+				if i = "" or assigned(materialdataAll[i]) then			
+					activesection := NODETimberEN1995:-GetActiveSectionName(WhateverYouNeed, i);
+					SectionChanged(material, activesection, WhateverYouNeed, i);
+
+				else	# remove inactive section data
+					
+					if assigned(sectiondataAll[i]) then
+						sectiondataAll[i] := evaln(sectiondataAll[i])
+					end if;
+					
+				end if;
+			end do;
+		end if;			
+	end if;
+
+	# autosave settings
+	if action = "all" or action = "autoloadsave" then
+		if ComponentExists("CheckBox_autoloadsave") then
+			if GetProperty("CheckBox_autoloadsave",value) = "true" then
+				autoloadsave := true;
+				if ComponentExists("Button_AddLoad") then
+					SetProperty("Button_AddLoad", 'enabled', "false")
+				end if;
+			else 
+				autoloadsave := false;
+				if ComponentExists("Button_AddLoad") then
+					SetProperty("Button_AddLoad", 'enabled', "true")
+				end if;
 			end if;
+			WhateverYouNeed["calculations"]["autoloadsave"] := autoloadsave;
 		end if;
-		WhateverYouNeed["calculations"]["autocalc"] := autocalc;
-	else	# sheets that don't have a checkbox implemented should always be calculated automatically
-		WhateverYouNeed["calculations"]["autocalc"] := true;
 	end if;
-end if;
 
-if action = "calculateAllLoadcases" or ComponentExists("Button_calculateAllLoadcases") = false then
-	WhateverYouNeed["calculateAllLoadcases"] := true
-else
-	WhateverYouNeed["calculateAllLoadcases"] := false
-end if;
+	# autocalc settings
+	if action = "all" or action = "autocalc" then
+		if ComponentExists("CheckBox_autocalc") then
+			if GetProperty("CheckBox_autocalc",value) = "true" then
+				autocalc := true;
+				if ComponentExists("Button_calculate") then
+					SetProperty("Button_calculate", 'enabled', "false")
+				end if;
+			else 
+				autocalc := false;
+				if ComponentExists("Button_calculate") then
+					SetProperty("Button_calculate", 'enabled', "true")
+				end if;
+			end if;
+			WhateverYouNeed["calculations"]["autocalc"] := autocalc;
+		else	# sheets that don't have a checkbox implemented should always be calculated automatically
+			WhateverYouNeed["calculations"]["autocalc"] := true;
+		end if;
+	end if;
 
-if action = "all" or action = "GetLoadcase" or action = "calculateAllLoadcasesCleanup" then
-	if ComponentExists("ComboBox_loadcases") and ComponentExists("TextArea_activeloadcase") then
+	if action = "calculateAllLoadcases" or ComponentExists("Button_calculateAllLoadcases") = false then
+		WhateverYouNeed["calculateAllLoadcases"] := true
+	else
+		WhateverYouNeed["calculateAllLoadcases"] := false
+	end if;
+
+	if action = "all" or action = "GetLoadcase" or action = "calculateAllLoadcasesCleanup" then
+		if ComponentExists("ComboBox_loadcases") and ComponentExists("TextArea_activeloadcase") then
+			SetProperty("TextArea_activeloadcase", 'value', GetProperty("ComboBox_loadcases", value));
+		end if;
+		if ComponentExists("TextArea_activeloadcase") then
+			activeloadcase := GetProperty("TextArea_activeloadcase", value);
+			WriteLoadsToDocument(activeloadcase, WhateverYouNeed);		# get stored load values and write values to document
+		end if;
+
+	elif action = "CalculateLoads" then
+		CalculateLoads(activeloadcase, autoloadsave, "", WhateverYouNeed);
+
+	elif action = "CalculateLoads_design" then		# read loads from textareas, and update activeloadcase variable with new value
+		CalculateLoads(activeloadcase, autoloadsave, "design", WhateverYouNeed);
+
+	elif action = "CalculateLoads_calculate" then	# read loads from textareas, and update activeloadcase variable with new value
+		CalculateLoads(activeloadcase, autoloadsave, "calculate", WhateverYouNeed);
+			
+	elif action = "NewLoadcase" then
+		if GetProperty("TextArea_activeloadcase", value) <> "activeloadcase" then
+			activeloadcase := GetProperty("TextArea_activeloadcase", value);
+			CalculateLoads(activeloadcase, autoloadsave, "verify", WhateverYouNeed);
+		else
+			Alert("Reserved: choose different name", warnings, 4)
+		end if;
+		
+	elif action = "StoreLoadcase" then
+		CalculateLoads(activeloadcase, true, "verify", WhateverYouNeed);	# leser laster, og skriver verdier til activeloadcases
+		
+	elif action = "DeleteLoadcase" then
+		NODEFunctions:-ModifyLoadcases("ComboBox_loadcases", "Delete", loadvariables, loadcases, activeloadcase);
+		SetProperty("ComboBox_loadcases", 'selectedindex', 0);
 		SetProperty("TextArea_activeloadcase", 'value', GetProperty("ComboBox_loadcases", value));
-	end if;
-	if ComponentExists("TextArea_activeloadcase") then
 		activeloadcase := GetProperty("TextArea_activeloadcase", value);
 		WriteLoadsToDocument(activeloadcase, WhateverYouNeed);		# get stored load values and write values to document
-	end if;
-
-elif action = "CalculateLoads" then
-	CalculateLoads(activeloadcase, autoloadsave, "", WhateverYouNeed);
-
-elif action = "CalculateLoads_design" then		# read loads from textareas, and update activeloadcase variable with new value
-	CalculateLoads(activeloadcase, autoloadsave, "design", WhateverYouNeed);
-
-elif action = "CalculateLoads_calculate" then	# read loads from textareas, and update activeloadcase variable with new value
-	CalculateLoads(activeloadcase, autoloadsave, "calculate", WhateverYouNeed);
 		
-elif action = "NewLoadcase" then
-	if GetProperty("TextArea_activeloadcase", value) <> "activeloadcase" then
-		activeloadcase := GetProperty("TextArea_activeloadcase", value);
-		CalculateLoads(activeloadcase, autoloadsave, "verify", WhateverYouNeed);
-	else
-		Alert("Reserved: choose different name", warnings, 4)
-	end if;
-	
-elif action = "StoreLoadcase" then
-	CalculateLoads(activeloadcase, true, "verify", WhateverYouNeed);	# leser laster, og skriver verdier til activeloadcases
-	
-elif action = "DeleteLoadcase" then
-	NODEFunctions:-ModifyLoadcases("ComboBox_loadcases", "Delete", loadvariables, loadcases, activeloadcase);
-	SetProperty("ComboBox_loadcases", 'selectedindex', 0);
-	SetProperty("TextArea_activeloadcase", 'value', GetProperty("ComboBox_loadcases", value));
-	activeloadcase := GetProperty("TextArea_activeloadcase", value);
-	WriteLoadsToDocument(activeloadcase, WhateverYouNeed);		# get stored load values and write values to document
-	
-elif action = "ResetLoadcase" then
-	loadcases := table();
-	WhateverYouNeed["calculations"]["loadcases"] := eval(loadcases);	# https://www.mapleprimes.com/questions/235292-Store-Values-Between-Sessions-Including
-	activeloadcase := "1";
-	if ComponentExists("ComboBox_loadcases") then
-		SetProperty("ComboBox_loadcases", 'itemList', [activeloadcase]);
-		SetProperty("ComboBox_loadcases", 'selectedindex', 0)
-	end if;
-	if ComponentExists("TextArea_activeloadcase") then
-		SetProperty("TextArea_activeloadcase", 'value', activeloadcase)
-	end if;
-	for i in loadvariables do
-		dummy := cat("TextArea_", i);
-		if ComponentExists(dummy) then
-			SetProperty(dummy, 'enabled', true);
-			SetProperty(dummy, 'value', 0);
-		elif ComponentExists(cat("Slider_", i)) then
-			dummy := cat("Slider_", i);
-			SetProperty(dummy, 'enabled', true);
-			SetProperty(dummy, 'value', 0);
+	elif action = "ResetLoadcase" then
+		loadcases := table();
+		WhateverYouNeed["calculations"]["loadcases"] := eval(loadcases);	# https://www.mapleprimes.com/questions/235292-Store-Values-Between-Sessions-Including
+		activeloadcase := "1";
+		if ComponentExists("ComboBox_loadcases") then
+			SetProperty("ComboBox_loadcases", 'itemList', [activeloadcase]);
+			SetProperty("ComboBox_loadcases", 'selectedindex', 0)
 		end if;
-	end do;
-	CalculateLoads(activeloadcase, true, "verify", WhateverYouNeed);
-end if;
+		if ComponentExists("TextArea_activeloadcase") then
+			SetProperty("TextArea_activeloadcase", 'value', activeloadcase)
+		end if;
+		for i in loadvariables do
+			dummy := cat("TextArea_", i);
+			if ComponentExists(dummy) then
+				SetProperty(dummy, 'enabled', true);
+				SetProperty(dummy, 'value', 0);
+			elif ComponentExists(cat("Slider_", i)) then
+				dummy := cat("Slider_", i);
+				SetProperty(dummy, 'enabled', true);
+				SetProperty(dummy, 'value', 0);
+			end if;
+		end do;
+		CalculateLoads(activeloadcase, true, "verify", WhateverYouNeed);
+	end if;
 
-#if calculationtype <> "NS-EN 1995, part 1-1, Section 8: Fasteners" then
-# 	assignVariables(strengthclass);			# assignVariables blir kj�rt uansett senere i prosessen
-#end if;
+	#if calculationtype <> "NS-EN 1995, part 1-1, Section 8: Fasteners" then
+	# 	assignVariables(strengthclass);			# assignVariables blir kj�rt uansett senere i prosessen
+	#end if;
 
-# store values back to global variable
-# don't store values in activesettings that should not be saved across sessions
-# NOTE TO SELF: don't ever not make circular references	
-if member("activeloadcase", WhateverYouNeed["componentvariables"]["var_calculations"]) then
-	activesettings["activeloadcase"] := activeloadcase
-else
-	activesettings["activeloadcase"] := evaln(activesettings["activeloadcase"])
-end if;
+	# store values back to global variable
+	# don't store values in activesettings that should not be saved across sessions
+	# NOTE TO SELF: don't ever not make circular references	
+	if member("activeloadcase", WhateverYouNeed["componentvariables"]["var_calculations"]) then
+		activesettings["activeloadcase"] := activeloadcase
+	else
+		activesettings["activeloadcase"] := evaln(activesettings["activeloadcase"])
+	end if;
 
-if member("activematerial", WhateverYouNeed["componentvariables"]["var_calculations"]) then
-	activesettings["activematerial"] := activematerial
-else
-	activesettings["activematerial"] := evaln(activesettings["activematerial"])
-end if;
+	if member("activematerial", WhateverYouNeed["componentvariables"]["var_calculations"]) then
+		activesettings["activematerial"] := activematerial
+	else
+		activesettings["activematerial"] := evaln(activesettings["activematerial"])
+	end if;
 
-if member("activesection", WhateverYouNeed["componentvariables"]["var_calculations"]) then
-	activesettings["activesection"] := activesection
-else
-	activesettings["activesection"] := evaln(activesettings["activesection"])
-end if;
+	if member("activesection", WhateverYouNeed["componentvariables"]["var_calculations"]) then
+		activesettings["activesection"] := activesection
+	else
+		activesettings["activesection"] := evaln(activesettings["activesection"])
+	end if;
 
-	
-ReadComponentsSpecific(action, WhateverYouNeed);		# call specific part of ReadSystemSection'
+		
+	ReadComponentsSpecific(action, WhateverYouNeed);		# call specific part of ReadSystemSection'
 
-# check if we need to store settings
-if member(action, {"autocalc", "autoloadsave", "calculateAllLoadcases"}) then
-else		
-	Storesettings(WhateverYouNeed);	# write values to storesettings variable
-end if;
+	# check if we need to store settings
+	if member(action, {"autocalc", "autoloadsave", "calculateAllLoadcases"}) then
+	else		
+		Storesettings(WhateverYouNeed);	# write values to storesettings variable
+	end if;
 end proc:
 
 
@@ -1220,207 +1175,206 @@ end proc:
 
 
 CalculateAllLoadcases := proc(WhateverYouNeed::table)
-description "Calculate all loadcases";
-local loadcases, loadcase, j, etamax, loadcaseMax, warningsAll, activeloadcase, warnings;
-local maxFindex, maxF, maxFallLoadcases, maxloadedFastener, loadcaseResults, dummy;
+	description "Calculate all loadcases";
+	local loadcases, loadcase, j, etamax, loadcaseMax, warningsAll, activeloadcase, warnings;
+	local maxFindex, maxF, maxFallLoadcases, maxloadedFastener, loadcaseResults, dummy;
 
-WhateverYouNeed["calculations"]["calculatingAllLoadcases"]:= true;		# running calculation of all loadcases at the moment
-activeloadcase := WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"];
-loadcases := WhateverYouNeed["calculations"]["loadcases"];
-warnings := WhateverYouNeed["warnings"];
+	WhateverYouNeed["calculations"]["calculatingAllLoadcases"]:= true;		# running calculation of all loadcases at the moment
+	activeloadcase := WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"];
+	loadcases := WhateverYouNeed["calculations"]["loadcases"];
+	warnings := WhateverYouNeed["warnings"];
 
-if numelems(WhateverYouNeed["calculations"]["loadcases"]) < 1 then		# no loads to calculate, might be material or section properties sheet
-	return
-end if;
+	if numelems(WhateverYouNeed["calculations"]["loadcases"]) < 1 then		# no loads to calculate, might be material or section properties sheet
+		return
+	end if;
 
-etamax := table();
-etamax["max"] := 0;
-WhateverYouNeed["results"]["etamax"] := etamax;
-loadcaseMax := indices(loadcases, 'nolist')[1];		# set first index as fallback value
+	etamax := table();
+	etamax["max"] := 0;
+	WhateverYouNeed["results"]["etamax"] := etamax;
+	loadcaseMax := indices(loadcases, 'nolist')[1];		# set first index as fallback value
 
-# for fastener groups;
-maxF := 0;
-maxFindex := 0;
-maxFallLoadcases := 0;
-warningsAll := "";
+	# for fastener groups;
+	maxF := 0;
+	maxFindex := 0;
+	maxFallLoadcases := 0;
+	warningsAll := "";
 
-maxloadedFastener := table();
+	maxloadedFastener := table();
 
-for loadcase in indices(loadcases, 'nolist') do
-	
-	if loadcase <> "activeloadcase" then
-		WriteLoadsToDocument(loadcase, WhateverYouNeed);
-		WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"] := loadcase;
-	
-		# Calling the main calculation routine of the specific program
-#			if WhateverYouNeed["calculations"]["calculationtype"] = "NS-EN 1995-1-1, Section 8: Fasteners" then
-#				NODEFastenerPattern:-CalculateForcesInConnection(WhateverYouNeed)	# just want to calculate forces in the connection, not check the capacity
-#			else
-			Main(WhateverYouNeed);
-#			end if;
-	
-		# calculation with eta values
-		if hasindex(WhateverYouNeed["results"], "eta") then
-			# store calculation results for Excel export
-			loadcaseResults := table();
+	for loadcase in indices(loadcases, 'nolist') do
+		
+		if loadcase <> "activeloadcase" then
+			WriteLoadsToDocument(loadcase, WhateverYouNeed);
+			WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"] := loadcase;
+		
+			# Calling the main calculation routine of the specific program
+	#			if WhateverYouNeed["calculations"]["calculationtype"] = "NS-EN 1995-1-1, Section 8: Fasteners" then
+	#				NODEFastenerPattern:-CalculateForcesInConnection(WhateverYouNeed)	# just want to calculate forces in the connection, not check the capacity
+	#			else
+				Main(WhateverYouNeed);
+	#			end if;
+		
+			# calculation with eta values
+			if hasindex(WhateverYouNeed["results"], "eta") then
+				# store calculation results for Excel export
+				loadcaseResults := table();
 
-			# calculate maximum of each code check item as well as the absolute maximum of a loadcase
-			if type(WhateverYouNeed["results"]["eta"], table) then
-				loadcaseResults["eta"] := WhateverYouNeed["results"]["eta"]["max"];
-				loadcaseResults["usedcode"] := WhateverYouNeed["results"]["comments"]["usedcode"];
-				loadcaseResults["usedcodeDescription"] := WhateverYouNeed["results"]["comments"]["usedcodeDescription"];
+				# calculate maximum of each code check item as well as the absolute maximum of a loadcase
+				if type(WhateverYouNeed["results"]["eta"], table) then
+					loadcaseResults["eta"] := WhateverYouNeed["results"]["eta"]["max"];
+					loadcaseResults["usedcode"] := WhateverYouNeed["results"]["comments"]["usedcode"];
+					loadcaseResults["usedcodeDescription"] := WhateverYouNeed["results"]["comments"]["usedcodeDescription"];
 
-				# looping through indices of calculations
-				for dummy in indices(WhateverYouNeed["results"]["eta"], 'nolist') do
-					if assigned(etamax[dummy]) then
-						if etamax[dummy] < WhateverYouNeed["results"]["eta"][dummy] then
-							etamax[dummy] := eval(WhateverYouNeed["results"]["eta"][dummy]);
-							if dummy = "max" then
-								loadcaseMax := loadcase;
-							end if;
-						end if
+					# looping through indices of calculations
+					for dummy in indices(WhateverYouNeed["results"]["eta"], 'nolist') do
+						if assigned(etamax[dummy]) then
+							if etamax[dummy] < WhateverYouNeed["results"]["eta"][dummy] then
+								etamax[dummy] := eval(WhateverYouNeed["results"]["eta"][dummy]);
+								if dummy = "max" then
+									loadcaseMax := loadcase;
+								end if;
+							end if
+						else
+							etamax[dummy] := eval(WhateverYouNeed["results"]["eta"][dummy]);							
+						end if;
+					end do;
+					
+				else		# numeric value
+					loadcaseResults["eta"] := WhateverYouNeed["results"]["eta"];
+					loadcaseResults["usedcode"] := WhateverYouNeed["results"]["comments"]["usedcode"];
+					loadcaseResults["usedcodeDescription"] := WhateverYouNeed["results"]["comments"]["usedcodeDescription"];
+
+					if etamax["max"] < loadcaseResults["eta"] then
+						etamax["max"] := loadcaseResults["eta"];
+						loadcaseMax := loadcase;
+						#maxOfLoadcases["loadcase"] := loadcase;
+						#maxOfLoadcases["usedcode"] := eval(loadcaseResults["usedcode"]);
+						#maxOfLoadcases["comments"] := eval(loadcaseResults["comments"]);
+						#WhateverYouNeed["results"]["maxOfLoadcases"] := maxOfLoadcases;
+					end if;
+				end if;
+				
+				WhateverYouNeed["results"][loadcase] := eval(loadcaseResults);		
+			
+				for j in indices(warnings, 'nolist') do
+					if warningsAll = "" then
+						warningsAll := cat(warnings[j], " (", loadcase, ")")
 					else
-						etamax[dummy] := eval(WhateverYouNeed["results"]["eta"][dummy]);							
+						warningsAll := cat(warningsAll, ", ", warnings[j], " (", loadcase, ")")
 					end if;
 				end do;
-				
-			else		# numeric value
-				loadcaseResults["eta"] := WhateverYouNeed["results"]["eta"];
-				loadcaseResults["usedcode"] := WhateverYouNeed["results"]["comments"]["usedcode"];
-				loadcaseResults["usedcodeDescription"] := WhateverYouNeed["results"]["comments"]["usedcodeDescription"];
+			end if;	
+					
+			# calculation with inplane forces (without Faxd)
+			if hasindex(WhateverYouNeed["results"], "FastenerGroup") then
+				maxFindex := WhateverYouNeed["results"]["FastenerGroup"]["maxFindex"];
+				maxF := WhateverYouNeed["results"]["FastenerGroup"]["ForcesInConnection"][maxFindex][3];
 
-				if etamax["max"] < loadcaseResults["eta"] then
-					etamax["max"] := loadcaseResults["eta"];
+				if maxFallLoadcases < maxF or maxFallLoadcases = 0 then
+					maxFallLoadcases := maxF;
 					loadcaseMax := loadcase;
-					#maxOfLoadcases["loadcase"] := loadcase;
-					#maxOfLoadcases["usedcode"] := eval(loadcaseResults["usedcode"]);
-					#maxOfLoadcases["comments"] := eval(loadcaseResults["comments"]);
-					#WhateverYouNeed["results"]["maxOfLoadcases"] := maxOfLoadcases;
-				end if;
-			end if;
-			
-			WhateverYouNeed["results"][loadcase] := eval(loadcaseResults);		
-		
-			for j in indices(warnings, 'nolist') do
-				if warningsAll = "" then
-					warningsAll := cat(warnings[j], " (", loadcase, ")")
-				else
-					warningsAll := cat(warningsAll, ", ", warnings[j], " (", loadcase, ")")
-				end if;
-			end do;
-		end if;	
+								
+					maxloadedFastener["loadcase"] := loadcase;
+					maxloadedFastener["Fx"] := WhateverYouNeed["results"]["FastenerGroup"]["ForcesInConnection"][maxFindex][1];
+					maxloadedFastener["Fy"] := WhateverYouNeed["results"]["FastenerGroup"]["ForcesInConnection"][maxFindex][2];
+					maxloadedFastener["F"] := maxF;
+					maxloadedFastener["alpha"] := WhateverYouNeed["results"]["FastenerGroup"]["ForcesInConnection"][maxFindex][4];
+					maxloadedFastener["fastener"] := maxFindex;
+					maxloadedFastener["x"] := WhateverYouNeed["results"]["FastenerGroup"]["Fasteners"][maxFindex][1];
+					maxloadedFastener["y"] := WhateverYouNeed["results"]["FastenerGroup"]["Fasteners"][maxFindex][2];
 				
-		# calculation with inplane forces (without Faxd)
-		if hasindex(WhateverYouNeed["results"], "FastenerGroup") then
-			maxFindex := WhateverYouNeed["results"]["FastenerGroup"]["maxFindex"];
-			maxF := WhateverYouNeed["results"]["FastenerGroup"]["ForcesInConnection"][maxFindex][3];
-
-			if maxFallLoadcases < maxF or maxFallLoadcases = 0 then
-				maxFallLoadcases := maxF;
-				loadcaseMax := loadcase;
-							
-				maxloadedFastener["loadcase"] := loadcase;
-				maxloadedFastener["Fx"] := WhateverYouNeed["results"]["FastenerGroup"]["ForcesInConnection"][maxFindex][1];
-				maxloadedFastener["Fy"] := WhateverYouNeed["results"]["FastenerGroup"]["ForcesInConnection"][maxFindex][2];
-				maxloadedFastener["F"] := maxF;
-				maxloadedFastener["alpha"] := WhateverYouNeed["results"]["FastenerGroup"]["ForcesInConnection"][maxFindex][4];
-				maxloadedFastener["fastener"] := maxFindex;
-				maxloadedFastener["x"] := WhateverYouNeed["results"]["FastenerGroup"]["Fasteners"][maxFindex][1];
-				maxloadedFastener["y"] := WhateverYouNeed["results"]["FastenerGroup"]["Fasteners"][maxFindex][2];
-			
-				WhateverYouNeed["results"]["maxloadedFastener"] := maxloadedFastener;
+					WhateverYouNeed["results"]["maxloadedFastener"] := maxloadedFastener;
+				end if;
 			end if;
-		end if;
-	end if;
-end do;
-
-# printing values to workbook
-
-if type(WhateverYouNeed["results"]["etamax"], table) then
-	for dummy in indices(etamax, 'nolist') do
-		if ComponentExists(cat("TextArea_eta", dummy, "_max")) then
-
-			SetProperty(cat("TextArea_eta", dummy, "_max"), 'enabled', "true");
-			
-			if etamax[dummy] > 1 then 
-				SetProperty(cat("TextArea_eta", dummy, "_max"), 'fontcolor', "Red");
-			elif etamax[dummy] > 0.9 then
-				SetProperty(cat("TextArea_eta", dummy, "_max"), 'fontcolor', "Orange");
-			else
-				SetProperty(cat("TextArea_eta", dummy, "_max"), 'fontcolor', "Green");				
-			end if;
-			
-			SetProperty(cat("TextArea_eta", dummy, "_max"), 'value', round2(etamax[dummy], 2));								
 		end if;
 	end do;
-	
-else	
-	
-	if ComponentExists("TextArea_etamax") then
 
-		SetProperty("TextArea_etamax", 'enabled', "true");
+	# printing values to workbook
+
+	if type(WhateverYouNeed["results"]["etamax"], table) then
+		for dummy in indices(etamax, 'nolist') do
+			if ComponentExists(cat("TextArea_eta", dummy, "_max")) then
+
+				SetProperty(cat("TextArea_eta", dummy, "_max"), 'enabled', "true");
+				
+				if etamax[dummy] > 1 then 
+					SetProperty(cat("TextArea_eta", dummy, "_max"), 'fontcolor', "Red");
+				elif etamax[dummy] > 0.9 then
+					SetProperty(cat("TextArea_eta", dummy, "_max"), 'fontcolor', "Orange");
+				else
+					SetProperty(cat("TextArea_eta", dummy, "_max"), 'fontcolor', "Green");				
+				end if;
+				
+				SetProperty(cat("TextArea_eta", dummy, "_max"), 'value', round2(etamax[dummy], 2));								
+			end if;
+		end do;
 		
-		if etamax["max"] > 1 then 
-			SetProperty("TextArea_etamax", 'fontcolor', "Red");
-		elif etamax["max"] > 0.9 then
-			SetProperty("TextArea_etamax", 'fontcolor', "Orange");
-		else
-			SetProperty("TextArea_etamax", 'fontcolor', "Green");
+	else	
+		
+		if ComponentExists("TextArea_etamax") then
+
+			SetProperty("TextArea_etamax", 'enabled', "true");
+			
+			if etamax["max"] > 1 then 
+				SetProperty("TextArea_etamax", 'fontcolor', "Red");
+			elif etamax["max"] > 0.9 then
+				SetProperty("TextArea_etamax", 'fontcolor', "Orange");
+			else
+				SetProperty("TextArea_etamax", 'fontcolor', "Green");
+			end if;
+			SetProperty("TextArea_etamax", 'enabled', "true");
+			SetProperty("TextArea_etamax", 'value', round2(etamax["max"], 2));
 		end if;
-		SetProperty("TextArea_etamax", 'enabled', "true");
-		SetProperty("TextArea_etamax", 'value', round2(etamax["max"], 2));
+		
 	end if;
-	
-end if;
 
-if ComponentExists("TextArea_loadcaseMax") then
-	SetProperty("TextArea_loadcaseMax", 'enabled', "true");
-	SetProperty("TextArea_loadcaseMax", 'value', loadcaseMax)
-end if;
+	if ComponentExists("TextArea_loadcaseMax") then
+		SetProperty("TextArea_loadcaseMax", 'enabled', "true");
+		SetProperty("TextArea_loadcaseMax", 'value', loadcaseMax)
+	end if;
 
-if ComponentExists("TextArea_warningsAll") then
-	SetProperty("TextArea_warningsAll", 'enabled', "true");
-	SetProperty("TextArea_warningsAll", 'value', warningsAll);
-end if;
+	if ComponentExists("TextArea_warningsAll") then
+		SetProperty("TextArea_warningsAll", 'enabled', "true");
+		SetProperty("TextArea_warningsAll", 'value', warningsAll);
+	end if;
 
-if hasindex(WhateverYouNeed["results"], "FastenerGroup") then
-	NODEFastenerPattern:-SetComponentsCriticalLoadcase("activate", WhateverYouNeed)
-end if;
+	if hasindex(WhateverYouNeed["results"], "FastenerGroup") then
+		NODEFastenerPattern:-SetComponentsCriticalLoadcase("activate", WhateverYouNeed)
+	end if;
 
-# reset values to active loadcase
-WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"] := activeloadcase;
-# WhateverYouNeed["calculations"]["calculatingAllLoadcases"]:= false;
-# WriteLoadsToDocument(loadcase, WhateverYouNeed);	
-# Main(WhateverYouNeed);
+	# reset values to active loadcase
+	WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"] := activeloadcase;
+	# WhateverYouNeed["calculations"]["calculatingAllLoadcases"]:= false;
+	# WriteLoadsToDocument(loadcase, WhateverYouNeed);	
+	# Main(WhateverYouNeed);
 
-# SetProperty("TextArea_activeloadcase", 'value', activeloadcase);
-# MainCommon("calculateAllLoadcasesCleanup");
-MainCommon("calculateAllLoadcasesCleanup")
+	# SetProperty("TextArea_activeloadcase", 'value', activeloadcase);
+	# MainCommon("calculateAllLoadcasesCleanup");
+	MainCommon("calculateAllLoadcasesCleanup")
 end proc:
 
 
 disableTextAreaEtaMax := proc(WhateverYouNeed::table)
-description "Disable TextArea for etamax, showing that results are not updated";
-local dummy;
+	description "Disable TextArea for etamax, showing that results are not updated";
+	local dummy;
 
-if type(WhateverYouNeed["results"]["etamax"], table) then
-	
-	for dummy in indices(WhateverYouNeed["results"]["eta"], 'nolist') do			# need to use eta indices, as etamax probably are not calculated yet
+	if type(WhateverYouNeed["results"]["etamax"], table) then
 		
-		if ComponentExists(cat("TextArea_eta", dummy, "_max")) then
-			SetProperty(cat("TextArea_eta", dummy, "_max"), 'enabled', "false");							
+		for dummy in indices(WhateverYouNeed["results"]["eta"], 'nolist') do			# need to use eta indices, as etamax probably are not calculated yet
+			
+			if ComponentExists(cat("TextArea_eta", dummy, "_max")) then
+				SetProperty(cat("TextArea_eta", dummy, "_max"), 'enabled', "false");							
+			end if;
+			
+		end do;
+
+	else
+		
+		if ComponentExists("TextArea_etamax") then
+			SetProperty("TextArea_etamax", 'enabled', "false");
 		end if;
 		
-	end do;
-
-else
-	
-	if ComponentExists("TextArea_etamax") then
-		SetProperty("TextArea_etamax", 'enabled', "false");
 	end if;
-	
-end if;
-
 end proc: 
 
 
@@ -1456,9 +1410,8 @@ WriteLoadsToDocument := proc(loadcase, WhateverYouNeed::table)
 		end if;
 	end do;
 
-# check of values
-CalculateLoads(loadcase, false, "verify", WhateverYouNeed);
-
+	# check of values
+	CalculateLoads(loadcase, false, "verify", WhateverYouNeed);
 end proc:
 
 
@@ -1722,7 +1675,6 @@ Write_eta := proc(eta::table, comments::table)
 	if ComponentExists("TextArea_comments") and dummy <> "" then
 		SetProperty("TextArea_comments", 'value', dummy);
 	end if;	
-
 end proc:
 
 
@@ -1755,7 +1707,6 @@ Write_eta2 := proc(eta, usedcode::string, comments, loadcase)
 	if ComponentExists("TextArea_comments") then
 		SetProperty("TextArea_comments", 'value', comments)
 	end if;
-
 end proc:
 
 
@@ -2006,71 +1957,71 @@ end proc:
 
 
 isNumeric := proc(varname::string, WhateverYouNeed::table)::boolean;
-description "Check if variable is numeric or not";
-local answer, dummy;
+	description "Check if variable is numeric or not";
+	local answer, dummy;
 
-answer := false;
-for dummy in WhateverYouNeed["componentvariables"]["var_numeric"] do
-	if StringTools:-Search(dummy, varname) > 0 then
-		answer := true
-	end if;
-end do;
+	answer := false;
+	for dummy in WhateverYouNeed["componentvariables"]["var_numeric"] do
+		if StringTools:-Search(dummy, varname) > 0 then
+			answer := true
+		end if;
+	end do;
 
-for dummy in WhateverYouNeed["calculations"]["loadvariables"] do
-	if StringTools:-Search(dummy, varname) > 0 then
-		answer := true
-	end if;
-end do;
+	for dummy in WhateverYouNeed["calculations"]["loadvariables"] do
+		if StringTools:-Search(dummy, varname) > 0 then
+			answer := true
+		end if;
+	end do;
 
-return answer
+	return answer
 end proc:
 
 
 Storesettings := proc(WhateverYouNeed::table)
-description "Storing settings to file";
-local temp, dummy, storeitems, parent, child, newtable;
+	description "Storing settings to file";
+	local temp, dummy, storeitems, parent, child, newtable;
 
-storeitems := WhateverYouNeed["componentvariables"]["var_storeitems"];
+	storeitems := WhateverYouNeed["componentvariables"]["var_storeitems"];
 
-temp := table();
+	temp := table();
 
-for dummy in storeitems do
-	
-	if searchtext("/", dummy) > 0 then 		# "calculations/positionnumber"
-
-		parent := StringTools:-Split(dummy, "/")[1];
-		child := StringTools:-Split(dummy, "/")[2];
-
-		if assigned(temp[parent]) = false then
-			newtable := table();
-			temp[parent] := eval(newtable);
-		end if;
+	for dummy in storeitems do
 		
-		if assigned(WhateverYouNeed[parent][child]) then
-			if type(WhateverYouNeed[parent][child], string) then
-				newtable[child] := WhateverYouNeed[parent][child]
+		if searchtext("/", dummy) > 0 then 		# "calculations/positionnumber"
+
+			parent := StringTools:-Split(dummy, "/")[1];
+			child := StringTools:-Split(dummy, "/")[2];
+
+			if assigned(temp[parent]) = false then
+				newtable := table();
+				temp[parent] := eval(newtable);
+			end if;
 			
-			elif type(WhateverYouNeed[parent][child], table) then
-				newtable[child] := table(WhateverYouNeed[parent][child])
+			if assigned(WhateverYouNeed[parent][child]) then
+				if type(WhateverYouNeed[parent][child], string) then
+					newtable[child] := WhateverYouNeed[parent][child]
+				
+				elif type(WhateverYouNeed[parent][child], table) then
+					newtable[child] := table(WhateverYouNeed[parent][child])
+				
+				end if;
+			end if;
 			
+		else
+			
+			if assigned(WhateverYouNeed[dummy]) then
+				if type(WhateverYouNeed[dummy], string) then
+					temp[dummy] := WhateverYouNeed[dummy]
+				
+				elif type(WhateverYouNeed[dummy], table) then
+					temp[dummy] := table(WhateverYouNeed[dummy])
+				
+				end if;
 			end if;
 		end if;
-		
-	else
-		
-		if assigned(WhateverYouNeed[dummy]) then
-			if type(WhateverYouNeed[dummy], string) then
-				temp[dummy] := WhateverYouNeed[dummy]
-			
-			elif type(WhateverYouNeed[dummy], table) then
-				temp[dummy] := table(WhateverYouNeed[dummy])
-			
-			end if;
-		end if;
-	end if;
-end do;
+	end do;
 
-StoresettingsLocal(temp)		# save local using global variable
+	StoresettingsLocal(temp)		# save local using global variable
 end proc:
 
 
@@ -2110,255 +2061,255 @@ end proc:
 
 
 StoredsettingsToComponents := proc(WhateverYouNeed::table)
-description "Write stored values to components in sheet";
-local checkvar, dummy, j, k, storeitems, parent, child;
+	description "Write stored values to components in sheet";
+	local checkvar, dummy, j, k, storeitems, parent, child;
 
-storeitems := WhateverYouNeed["componentvariables"]["var_storeitems"];
+	storeitems := WhateverYouNeed["componentvariables"]["var_storeitems"];
 
-for dummy in storeitems do
-	
-	# checkvar := WhateverYouNeed["componentvariables"][cat("var_", i)];
-	checkvar := {"nocheck"};
-
-	# We do either have TextAreas to be filled with values (default), or ComboBoxes where values need to be added (values below are stored in variables, not in Components)
-	# ComboBoxes can also have predefined values, where the right value needs to be setattribute
-	# name of the special ComboBoxes where we fill values during the run need to be defined (e.g. "loadcases" "FastenerPatterns", materials, sections).
-
-	if searchtext("/", dummy) > 0 then 		# "calculations/positionnumber", "calculations/structure"
-		parent := StringTools:-Split(dummy, "/")[1];
-		child := StringTools:-Split(dummy, "/")[2];
+	for dummy in storeitems do
 		
-		if assigned(WhateverYouNeed[parent][child]) then
+		# checkvar := WhateverYouNeed["componentvariables"][cat("var_", i)];
+		checkvar := {"nocheck"};
+
+		# We do either have TextAreas to be filled with values (default), or ComboBoxes where values need to be added (values below are stored in variables, not in Components)
+		# ComboBoxes can also have predefined values, where the right value needs to be setattribute
+		# name of the special ComboBoxes where we fill values during the run need to be defined (e.g. "loadcases" "FastenerPatterns", materials, sections).
+
+		if searchtext("/", dummy) > 0 then 		# "calculations/positionnumber", "calculations/structure"
+			parent := StringTools:-Split(dummy, "/")[1];
+			child := StringTools:-Split(dummy, "/")[2];
 			
-			if type(WhateverYouNeed[parent][child], string) then
-				checkvar := WriteValueToComponent(child, WhateverYouNeed[parent][child], checkvar)
-
-			elif member(cat("-",child), WhateverYouNeed["componentvariables"]["var_ComboBox"]) then			
-				# "-variable" will be ignored
-
-			# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
-			# those Comboboxes do not change values in other Comboboxe
-			elif member(child, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		
-				ModifyComboVariables(cat("ComboBox_", child), "Write", WhateverYouNeed[parent][child], table());	# write new values to combobox
-
-			elif type(WhateverYouNeed[parent][child], table) then	# ["calculations"]["structure"]
-
-				# didn't manage to do that recursive, so we need to do that manually a couple of levels downwards
-				for j in indices(WhateverYouNeed[parent][child], 'nolist') do
+			if assigned(WhateverYouNeed[parent][child]) then
 				
-					if type(WhateverYouNeed[parent][child][j], string) or type(WhateverYouNeed[parent][child][j], numeric) then
-						checkvar := WriteValueToComponent(j, WhateverYouNeed[parent][child][j], checkvar)
+				if type(WhateverYouNeed[parent][child], string) then
+					checkvar := WriteValueToComponent(child, WhateverYouNeed[parent][child], checkvar)
 
-					elif type(WhateverYouNeed[parent][child][j], boolean) then
-						checkvar := WriteValueToComponent(j, WhateverYouNeed[parent][child][j], checkvar)							
+				elif member(cat("-",child), WhateverYouNeed["componentvariables"]["var_ComboBox"]) then			
+					# "-variable" will be ignored
 
-					elif type(WhateverYouNeed[parent][child][j], 'with_unit') then
-						checkvar := WriteValueToComponent(j, convert(convert(WhateverYouNeed[parent][child][j], 'unit_free'), string), checkvar)
+				# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
+				# those Comboboxes do not change values in other Comboboxe
+				elif member(child, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		
+					ModifyComboVariables(cat("ComboBox_", child), "Write", WhateverYouNeed[parent][child], table());	# write new values to combobox
 
-					elif member(cat("-",j), WhateverYouNeed["componentvariables"]["var_ComboBox"]) then
-						# "-variable" will be ignored
+				elif type(WhateverYouNeed[parent][child], table) then	# ["calculations"]["structure"]
 
-					# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
-					elif member(j, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		
-						if ComponentExists(cat("ComboBox_", j)) then
-							ModifyComboVariables(cat("ComboBox_", j), "Write", WhateverYouNeed[parent][child][j], table());	# write new values to combobox
-						else
-							Alert(cat("StoredsettingsToComponents: ComboBox_", j, " not found"), WhateverYouNeed["warnings"], 1)
-						end if;
-
-					elif type(WhateverYouNeed[parent][child][j], table) then	#  ["calculations"]["structure"]["fastener"]
-
-						for k in indices(WhateverYouNeed[parent][child][j], 'nolist') do
+					# didn't manage to do that recursive, so we need to do that manually a couple of levels downwards
+					for j in indices(WhateverYouNeed[parent][child], 'nolist') do
 					
-							if type(WhateverYouNeed[parent][child][j][k], string) or type(WhateverYouNeed[parent][child][j][k], numeric) then
-								checkvar := WriteValueToComponent(k, WhateverYouNeed[parent][child][j][k], checkvar)
+						if type(WhateverYouNeed[parent][child][j], string) or type(WhateverYouNeed[parent][child][j], numeric) then
+							checkvar := WriteValueToComponent(j, WhateverYouNeed[parent][child][j], checkvar)
 
-							elif type(WhateverYouNeed[parent][child][j][k], boolean) then
-								checkvar := WriteValueToComponent(k, WhateverYouNeed[parent][child][j][k], checkvar)
+						elif type(WhateverYouNeed[parent][child][j], boolean) then
+							checkvar := WriteValueToComponent(j, WhateverYouNeed[parent][child][j], checkvar)							
 
-							elif type(WhateverYouNeed[parent][child][j][k], 'with_unit') then
-								checkvar := WriteValueToComponent(k, convert(convert(WhateverYouNeed[parent][child][j][k], 'unit_free'), string), checkvar)
+						elif type(WhateverYouNeed[parent][child][j], 'with_unit') then
+							checkvar := WriteValueToComponent(j, convert(convert(WhateverYouNeed[parent][child][j], 'unit_free'), string), checkvar)
 
-							elif member(cat("-",k), WhateverYouNeed["componentvariables"]["var_ComboBox"]) then
-								# "-variable" will be ignored
+						elif member(cat("-",j), WhateverYouNeed["componentvariables"]["var_ComboBox"]) then
+							# "-variable" will be ignored
 
-							elif member(k, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
-								ModifyComboVariables(cat("ComboBox_", k), "Write", WhateverYouNeed[parent][child][j][k], table());	# write new values to combobox
-							
-							elif type(WhateverYouNeed[parent][child][j][k], table) then								
-								Alert("Missing implementation in StoredsettingsToComponents 1a", WhateverYouNeed["warnings"], 1);
-
-							else							
-								Alert(cat("Missing implementation in StoredsettingsToComponents 1b for variable ", k), WhateverYouNeed["warnings"], 1);
-								
-							end if;
-						end do;
-						
-					else							
-						Alert(cat("Missing implementation in StoredsettingsToComponents: ", WhateverYouNeed[parent][child][j], ",  type ", whattype(WhateverYouNeed[parent][child][j])), WhateverYouNeed["warnings"], 1);
-						
-					end if;
-					
-				end do;
-				
-			else
-				Alert(cat("Unknown value ", dummy), WhateverYouNeed["warnings"], 1);
-				
-			end if;
-
-		else
-			Alert(cat("Unassigned value ", dummy), WhateverYouNeed["warnings"], 1);
-
-		end if;
-		
-	else
-		if assigned(WhateverYouNeed[dummy]) then
-			
-			# top level string variables should not exist
-			if type(WhateverYouNeed[dummy], string) or type(WhateverYouNeed[dummy], numeric) then
-				checkvar := WriteValueToComponent(dummy, WhateverYouNeed[dummy], checkvar)	
-
-			elif type(WhateverYouNeed[dummy], 'with_unit') then
-				checkvar := WriteValueToComponent(dummy, convert(convert(WhateverYouNeed[dummy], 'unit_free'), string), checkvar)	
-
-			elif member(cat("-",dummy), WhateverYouNeed["componentvariables"]["var_ComboBox"]) then
-				# "-variable" will be ignored
-
-			# tables where we just fill comboboxes
-			elif member(dummy, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
-					ModifyComboVariables(cat("ComboBox_", dummy), "Write", WhateverYouNeed[dummy], table());	# write new values to combobox
-
-			elif type(WhateverYouNeed[dummy], table) then
-				
-				# didn't manage to do that recursive, so we need to do that manually a couple of levels downwards
-				for j in indices(WhateverYouNeed[dummy], 'nolist') do
-					
-					if type(WhateverYouNeed[dummy][j], string) or type(WhateverYouNeed[dummy][j], numeric) then
-						checkvar := WriteValueToComponent(j, WhateverYouNeed[dummy][j], checkvar)
-
-					elif type(WhateverYouNeed[dummy][j], 'with_unit') then
-						checkvar := WriteValueToComponent(j, convert(convert(WhateverYouNeed[dummy][j], 'unit_free'), string), checkvar)							
-
-					elif member(j, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
-						ModifyComboVariables(cat("ComboBox_", j), "Write", WhateverYouNeed[dummy][j], table());	# write new values to combobox
-
-					elif type(dummy[j], table) then
-						
-						for k in indices(WhateverYouNeed[dummy][j], 'nolist') do
-					
-							if type(WhateverYouNeed[dummy][j][k], string) or type(WhateverYouNeed[dummy][j][k], numeric) then
-								checkvar := WriteValueToComponent(k, WhateverYouNeed[dummy][j][k], checkvar)
-
-							elif type(WhateverYouNeed[dummy][j][k], 'with_unit') then
-								checkvar := WriteValueToComponent(k, convert(convert(WhateverYouNeed[dummy][j][k], 'unit_free'), string), checkvar)
-
-							elif member(k, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
-								ModifyComboVariables(cat("ComboBox_", k), "Write", WhateverYouNeed[dummy][j][k], table());	# write new values to combobox
-
-							elif type(WhateverYouNeed[dummy][j][k], table) then
-								
-								Alert("Missing implementation in StoredsettingsToComponents 2a", WhateverYouNeed["warnings"], 1);
-								
+						# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
+						elif member(j, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		
+							if ComponentExists(cat("ComboBox_", j)) then
+								ModifyComboVariables(cat("ComboBox_", j), "Write", WhateverYouNeed[parent][child][j], table());	# write new values to combobox
 							else
-								Alert("Missing implementation in StoredsettingsToComponents 2b", WhateverYouNeed["warnings"], 1);
-								
+								Alert(cat("StoredsettingsToComponents: ComboBox_", j, " not found"), WhateverYouNeed["warnings"], 1)
 							end if;
-							
-						end do;
-						
-					else							
-						Alert("Missing implementation in StoredsettingsToComponents 2c", WhateverYouNeed["warnings"], 1);
-						
-					end if;
-					
-				end do;
 
-			else 
-				Alert(cat("Unknown value ", dummy), WhateverYouNeed["warnings"], 1);
-		
+						elif type(WhateverYouNeed[parent][child][j], table) then	#  ["calculations"]["structure"]["fastener"]
+
+							for k in indices(WhateverYouNeed[parent][child][j], 'nolist') do
+						
+								if type(WhateverYouNeed[parent][child][j][k], string) or type(WhateverYouNeed[parent][child][j][k], numeric) then
+									checkvar := WriteValueToComponent(k, WhateverYouNeed[parent][child][j][k], checkvar)
+
+								elif type(WhateverYouNeed[parent][child][j][k], boolean) then
+									checkvar := WriteValueToComponent(k, WhateverYouNeed[parent][child][j][k], checkvar)
+
+								elif type(WhateverYouNeed[parent][child][j][k], 'with_unit') then
+									checkvar := WriteValueToComponent(k, convert(convert(WhateverYouNeed[parent][child][j][k], 'unit_free'), string), checkvar)
+
+								elif member(cat("-",k), WhateverYouNeed["componentvariables"]["var_ComboBox"]) then
+									# "-variable" will be ignored
+
+								elif member(k, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
+									ModifyComboVariables(cat("ComboBox_", k), "Write", WhateverYouNeed[parent][child][j][k], table());	# write new values to combobox
+								
+								elif type(WhateverYouNeed[parent][child][j][k], table) then								
+									Alert("Missing implementation in StoredsettingsToComponents 1a", WhateverYouNeed["warnings"], 1);
+
+								else							
+									Alert(cat("Missing implementation in StoredsettingsToComponents 1b for variable ", k), WhateverYouNeed["warnings"], 1);
+									
+								end if;
+							end do;
+							
+						else							
+							Alert(cat("Missing implementation in StoredsettingsToComponents: ", WhateverYouNeed[parent][child][j], ",  type ", whattype(WhateverYouNeed[parent][child][j])), WhateverYouNeed["warnings"], 1);
+							
+						end if;
+						
+					end do;
+					
+				else
+					Alert(cat("Unknown value ", dummy), WhateverYouNeed["warnings"], 1);
+					
+				end if;
+
+			else
+				Alert(cat("Unassigned value ", dummy), WhateverYouNeed["warnings"], 1);
+
 			end if;
+			
 		else
-			Alert(cat("Unassigned value ", dummy), WhateverYouNeed["warnings"], 1);
+			if assigned(WhateverYouNeed[dummy]) then
+				
+				# top level string variables should not exist
+				if type(WhateverYouNeed[dummy], string) or type(WhateverYouNeed[dummy], numeric) then
+					checkvar := WriteValueToComponent(dummy, WhateverYouNeed[dummy], checkvar)	
+
+				elif type(WhateverYouNeed[dummy], 'with_unit') then
+					checkvar := WriteValueToComponent(dummy, convert(convert(WhateverYouNeed[dummy], 'unit_free'), string), checkvar)	
+
+				elif member(cat("-",dummy), WhateverYouNeed["componentvariables"]["var_ComboBox"]) then
+					# "-variable" will be ignored
+
+				# tables where we just fill comboboxes
+				elif member(dummy, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
+						ModifyComboVariables(cat("ComboBox_", dummy), "Write", WhateverYouNeed[dummy], table());	# write new values to combobox
+
+				elif type(WhateverYouNeed[dummy], table) then
+					
+					# didn't manage to do that recursive, so we need to do that manually a couple of levels downwards
+					for j in indices(WhateverYouNeed[dummy], 'nolist') do
+						
+						if type(WhateverYouNeed[dummy][j], string) or type(WhateverYouNeed[dummy][j], numeric) then
+							checkvar := WriteValueToComponent(j, WhateverYouNeed[dummy][j], checkvar)
+
+						elif type(WhateverYouNeed[dummy][j], 'with_unit') then
+							checkvar := WriteValueToComponent(j, convert(convert(WhateverYouNeed[dummy][j], 'unit_free'), string), checkvar)							
+
+						elif member(j, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
+							ModifyComboVariables(cat("ComboBox_", j), "Write", WhateverYouNeed[dummy][j], table());	# write new values to combobox
+
+						elif type(dummy[j], table) then
+							
+							for k in indices(WhateverYouNeed[dummy][j], 'nolist') do
+						
+								if type(WhateverYouNeed[dummy][j][k], string) or type(WhateverYouNeed[dummy][j][k], numeric) then
+									checkvar := WriteValueToComponent(k, WhateverYouNeed[dummy][j][k], checkvar)
+
+								elif type(WhateverYouNeed[dummy][j][k], 'with_unit') then
+									checkvar := WriteValueToComponent(k, convert(convert(WhateverYouNeed[dummy][j][k], 'unit_free'), string), checkvar)
+
+								elif member(k, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
+									ModifyComboVariables(cat("ComboBox_", k), "Write", WhateverYouNeed[dummy][j][k], table());	# write new values to combobox
+
+								elif type(WhateverYouNeed[dummy][j][k], table) then
+									
+									Alert("Missing implementation in StoredsettingsToComponents 2a", WhateverYouNeed["warnings"], 1);
+									
+								else
+									Alert("Missing implementation in StoredsettingsToComponents 2b", WhateverYouNeed["warnings"], 1);
+									
+								end if;
+								
+							end do;
+							
+						else							
+							Alert("Missing implementation in StoredsettingsToComponents 2c", WhateverYouNeed["warnings"], 1);
+							
+						end if;
+						
+					end do;
+
+				else 
+					Alert(cat("Unknown value ", dummy), WhateverYouNeed["warnings"], 1);
+			
+				end if;
+			else
+				Alert(cat("Unassigned value ", dummy), WhateverYouNeed["warnings"], 1);
+			end if;
 		end if;
-	end if;
-end do;
+	end do;
 end proc:
 
 
 HighlightResults := proc(var, action::string)
-description "Highlite detailed results";
-local dummy, i, fillcolor;
+	description "Highlite detailed results";
+	local dummy, i, fillcolor;
 
-if action = "highlight" then 
-	fillcolor := "Gold"
-elif action = "deactivate" then
-	fillcolor := "DarkSlateGray"
-else
-	fillcolor := "White"		
-end if;
+	if action = "highlight" then 
+		fillcolor := "Gold"
+	elif action = "deactivate" then
+		fillcolor := "DarkSlateGray"
+	else
+		fillcolor := "White"		
+	end if;
 
-if type(var, table) then
-	for dummy in indices(var, 'nolist') do
-		if type(var[dummy], set) then
-			for i in var[dummy] do		
-				if ComponentExists(cat("TextArea_", i)) then
-					SetProperty(cat("TextArea_", i), 'fillcolor', fillcolor);			
-				elif ComponentExists(cat("MathContainer_", i)) then
-					SetProperty(cat("MathContainer_", i), 'fillcolor', fillcolor);			
-				else
-					Alert(cat("Component not found for ", i), table(), 1)				
-				end if;		
-			end do;	
-		else
-			Alert(cat("Variable ", var, ",  type ", whattype(var[dummy]), " not defined"), table(), 1)
-		end if
-	end do
-	
-elif type(var, set) then
-	
-	for i in var do		
-		if ComponentExists(cat("TextArea_", i)) then
-			SetProperty(cat("TextArea_", i), 'fillcolor', fillcolor);			
-		elif ComponentExists(cat("MathContainer_", i)) then
-			SetProperty(cat("MathContainer_", i), 'fillcolor', fillcolor);			
-		else
-			Alert(cat("Component not found for ", i), table(), 1)				
-		end if;		
-	end do;
+	if type(var, table) then
+		for dummy in indices(var, 'nolist') do
+			if type(var[dummy], set) then
+				for i in var[dummy] do		
+					if ComponentExists(cat("TextArea_", i)) then
+						SetProperty(cat("TextArea_", i), 'fillcolor', fillcolor);			
+					elif ComponentExists(cat("MathContainer_", i)) then
+						SetProperty(cat("MathContainer_", i), 'fillcolor', fillcolor);			
+					else
+						Alert(cat("Component not found for ", i), table(), 1)				
+					end if;		
+				end do;	
+			else
+				Alert(cat("Variable ", var, ",  type ", whattype(var[dummy]), " not defined"), table(), 1)
+			end if
+		end do
+		
+	elif type(var, set) then
+		
+		for i in var do		
+			if ComponentExists(cat("TextArea_", i)) then
+				SetProperty(cat("TextArea_", i), 'fillcolor', fillcolor);			
+			elif ComponentExists(cat("MathContainer_", i)) then
+				SetProperty(cat("MathContainer_", i), 'fillcolor', fillcolor);			
+			else
+				Alert(cat("Component not found for ", i), table(), 1)				
+			end if;		
+		end do;
 
-else
-	Alert(cat("Variable ", var, ", type ", whattype(var), " not defined"), table(), 1)				
-end if;
+	else
+		Alert(cat("Variable ", var, ", type ", whattype(var), " not defined"), table(), 1)				
+	end if;
 
 end proc:
 
 
 # https://mapleprimes.com/questions/236468-Annotation-In-Plots
 Segment2Arrow := proc(segm)
-uses geometry;
-description "Annotation dimension";
-local a, b, c;
+	uses geometry;
+	description "Annotation dimension";
+	local a, b, c;
 
-try
-	a := map(coordinates, DefinedAs(segm))[1];
-	b := map(coordinates, DefinedAs(segm))[2];
-catch "wrong type of argument":
-	Alert(cat("Error, (in geometry:-DefinedAs) wrong type of argument, variable segm: ", whattype(segm), segm), table(), 5)
-end try;
-c := (a + b) / 2;
-return plots:-arrow(c, [a - c, b - c], width = 0.5, head_width = 2, head_length = 4, color = grey)
+	try
+		a := map(coordinates, DefinedAs(segm))[1];
+		b := map(coordinates, DefinedAs(segm))[2];
+	catch "wrong type of argument":
+		Alert(cat("Error, (in geometry:-DefinedAs) wrong type of argument, variable segm: ", whattype(segm), segm), table(), 5)
+	end try;
+	c := (a + b) / 2;
+	return plots:-arrow(c, [a - c, b - c], width = 0.5, head_width = 2, head_length = 4, color = grey)
 end proc:
 
 
 # https://mapleprimes.com/questions/237354-Max-Maxindex-For-Tables#answer298333
 maxIndexTable := proc(atable)
-description "returns max value and index of table";		
-local P, j;
+	description "returns max value and index of table";		
+	local P, j;
 
-P := [indices](atable, 'pairs');
-j := lhs(P[max[index](rhs~(P))]);
+	P := [indices](atable, 'pairs');
+	j := lhs(P[max[index](rhs~(P))]);
 
-return atable[j], j
+	return atable[j], j
 
 end proc:
 
