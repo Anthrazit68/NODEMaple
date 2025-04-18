@@ -21,8 +21,8 @@ NODE rådgivende ingeniører AS does neither own this software nor is legally re
 - After installing the library, it is recommended to exit Maple and start the program again.
 
 # Usage
-After installation of the library, the desired Maple workbooks can be opened and run. More information can be found on the opening pages of the specific workbooks.
-More information and a introduction to NODEMaple is available on this YouTube channel: https://www.youtube.com/@NODEMaple
+- After installation of the library, the desired Maple workbooks can be opened and run. Check also information on the opening pages of the specific workbooks.
+- More information and a introduction to NODEMaple is available on this YouTube channel: https://www.youtube.com/@NODEMaple
 
 # Contributing
 This software has been made public in the hope of that it might be useful for other structural designers, professionals as well as students.
