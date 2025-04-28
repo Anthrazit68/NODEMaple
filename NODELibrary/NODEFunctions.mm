@@ -1661,11 +1661,11 @@ Write_eta := proc(eta::table, comments::table)
 	
 	end do;
 
-	# print comments
-	dummy := "";	
-	for i in entries(comments, 'nolist') do
-		if type(i, string) then
-			dummy := cat(dummy, " / ", i)
+	# print comments, sorted by alphabetical order of index
+	dummy := "";
+	for i in indices(comments, 'nolist', 'indexorder') do
+		if type(comments[i], string) then
+			dummy := cat(dummy, " / ", comments[i])
 		end if;
 	end do;
 

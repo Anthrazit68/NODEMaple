@@ -127,7 +127,7 @@ EC5_63 := proc(WhateverYouNeed::table)
 
 	# (6.34)
 	if lambda_relmy <= 0.75 then
-		# ingen fare for vipping
+		# no lateral torsional buckling
 		k_crity := 1
 	elif lambda_relmy <= 1.4 then
 		k_crity := 1.56 - 0.75 * lambda_relmy;
@@ -136,7 +136,7 @@ EC5_63 := proc(WhateverYouNeed::table)
 	end if;
 
 	if lambda_relmz <= 0.75 then
-		# ingen fare for vipping
+		# no lateral torsional buckling
 		k_critz := 1
 	elif lambda_relmz <= 1.4 then
 		k_critz := 1.56 - 0.75 * lambda_relmz;

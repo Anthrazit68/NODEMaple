@@ -18,9 +18,9 @@
 # EC5_623
 # EC5_624
 
-# 6.2.2 trykkspenninger i vinkel p� fiberretning
+# 6.2.2 Compression stresses at an angle to the grain
 EC5_622 := proc(WhateverYouNeed::table)
-	description "6.2.2 trykkspenninger i vinkel p� fiberretning";
+	description "6.2.2 Compression stresses at an angle to the grain";
 	local sigma_cad, f_cad, eta_622, usedcode, comments, F_xd, alpha, f_c0d, f_c90d, k_c90, A_622, loadcase, timbertype, h_622;
 
 	f_c0d := WhateverYouNeed["materialdata"]["f_c0d"];
@@ -75,9 +75,9 @@ EC5_622 := proc(WhateverYouNeed::table)
 end proc:
 
 
-# 6.2.3 kombinert b�yning og aksialt strekk
+# 6.2.3 Combined bending and axial tension
 EC5_623 := proc(WhateverYouNeed::table)
-	description "6.2.3 kombinert b�yning og aksialt strekk";
+	description "6.2.3 Combined bending and axial tension";
 	local sigma_t0d, sigma_myd, sigma_mzd, km, eta, usedcode, comments, F_xd, M_yd, M_zd, b, h, f_t0d, f_md, loadcase;
 
 	# local variables
@@ -94,24 +94,27 @@ EC5_623 := proc(WhateverYouNeed::table)
 
 	sigma_t0d := convert(F_xd / (b*h), 'units', 'N'/'mm^2');
 
-	km := 0.7; 	# for konstruksjonstre, limtre og parallelfiner / rektangul�re tverrsnitt
+	km := 0.7; 	# 6.1.6 (2), for solid timber, glued laminated timber and LVL, rectangular sections
 	sigma_myd := convert(M_yd / (b * h^2 / 6), 'units', 'N'/'mm^2');
 	sigma_mzd := convert(M_zd / (b^2 * h / 6), 'units', 'N'/'mm^2');
 	
 	eta := max(sigma_t0d / f_t0d + sigma_myd / (f_md * kh("h", WhateverYouNeed)) + km * sigma_mzd / (f_md * kh("b", WhateverYouNeed)),
 	           sigma_t0d / f_t0d + km * sigma_myd / (f_md * kh("h", WhateverYouNeed)) + sigma_mzd / (f_md * kh("b", WhateverYouNeed)));
 
-	# usedcode := "6.2.3 kombinert b&oslash;yning og aksialt strekk";
 	usedcode := "6.2.3";
-	comments := "Combined bending and axial tension";
+	if sigma_c0d = 0 then
+		comments := "Bending (combined bending and axial tension)";
+	else 		
+		comments := "Combined bending and axial tension";
+	end if;
 
 	return eta, usedcode, comments
 end proc:
 
 
-# 6.2.4/6.3.2 kombinert b�yning og aksialt trykk
+# 6.2.4/6.3.2 Combined bending and axial tension / compression
 EC5_624 := proc(WhateverYouNeed::table, k_cy, k_cz)
-	description "6.2.4/6.3.2 kombinert b�yning og aksialt trykk";
+	description "6.2.4/6.3.2 Combined bending and axial tension / compression";
 	local A, W_y, W_z, F_xd, M_yd, M_zd, sigma_c0d, sigma_myd, sigma_mzd, km, eta, usedcode, comments, f_c0d, f_md, loadcase;
 
 	# define local variables
@@ -131,15 +134,15 @@ EC5_624 := proc(WhateverYouNeed::table, k_cy, k_cz)
 	# start calculation
 	sigma_c0d := convert(-F_xd / A, 'units', 'N'/'mm^2');
 
-	km := 0.7; 	# for konstruksjonstre, limtre og parallelfiner / rektangul�re tverrsnitt
+	km := 0.7; 	# 6.1.6 (2), for solid timber, glued laminated timber and LVL, rectangular sections
 	sigma_myd := convert(M_yd / W_y, 'units', 'N'/'mm^2');
 	sigma_mzd := convert(M_zd / W_z, 'units', 'N'/'mm^2');
 
 	eta["619"] := max((sigma_c0d / f_c0d)^2 + sigma_myd / (f_md * kh("h", WhateverYouNeed)) + km * sigma_mzd / (f_md * kh("b", WhateverYouNeed)),
-	               (sigma_c0d / f_c0d)^2 + km * sigma_myd / (f_md * kh("h", WhateverYouNeed)) + sigma_mzd / (f_md * kh("h", WhateverYouNeed)));	# formel 6.19, 6.20
+	               (sigma_c0d / f_c0d)^2 + km * sigma_myd / (f_md * kh("h", WhateverYouNeed)) + sigma_mzd / (f_md * kh("h", WhateverYouNeed)));	# (6.19), (6.20)
 	               
 	eta["623"] := max(sigma_c0d / (k_cy * f_c0d) + sigma_myd / (f_md * kh("h", WhateverYouNeed)) + km * sigma_mzd / (f_md * kh("b", WhateverYouNeed)),
-	               sigma_c0d / (k_cz * f_c0d) + km * sigma_myd / (f_md * kh("h", WhateverYouNeed)) + sigma_mzd / (f_md * kh("b", WhateverYouNeed)));	# formel 6.23, 6.24
+	               sigma_c0d / (k_cz * f_c0d) + km * sigma_myd / (f_md * kh("h", WhateverYouNeed)) + sigma_mzd / (f_md * kh("b", WhateverYouNeed)));	# (6.23), (6.24)
 
 	# if ComponentExists("TextArea_eta_619") and ComponentExists("TextArea_eta_623") then
 	#	HighlightResults({"eta_619", "eta_623"}, "highlight");
@@ -147,17 +150,15 @@ EC5_624 := proc(WhateverYouNeed::table, k_cy, k_cz)
 	#	SetProperty("TextArea_eta_623", 'value', round2(eta_623, 2));		# (6.23/.24)
 	# end if;
 
-	if k_cy = 1 and k_cz = 1 then
+	if (k_cy = 1 and k_cz = 1) or sigma_c0d = 0 then
 		if M_yd = 0 and M_zd = 0 then
 			usedcode := "6.1.4";
 			comments := "Compression parallel to the grain";
 		else
-			# usedcode := "6.2.4 kombinert b&oslash;yning og aksialt trykk";
 			usedcode := "6.2.4";
 			comments := "Combined bending and axial compression";
 		end if;
 	else
-		# usedcode := "6.3.2 S&oslash;yler utsatt for trykk eller en kombinasjon av trykk og b&oslash;yning";
 		usedcode := "6.3.2";
 		comments := "Columns subjected to either compression or combined compression and bending";
 	end if;
