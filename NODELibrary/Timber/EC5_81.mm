@@ -994,16 +994,8 @@ EC5_62net := proc(WhateverYouNeed::table)
 
 		eta[cat("62net", part)] := eta_F + eta_M;
 			
-		# if ComponentExists(cat("TextArea_eta62net", part)) then
-		#	SetProperty(cat("TextArea_eta62net", part), 'value', round2(eta[part], 2))
-		# end if;
-			
 	end do;
 	
-	# if ComponentExists("TextArea_eta62net") then
-	#	SetProperty("TextArea_eta62net", 'value', round2(max(entries(eta)), 2))
-	# end if;
-
 	usedcode := "6.2net";
 	comments := "EC 6.2, check net section";
 
