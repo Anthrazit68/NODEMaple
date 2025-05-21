@@ -112,7 +112,19 @@ Alert := proc(msg::string, warnings::table, level::integer)
 				dummy := cat(dummy, ", ", warnings[j])
 			end if;
 		end do;
-	
+
+		if SearchText("CRITICAL ERROR", dummy) > 0 then
+			SetProperty("TextArea_warnings", 'fontcolor', "Red");
+		elif SearchText("ERROR", dummy) > 0 then
+			SetProperty("TextArea_warnings", 'fontcolor', "OrangeRed");
+		elif SearchText("WARNING", dummy) > 0 then
+			SetProperty("TextArea_warnings", 'fontcolor', "Purple");
+		elif SearchText("Warning", dummy) > 0 then
+			SetProperty("TextArea_warnings", 'fontcolor', "Violet");
+		else
+			SetProperty("TextArea_warnings", 'fontcolor', "Black");
+		end if;
+
 		SetProperty("TextArea_warnings", 'value', dummy);
 	end if;
 end proc:
