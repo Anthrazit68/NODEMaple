@@ -195,7 +195,7 @@ checkCompliance := proc(materialdata::table, warnings::table)
 end proc:
 
 
-SetComboBox := proc(WhateverYouNeed::table)
+SetComboBoxMaterial := proc(WhateverYouNeed::table)
 	uses DocumentTools;
 	description "Set material combobox according to chosen material";
 	local ind, val, foundit, warnings, materialdata;

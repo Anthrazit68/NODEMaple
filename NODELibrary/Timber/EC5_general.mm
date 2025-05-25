@@ -14,117 +14,148 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-SetComboBox := proc(WhateverYouNeed::table, forceSectionUpdate::boolean, partsnumber::string)::boolean;
+SetComboBoxMaterial := proc(WhateverYouNeed::table, forceSectionUpdate::boolean, partsnumber::string)::boolean;
 	description "Set material combobox according to chosen material (complete) or timber type";
 	local ind, val, foundit, sectionchanged;
-		local materialdata, timbertype, strengthclass, serviceclass, loaddurationclass, warnings;
+	local materialdata, timbertype, strengthclass, serviceclass, loaddurationclass, warnings;
 
-		# define local variables
-		if partsnumber = "" then
-			materialdata := WhateverYouNeed["materialdata"];
+	# define local variables
+	if partsnumber = "" then
+		materialdata := WhateverYouNeed["materialdata"];
+		
+	elif partsnumber = "1" or partsnumber = "2" then		
+		materialdata := WhateverYouNeed["materialdataAll"][partsnumber];
+	end if;
+	
+	timbertype := materialdata["timbertype"];
+	strengthclass := materialdata["strengthclass"];
+	serviceclass := materialdata["serviceclass"];
+	loaddurationclass := materialdata["loaddurationclass"];		
+	warnings := WhateverYouNeed["warnings"];
+
+	sectionchanged := false;
+
+	# check if active timbertype is different from setting in combobox
+	if (timbertype <> GetProperty(cat("ComboBox_timbertype", partsnumber), value)) or forceSectionUpdate then	# need to change
+		
+		if member(timbertype, GetProperty(cat("ComboBox_timbertype", partsnumber), 'itemList'), 'p') then		# get position of timbertype in ComboBox list
+
+			SetProperty(cat("ComboBox_timbertype", partsnumber), 'selectedIndex', p-1);
 			
-		elif partsnumber = "1" or partsnumber = "2" then		
-			materialdata := WhateverYouNeed["materialdataAll"][partsnumber];
-		end if;
-		
-		timbertype := materialdata["timbertype"];
-		strengthclass := materialdata["strengthclass"];
-		serviceclass := materialdata["serviceclass"];
-		loaddurationclass := materialdata["loaddurationclass"];		
-		warnings := WhateverYouNeed["warnings"];
-
-		sectionchanged := false;
-
-		# check if active timbertype is different from setting in combobox
-		if (timbertype <> GetProperty(cat("ComboBox_timbertype", partsnumber), value)) or forceSectionUpdate then	# need to change
-			foundit := false;
-			for ind, val in GetProperty(cat("ComboBox_timbertype", partsnumber), 'itemList') do
-				if timbertype = val then
-					foundit := true;
-					SetProperty(cat("ComboBox_timbertype", partsnumber), 'selectedIndex', ind-1)					# ind starter med 1, Comboboxindexer med 0
-				end if;
-			end do;
-		
-			if not foundit then
-				Alert("Invalid timbertype", warnings, 5);
+			# fill combobox strengthclass
+			if timbertype = "Solid timber" then					# set properties for strengthclass
+				SetProperty(cat("ComboBox_strengthclass", partsnumber), 'itemList', NODETimberMaterial:-Strengthclasses("Solid timber"));
+				
+			elif timbertype = "Glued laminated timber" then
+				SetProperty(cat("ComboBox_strengthclass", partsnumber), 'itemList', NODETimberMaterial:-Strengthclasses("Glued laminated timber"));
+				
+			elif timbertype = "CLT" then
+				SetProperty(cat("ComboBox_strengthclass", partsnumber), 'itemList', NODETimberMaterial:-Strengthclasses("CLT"));
+				
 			else
-				materialdata["timbertype"] := GetProperty(cat("ComboBox_timbertype", partsnumber), value);		# setting new value for timbertype
+				SetProperty(cat("ComboBox_strengthclass", partsnumber), 'itemList', NODETimberMaterial:-Strengthclasses("all"));
 				
-				# setting strengthclass
-				if timbertype = "Solid timber" then					# set properties for strengthclass
-					SetProperty(cat("ComboBox_strengthclass", partsnumber), 'itemList', NODETimberMaterial:-Strengthclasses("Solid timber"));
-					
-				elif timbertype = "Glued laminated timber" then
-					SetProperty(cat("ComboBox_strengthclass", partsnumber), 'itemList', NODETimberMaterial:-Strengthclasses("Glued laminated timber"));
-					
-				elif timbertype = "CLT" then
-					SetProperty(cat("ComboBox_strengthclass", partsnumber), 'itemList', NODETimberMaterial:-Strengthclasses("CLT"));
-					
-				else
-					SetProperty(cat("ComboBox_strengthclass", partsnumber), 'itemList', NODETimberMaterial:-Strengthclasses("all"));
-					
-				end if;
-
-				SetProperty(cat("ComboBox_strengthclass", partsnumber), 'selectedIndex', 0);		# pick first value
-				
-				sectionchanged := true;
-
-				SetProperty(cat("ComboBox_b", partsnumber), 'itemList', NODETimberSections:-b[timbertype]);
-				SetProperty(cat("ComboBox_b", partsnumber), 'selectedIndex', 0);
-				Changed_bh(WhateverYouNeed, cat("b", partsnumber));
 			end if;
-		
-		end if;
 
-		# strengthclass
-		if strengthclass <> GetProperty(cat("ComboBox_strengthclass", partsnumber), value) then
-			foundit := false;
+			SetProperty(cat("ComboBox_strengthclass", partsnumber), 'selectedIndex', 0);		# pick first value
+			
+			sectionchanged := true;
+
+			SetProperty(cat("ComboBox_b", partsnumber), 'itemList', NODETimberSections:-b[timbertype]);
+			SetProperty(cat("ComboBox_b", partsnumber), 'selectedIndex', 0);
+			Changed_bh(WhateverYouNeed, cat("b", partsnumber));
+
+		else
+			Alert("Invalid timbertype", warnings, 5);
+		end if;
+	
+	end if;
+
+	# strengthclass
+	if strengthclass <> GetProperty(cat("ComboBox_strengthclass", partsnumber), value) then
+
+		if member(strengthclass, GetProperty(cat("ComboBox_strengthclass", partsnumber), 'itemList'), 'p') then
+			SetProperty(cat("ComboBox_strengthclass", partsnumber), 'selectedIndex', p-1);
+		else
 			if strengthclass = "" then		# undefined because we have a new timber type, set to first item in listdir
 				SetProperty(cat("ComboBox_strengthclass", partsnumber), 'selectedIndex', 0);
 				strengthclass := GetProperty(cat("ComboBox_strengthclass", partsnumber), value)
 			else
-				for ind, val in GetProperty(cat("ComboBox_strengthclass", partsnumber), 'itemList') do
-					if val = strengthclass then
-						foundit := true;
-						SetProperty(cat("ComboBox_strengthclass", partsnumber), 'selectedIndex', ind-1);
-					end if;
-				end do;
-				if not foundit then
-					Alert("Invalid strengthclass", warnings, 5);
-				end if;
-			end if;
+				Alert("Invalid strengthclass", warnings, 5);
+			end if
 		end if;
-	
-		# serviceclass
-		if "serviceclass" <> GetProperty("ComboBox_serviceclass", value) then
-			foundit := false;
-			for ind, val in GetProperty("ComboBox_serviceclass", 'itemList') do
-				if val = serviceclass then
-					foundit := true;
-					SetProperty("ComboBox_serviceclass", 'selectedIndex', ind-1)
-				end if;
-			end do;
-			if not foundit then
+
+	end if;
+
+	# serviceclass
+	if "serviceclass" <> GetProperty("ComboBox_serviceclass", value) then
+
+		if member(serviceclass, GetProperty("ComboBox_serviceclass", 'itemList'), 'p') then
+			SetProperty("ComboBox_serviceclass", 'selectedIndex', p-1);
+		else
+			if serviceclass = "" then		# undefined because we have a new timber type, set to first item in listdir
+				SetProperty("ComboBox_serviceclass", 'selectedIndex', 0);
+				serviceclass := GetProperty("ComboBox_serviceclass", value)
+			else
 				Alert("Invalid serviceclass", warnings, 5);
-			end if;
+			end if
 		end if;
 
-		# loaddurationclass
-		if "loaddurationclass" <> GetProperty("ComboBox_loaddurationclass", value) then
-			foundit := false;
-			for ind, val in GetProperty("ComboBox_loaddurationclass", 'itemList') do
-				if val = loaddurationclass then
-					foundit := true;
-					SetProperty("ComboBox_loaddurationclass", 'selectedIndex', ind-1)
-				end if;
-			end do;
-			if not foundit then
+	end if;
+
+	# loaddurationclass
+	if "loaddurationclass" <> GetProperty("ComboBox_loaddurationclass", value) then
+
+		if member(loaddurationclass, GetProperty("ComboBox_loaddurationclass", 'itemList'), 'p') then
+			SetProperty("ComboBox_loaddurationclass", 'selectedIndex', p-1);
+		else
+			if loaddurationclass = "" then		# undefined because we have a new timber type, set to first item in listdir
+				SetProperty("ComboBox_loaddurationclass", 'selectedIndex', 0);
+				loaddurationclass := GetProperty("ComboBox_loaddurationclass", value)
+			else
 				Alert("Invalid loaddurationclass", warnings, 5);
+			end if
+		end if;
+
+	end if;
+
+	return sectionchanged
+end proc:
+
+
+SetComboBoxSection := proc(WhateverYouNeed::table, partsnumber::string)
+	description "Set ComboBox of section according to stored section definition";
+	local warnings, part, b_, h_, pos;
+
+	warnings := WhateverYouNeed["warnings"];
+
+	if partsnumber = "" then
+
+		b_ := convert(WhateverYouNeed["sectiondata"]["b"], 'unit_free');
+		if member(convert(b_, string), GetProperty("ComboBox_b", 'itemlist'), 'pos') then
+			SetProperty("ComboBox_b", 'selectedIndex', pos-1);
+			SetProperty(cat("ComboBox_h", partsnumber), 'itemList', NODETimberSections:-h[WhateverYouNeed["materialdata"]["timbertype"], b_]);
+			h_ := convert(WhateverYouNeed["sectiondata"]["h"], 'unit_free');
+			if member(convert(h_, string), GetProperty("ComboBox_h", 'itemlist'), 'pos') then
+				SetProperty("ComboBox_h", 'selectedIndex', pos-1);
 			end if;
 		end if;
 
-		return sectionchanged
-	end proc:
+	else
+
+		b_ := convert(WhateverYouNeed["sectiondataAll"][partsnumber]["b"], 'unit_free');
+		if member(convert(b_, string), GetProperty(cat("ComboBox_b", partsnumber), 'itemList'), 'pos') then		
+			SetProperty(cat("ComboBox_b", partsnumber), 'selectedIndex', pos-1);
+			SetProperty(cat("ComboBox_h", partsnumber), 'itemList', NODETimberSections:-h[WhateverYouNeed["materialdataAll"][partsnumber]["timbertype"], b_]);
+			h_ := convert(WhateverYouNeed["sectiondataAll"][partsnumber]["h"], 'unit_free');			
+			if member(convert(h_, string), GetProperty(cat("ComboBox_h", partsnumber), 'itemlist'), 'pos') then
+				SetProperty(cat("ComboBox_h", partsnumber), 'selectedIndex', pos-1);
+			end if;
+		end if;
+
+	end if;
+
+end proc;
 
 
 Changed_bh := proc(WhateverYouNeed::table, varname::string)
@@ -133,16 +164,17 @@ Changed_bh := proc(WhateverYouNeed::table, varname::string)
 	
 	warnings := WhateverYouNeed["warnings"];
 
-	if StringTools:-Length(varname) = 1 then
+	if StringTools:-Length(varname) = 1 then		# just 1 section
 		dim := varname;
 		partsnumber := "";
-	elif StringTools:-Length(varname) = 2 then
+	elif StringTools:-Length(varname) = 2 then		# 2 sections
 		dim := substring(varname, 1..1);
 		partsnumber := substring(varname, 2..2);
 	else
 		Alert(cat("Changed_bh: undefined component ", varname), warnings, 3);
 	end if;
 
+	# setting values defined in ComboBox, and copy them to according TextAreas
 	if dim = "b" then
 		if NODEFunctions:-ComponentExists(cat("ComboBox_b", partsnumber)) then
 			b_ := parse(GetProperty(cat("ComboBox_b", partsnumber), value));	# Combobox value is string, convert to number

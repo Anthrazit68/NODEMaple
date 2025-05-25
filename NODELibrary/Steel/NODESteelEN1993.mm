@@ -243,7 +243,7 @@ SectiondataRectangular := proc(profilename::string, WhateverYouNeed::table)
 end proc:
 
 
-SetComboBox := proc(WhateverYouNeed::table)
+SetComboBoxMaterial := proc(WhateverYouNeed::table)
 	uses DocumentTools;
 	description "Set combobox according to chosen material or section";
 	local ind, val, foundit, warnings;
