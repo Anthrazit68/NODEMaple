@@ -442,20 +442,20 @@ GetSectiondata := proc(profilename::string, WhateverYouNeed::table)
 
 # 	warnings := WhateverYouNeed["warnings"];
 	# Rectangular / bxh				usual name for rectangular sections
-	# Rectanbular / b(bout)xh	name for sections with different b in ouside layer, section values calculated for main section
+	# Rectangular / b(bout)xh	name for sections with different b in ouside layer, section values calculated for main section
 
 	sectionproperties := ["h", "b", "A", "I_y", "I_z", "I_t", "W_y", "W_z", "i_y", "i_z"];
 
 	sectiontype := substring(profilename, 1 .. searchtext(" / ", profilename)-1);
 	section := substring(profilename, searchtext(" / ", profilename)+3 .. -1);	
 
-	if searchtext(section, "(") = 0 then
+	if searchtext("(", section) = 0 then
 		b_ := parse(substring(section, 1 .. searchtext("x", section)-1));	# 71x85
 		h_ := parse(substring(section, searchtext("x", section)+1 .. -1));
 	else
 		b_ := parse(substring(section, 1 .. searchtext("(", section)-1));	# 71(40)x85
-		bout_ := parse(substring(section, searchtext("(", section)+1 .. searchtext(")", section)-1));	# 71(40)x85
-		h_ := parse(substring(section, searchtext(")", section)+1 .. -1));
+		bout_ := parse(substring(section, searchtext("(", section)+1 .. searchtext(")", section)-1));	# 71(40)x85		
+		h_ := parse(substring(section, searchtext("x", section)+1 .. -1));
 		bout := bout_ * Unit('mm');
 	end if;
 	
@@ -479,8 +479,10 @@ GetSectiondata := proc(profilename::string, WhateverYouNeed::table)
 	j := min(b, h);
 	I_t := evalf(1/3 * i * j^3 * (1 - 0.63 * j / i));		# Limtreboka side 171	
 
+	# need to take into account profile with different outer layer, like 71(40)x215
 	sectiondata := table();
-	sectiondata["name"] := cat(sectiontype, " / ", b_, "x", h_);
+	# sectiondata["name"] := cat(sectiontype, " / ", b_, "x", h_);
+	sectiondata["name"] := section;
 	sectiondata["sectiontype"] := sectiontype;
 	sectiondata["b"] := b;
 	sectiondata["h"] := h;
