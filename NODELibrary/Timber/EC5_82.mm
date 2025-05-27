@@ -188,7 +188,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 
 		# F_vRk
 		
-		if connection["connection1"] = "Timber" then						# division by zero if run with steel plate outside
+		if connection["connection1"] = "Timber" then			# timber - steel (division by zero if run with steel plate outside)
 
 			if shearplanes = 1 or fastenervalues["SingleShearplane"] = true or OutsideLayerDifferent then # 1 shearplane, timber outside, steel inside
 			
@@ -205,9 +205,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 				dummy := 2.3 * sqrt(M_yRk * f_hk["1"] * d);
 				F_vRk["e"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
 
-			end if;
-
-			if shearplanes > 1 then # 2 shearplanes, timber outside, steel inside
+			elif shearplanes = 2 then # 2 shearplanes, timber outside, steel inside
 
 				F_vRk["f"] := evalf(f_hk["1"] * t_eff["1"] * d);
 
@@ -259,7 +257,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 				dummy := 2.3 * sqrt(M_yRk * f_hk["2"] * d);
 				F_vRk["e"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
 
-			else	# bolt 	
+			elif calculatedFastener = "Bolt" then
 				
 				F_vRk["j"] := evalf(0.5 * f_hk["2"] * t_eff["2"] * d);
 
@@ -366,7 +364,8 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 				if fastenervalues["doublesided"] = true and fastenervalues["overlap"] = true then	# overlap situation, double capacity of single connection
 					F_vRkfin := F_vRkfin * 2
 				end if;
-				
+
+# WRONG ?, steel - timber - steel ?			
 			elif shearplanes = 2 then		# timber - steel - timber with fully anchored fastener
 
 				for i in indices(F_vRkmin, 'nolist') do 
