@@ -61,7 +61,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 			OutsideLayerDifferent := true;
 		end if;
 	end if;	
-# DEBUG();
+
 	# 8.2.2 timber - timber connection
 	if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then
 
@@ -177,7 +177,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 
 		comments["F_vRk_steel"] := evaln(comments["F_vRk_steel"]);
 			
-	else	# (8.2.3) steel either on inside our outside
+	else	# (8.2.3) Steel - Timber connections
 
 		f_hk["1"] := calculate_f_hk(WhateverYouNeed, "1", alpha["1"]);		# only used if timber is outside
 
@@ -188,7 +188,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 
 		# F_vRk
 		
-		if connection["connection1"] = "Timber" then			# timber - steel (division by zero if run with steel plate outside)
+		if connection["connection1"] = "Timber" and connection["connection2"] = "Steel" then			# timber - steel, fig. 8.3 (a - h)
 
 			if shearplanes = 1 or fastenervalues["SingleShearplane"] = true or OutsideLayerDifferent then # 1 shearplane, timber outside, steel inside
 			
@@ -215,17 +215,19 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 				dummy := evalf(2.3 * sqrt(M_yRk * f_hk["1"] * d));
 				F_vRk["h"] := eval(dummy + min(dummy * alpha_rope, F_axRk / 4));
 
+			else
+
+				# need to pull out and check further down the code, as we could have situation with both different outside layers and more than 2 shearplanes
+
 			end if;
 
 		end if;
 
-		# 2 shearplanes, steel outside, timber inside
-		
-		# if connection with >=3 inside layers, t_eff["2"] = 0 (steel inside in connection)
-		# need to calculate j - m with t_eff["1"], calculating capacity of part of the connection
-
-		# if t_eff["2"] = 0 and connectionInsideLayers >= 3 then
-		if connection["connection2"] = "Steel" and connectionInsideLayers >= 3 then		
+		# timber - steel - timber - steel - timber
+		# part of connection must be calculated as steel - timber - steel (j - m)
+		# connection with multiple slotted-in steel plates must be split in side (timber - steel, a-e) and middle members (steel - timber - steel, j - m)
+		# calculating middle members with t_eff["1"], calculating capacity of part of the connection
+		if connection["connection1"] = "Timber" and connection["connection2"] = "Steel" and connectionInsideLayers >= 3 then
 			
 			F_vRk["j"] := evalf(0.5 * f_hk["1"] * t_eff["1"] * d);
 
@@ -237,8 +239,9 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 			dummy := 2.3 * sqrt(M_yRk * f_hk["1"] * d);
 			F_vRk["m"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
 
-		# else	# real situation with steel outside, timber inside
-		elif connection["connection1"] = "Steel" and connection["connection2"] = "Timber" then
+		end if;
+
+		if connection["connection1"] = "Steel" and connection["connection2"] = "Timber" then
 
 			f_hk["2"] := calculate_f_hk(WhateverYouNeed, "2", alpha["2"]);
 
@@ -257,7 +260,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 				dummy := 2.3 * sqrt(M_yRk * f_hk["2"] * d);
 				F_vRk["e"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
 
-			elif calculatedFastener = "Bolt" then
+			elif calculatedFastener = "Bolt" and shearplanes = 2 then
 				
 				F_vRk["j"] := evalf(0.5 * f_hk["2"] * t_eff["2"] * d);
 
@@ -269,80 +272,102 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 				dummy := 2.3 * sqrt(M_yRk * f_hk["2"] * d);
 				F_vRk["m"] := evalf(dummy + min(dummy * alpha_rope, F_axRk / 4));
 
+			else
+
+				Alert(cat("Warning: Steel - timber connection with undefined fastener ",calculatedFastener, " and ", shearplanes, "shearplanes", warnings, 3))
+
 			end if;
 			
 		end if;
 
 		# F_vRkmin, grouping of F_vRk values according to steel plate thickness
 		
-		# precalculating capacity dependent on steel plate thickness, interpolating values
-		if t_steel < d then			# thin or medium thick steel plate
-			
-			if assigned(F_vRk["a"]) and assigned(F_vRk["b"]) then
-				F_vRkmin["1sb"] := min(F_vRk["a"], F_vRk["b"]);		# fig. 8.3, 1 shearplane, thin, bent steel
-			else
-				F_vRkmin["1sb"] := 0
+		# values a - e and j - m are dependent on bolt to steelplate ratio
+		# values f - h are independent of steelplate ratio
+
+		if connection["connection1"] = "Timber" and connection["connection2"] = "Steel" and shearplanes = 2 then
+
+			F_vRkmin["2"] := min(F_vRk["f"], F_vRk["g"], F_vRk["h"])
+
+		else
+
+			# precalculating capacity dependent on steel plate thickness, interpolating values
+			# need to split straight and bent steel as not combinations are geometrically possible 
+			# 1...1 shearplane (a, b)
+			# 2...2 shearplanes (j, k)
+			# s...thin steel
+			# S...thick steel
+			# a...straight steel
+			# b...bent steel
+			if t_steel < d then			# thin or medium thick steel plate
+				
+				if assigned(F_vRk["a"]) and assigned(F_vRk["b"]) then
+					F_vRkmin["1sb"] := min(F_vRk["a"], F_vRk["b"]);		# fig. 8.3, 1 shearplane, thin, bent steel
+				else
+					F_vRkmin["1sb"] := 0
+				end if;
+
+				if assigned(F_vRk["j"]) and assigned(F_vRk["k"]) then
+					F_vRkmin["2sa"] := F_vRk["j"];						# fig. 8.3, 2 shearplanes, thin, straight steel
+					F_vRkmin["2sb"] := F_vRk["k"];						# fig. 8.3, 2 shearplanes, thin, bent steel
+				else
+					F_vRkmin["2sa"] := 0;
+					F_vRkmin["2sb"] := 0;
+				end if;
+				comments["F_vRk_steel"] := "thin plate";
+				
 			end if;
 
-			if assigned(F_vRk["j"]) and assigned(F_vRk["k"]) then
-				F_vRkmin["2sa"] := F_vRk["j"];						# fig. 8.3, 2 shearplanes, thin, straight steel
-				F_vRkmin["2sb"] := F_vRk["k"];						# fig. 8.3, 2 shearplanes, thin, bent steel
-			else
-				F_vRkmin["2sa"] := 0;
-				F_vRkmin["2sb"] := 0;
-			end if;
-			comments["F_vRk_steel"] := "thin plate";
-			
-		end if;
+			if t_steel > 0.5 * d then	# medium or thick steel plate
 
-		if t_steel > 0.5 * d then	# medium or thick steel plate
+				if assigned(F_vRk["c"]) and assigned(F_vRk["d"]) and assigned(F_vRk["e"]) then
+					F_vRkmin["1Sa"] := F_vRk["c"];						# fig. 8.3, 1 shearplane, thick, straight steel
+					F_vRkmin["1Sb"] := min(F_vRk["d"], F_vRk["e"]);		# fig. 8.3, 1 shearplane, thick, bent steel			
+				else
+					F_vRkmin["1Sa"] := 0;
+					F_vRkmin["1Sb"] := 0;
+				end if;
+					
+				if assigned(F_vRk["l"]) then
+					F_vRkmin["2Sa"] := F_vRk["l"];					# fig. 8.3, 2 shearplanes, thick, straight steel (bolts)
+				else
+					F_vRkmin["2Sa"] := 0;							# might be 2x single shearplane situation (nails or screws)
+				end if;
 
-			if assigned(F_vRk["c"]) and assigned(F_vRk["d"]) and assigned(F_vRk["e"]) then
-				F_vRkmin["1Sa"] := F_vRk["c"];						# fig. 8.3, 1 shearplane, thick, straight steel
-				F_vRkmin["1Sb"] := min(F_vRk["d"], F_vRk["e"]);		# fig. 8.3, 1 shearplane, thick, bent steel			
-			else
-				F_vRkmin["1Sa"] := 0;
-				F_vRkmin["1Sb"] := 0;
+				if assigned(F_vRk["m"]) then
+					F_vRkmin["2Sb"] := F_vRk["m"];					# fig. 8.3, 2 shearplanes, thick, bent steel
+				else
+					F_vRkmin["2Sb"] := 0
+				end if;
+				comments["F_vRk_steel"] := "thick plate";
+
 			end if;
 				
-			if assigned(F_vRk["l"]) then
-				F_vRkmin["2Sa"] := F_vRk["l"];					# fig. 8.3, 2 shearplanes, thick, straight steel (bolts)
-			else
-				F_vRkmin["2Sa"] := 0;							# might be 2x single shearplane situation (nails or screws)
+			if t_steel > 0.5 * d and t_steel < d then  # medium thick plate			
+
+				f := (t_steel - 0.5 * d) / (0.5 * d);		# interpolation factor, 0 < f < 1
+				
+				# min of straight steel
+				F_vRkmin["1a"] := F_vRkmin["1Sa"];					# fig. 8.3, 1 shearplane, medium
+				F_vRkmin["2a"] := evalf(F_vRkmin["2sa"] + f * (F_vRkmin["2Sa"] - F_vRkmin["2sa"]));	# 2 shearplanes, medium
+
+				# min of bent steel
+				F_vRkmin["1b"] := evalf(F_vRkmin["1sb"] + f * (F_vRkmin["1Sb"] - F_vRkmin["1sb"]));
+				F_vRkmin["2b"] := evalf(F_vRkmin["2sb"] + f * (F_vRkmin["2Sb"] - F_vRkmin["2sb"]));
+
+				# delete unneccessary values
+				for i in {"1sb", "2sa", "2sb", "1Sa", "1Sb", "2Sa", "2Sb"} do
+					if assigned(F_vRkmin[i]) then
+						F_vRkmin[i] := evaln(F_vRkmin[i])
+					end if
+				end do;
+				
+				comments["F_vRk_steel"] := cat("medium plate (f=", round2(f, 2),")");
+						
 			end if;
 
-			if assigned(F_vRk["m"]) then
-				F_vRkmin["2Sb"] := F_vRk["m"];					# fig. 8.3, 2 shearplanes, thick, bent steel
-			else
-				F_vRkmin["2Sb"] := 0
-			end if;
-			comments["F_vRk_steel"] := "thick plate";
-
 		end if;
-			
-		if t_steel > 0.5 * d and t_steel < d then  # medium thick plate			
-
-			f := (t_steel - 0.5 * d) / (0.5 * d);		# interpolation factor, 0 < f < 1
-			
-			# min of straight steel
-			F_vRkmin["1a"] := F_vRkmin["1Sa"];					# fig. 8.3, 1 shearplane, medium
-			F_vRkmin["2a"] := evalf(F_vRkmin["2sa"] + f * (F_vRkmin["2Sa"] - F_vRkmin["2sa"]));	# 2 shearplanes, medium
-
-			# min of bent steel
-			F_vRkmin["1b"] := evalf(F_vRkmin["1sb"] + f * (F_vRkmin["1Sb"] - F_vRkmin["1sb"]));
-			F_vRkmin["2b"] := evalf(F_vRkmin["2sb"] + f * (F_vRkmin["2Sb"] - F_vRkmin["2sb"]));
-
-			# delete unneccessary values
-			for i in {"1sb", "2sa", "2sb", "1Sa", "1Sb", "2Sa", "2Sb"} do
-				if assigned(F_vRkmin[i]) then
-					F_vRkmin[i] := evaln(F_vRkmin[i])
-				end if
-			end do;
-			
-			comments["F_vRk_steel"] := cat("medium plate (f=", round2(f, 2),")");
-					
-		end if;
-
+		
 		# F_vRkfin, final capacity value
 
 		F_vRkfin := 0;
@@ -365,17 +390,19 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 					F_vRkfin := F_vRkfin * 2
 				end if;
 
-# WRONG ?, steel - timber - steel ?			
 			elif shearplanes = 2 then		# timber - steel - timber with fully anchored fastener
 
-				for i in indices(F_vRkmin, 'nolist') do 
-					if substring(i, 1..1) = "2" then
-						if F_vRkfin = 0 or F_vRkmin[i] < F_vRkfin then
-							F_vRkfin := F_vRkmin[i];
-							comments["F_vRkmin"] := cat("Fv,Rk acc. to 8.2.3 (f-h), internal index ", i)
-						end if;
-					end if;
-				end do;
+				F_vRkfin := F_vRkmin["2"];
+				comments["F_vRkmin"] := "Fv,Rk acc. to 8.2.3 (f-h)";
+
+				# for i in indices(F_vRkmin, 'nolist') do 
+				# 	if substring(i, 1..1) = "2" then
+				# 		if F_vRkfin = 0 or F_vRkmin[i] < F_vRkfin then
+				# 			F_vRkfin := F_vRkmin[i];
+				# 			comments["F_vRkmin"] := cat("Fv,Rk acc. to 8.2.3 (f-h), internal index ", i)
+				# 		end if;
+				# 	end if;
+				# end do;
 			
 				F_vRkfin  := F_vRkfin * shearplanes;
 
