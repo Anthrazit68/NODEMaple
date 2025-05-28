@@ -569,9 +569,13 @@ PlotResults := proc(WhateverYouNeed::table)
 					end if;
 				end if;			
 
-			end if;
+				SetProperty("Plot_result", 'value', display(geometry:-draw(geometryList), plotitems));		# combine geometry and plots elements
 
-			SetProperty("Plot_result", 'value', display(geometry:-draw(geometryList), plotitems));		# combine geometry and plots elements
+			else # fasteners outside of beams
+
+				return
+
+			end if;
 			
 		else	# e.g. "Loads on Fastener Group"
 
@@ -1921,7 +1925,8 @@ CheckPointInPolygon := proc(WhateverYouNeed::table)::boolean;
 			for i from 1 to numelems(fastenerPointlist) do
 				if ComputationalGeometry:-PointInPolygon(geometry:-coordinates(fastenerPointlist[i]), polygon) <> "inside" then
 					InsidePolygon := false;
-					Alert(cat("Fastener point ", i, " is outside beam ", i), WhateverYouNeed["warnings"], 4);
+					Alert(cat("Fastener point ", i, " is outside beam ", beamnumber[part]), WhateverYouNeed["warnings"], 5);
+					return InsidePolygon;
 				end if;
 			end do;
 

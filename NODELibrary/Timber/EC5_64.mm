@@ -44,10 +44,11 @@ EC5_643 := proc(WhateverYouNeed::table)
 	sigma_t90d_64 := convert(k_p * M_yd / W_y, 'units', 'MPa');				# (6.54), conservative, could be reduced by using (6.55)
 
 	# check shear
+	# (6.13)
 	if timbertype = "Solid timber" then
-		kcr := 0.67		# for konstruksjonstre
+		kcr := 0.67		# for solid timber
 	elif timbertype = "Glued laminated timber" then
-		kcr := 0.8		# for konstruksjonstre	(se NA)
+		kcr := 0.8		# for glued laminated timber (NA.6.13a)
 	else
 		kcr := 1
 	end if;
@@ -55,10 +56,16 @@ EC5_643 := proc(WhateverYouNeed::table)
 	# EC5_617();						# check shear
 	tau_d_64 := convert(max(evalf(1.5 * V_yd / (kcr * A)), evalf(1.5 * V_zd / (kcr * A))), 'units', 'MPa');	
 
-	eta_643 := evalf(tau_d_64 / f_vd + sigma_t90d_64 / (k_dis * k_vol * f_t90d));
+	eta_643 := evalf(tau_d_64 / f_vd + sigma_t90d_64 / (k_dis * k_vol * f_t90d));	# (6.53)
 	
-	usedcode := "6.4.3";
-	comments := "Double tapered, curved and pitched cambered beams";
+	if sigma_t90d_64 > 0 then
+		usedcode := "6.4.3";
+		comments := "Double tapered, curved and pitched cambered beams";
+	else
+		usedcode := "6.1.7";
+		comments := "Shear";
+	end if;
+
 
 	# if ComponentExists("TextArea_eta_643") then
 	#	HighlightResults({"eta_643"}, "highlight");

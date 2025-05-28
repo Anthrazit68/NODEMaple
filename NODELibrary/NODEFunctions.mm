@@ -112,7 +112,19 @@ Alert := proc(msg::string, warnings::table, level::integer)
 				dummy := cat(dummy, ", ", warnings[j])
 			end if;
 		end do;
-	
+
+		if SearchText("CRITICAL ERROR", dummy) > 0 then
+			SetProperty("TextArea_warnings", 'fontcolor', "Red");
+		elif SearchText("ERROR", dummy) > 0 then
+			SetProperty("TextArea_warnings", 'fontcolor', "OrangeRed");
+		elif SearchText("WARNING", dummy) > 0 then
+			SetProperty("TextArea_warnings", 'fontcolor', "Purple");
+		elif SearchText("Warning", dummy) > 0 then
+			SetProperty("TextArea_warnings", 'fontcolor', "Violet");
+		else
+			SetProperty("TextArea_warnings", 'fontcolor', "Black");
+		end if;
+
 		SetProperty("TextArea_warnings", 'value', dummy);
 	end if;
 end proc:
@@ -877,6 +889,12 @@ ModifyComboVariables := proc(combobox::string, action::string, atable::table, ne
 	
 	if ComponentExists(combobox) then
 		SetProperty(combobox, 'itemList', combolist);
+
+		# set changed value as active
+		if action = "Add" or action = "Modify" then
+			member(newitem["name"], combolist, 'p');		# find position of new item in combolist
+			SetProperty(combobox, 'selectedindex', p-1)		# indexposition starts with 0
+		end if;
 	end if;
 	
 end proc:
@@ -1348,8 +1366,7 @@ CalculateAllLoadcases := proc(WhateverYouNeed::table)
 	# WriteLoadsToDocument(loadcase, WhateverYouNeed);	
 	# Main(WhateverYouNeed);
 
-	# SetProperty("TextArea_activeloadcase", 'value', activeloadcase);
-	# MainCommon("calculateAllLoadcasesCleanup");
+	# SetProperty("TextArea_activeloadcase", 'value', activeloadcase);	
 	MainCommon("calculateAllLoadcasesCleanup")
 end proc:
 
@@ -1661,11 +1678,11 @@ Write_eta := proc(eta::table, comments::table)
 	
 	end do;
 
-	# print comments
-	dummy := "";	
-	for i in entries(comments, 'nolist') do
-		if type(i, string) then
-			dummy := cat(dummy, " / ", i)
+	# print comments, sorted by alphabetical order of index
+	dummy := "";
+	for i in indices(comments, 'nolist', 'indexorder') do
+		if type(comments[i], string) then
+			dummy := cat(dummy, " / ", comments[i])
 		end if;
 	end do;
 
@@ -1743,12 +1760,12 @@ MaterialChanged := proc(material::string, activematerial::string, WhateverYouNee
 
 	if material = "concrete" then
 		NODEConcreteEN1992:-GetMaterialdata(activematerial, WhateverYouNeed);
-		NODEConcreteEN1992:-SetComboBox(WhateverYouNeed);
+		NODEConcreteEN1992:-SetComboBoxMaterial(WhateverYouNeed);
 		updateResults(WhateverYouNeed["materialdata"]);
 
 	elif material = "steel" then
 		NODESteelEN1993:-GetMaterialdata(activematerial, WhateverYouNeed);
-		NODESteelEN1993:-SetComboBox(WhateverYouNeed);
+		NODESteelEN1993:-SetComboBoxMaterial(WhateverYouNeed);
 		updateResults(WhateverYouNeed["materialdata"]);
 		
 	elif material = "timber" then
@@ -1764,7 +1781,7 @@ MaterialChanged := proc(material::string, activematerial::string, WhateverYouNee
 		end if;
 
 		if partsnumber <> "steel" then
-			sectionchanged := NODETimberEN1995:-SetComboBox(WhateverYouNeed, forceSectionUpdate, partsnumber);		# check if component boxes of material need to be updated
+			sectionchanged := NODETimberEN1995:-SetComboBoxMaterial(WhateverYouNeed, forceSectionUpdate, partsnumber);		# check if component boxes of material need to be updated
 			updateResults(WhateverYouNeed["materialdata"]);
 		
 			if sectionchanged and XMLImport = false then						# problem when material is changed in XMLImport, as activesection will be overwritten
@@ -1802,12 +1819,12 @@ SectionChanged := proc(material::string, activesection::string, WhateverYouNeed:
 	
 	if material = "concrete" then
 	#	materialdata := NODEConcreteEN1992:-GetMaterialdata(activematerial, warnings);
-	#	NODEConcreteEN1992:-SetComboBox(WhateverYouNeed);
+	#	NODEConcreteEN1992:-SetComboBoxMaterial(WhateverYouNeed);
 	#	updateResults(materialdata);																# update material property component boxes
 
 	elif material = "steel" then
 		NODESteelEN1993:-GetSectiondata(activesection, WhateverYouNeed);
-		NODESteelEN1993:-SetComboBox(WhateverYouNeed);
+		NODESteelEN1993:-SetComboBoxMaterial(WhateverYouNeed);
 		updateResults(WhateverYouNeed["sectiondata"]);
 		
 	elif material = "timber" then
@@ -1817,9 +1834,11 @@ SectionChanged := proc(material::string, activesection::string, WhateverYouNeed:
 		else
 			NODESteelEN1993:-GetSectiondata(activesection, WhateverYouNeed);			
 		end if;
-		
+
+		# try existing function instead
 		SetProperty(cat("TextArea_b", partsnumber), 'value', convert(convert(WhateverYouNeed["sectiondata"]["b"], 'unit_free'), string));
 		SetProperty(cat("TextArea_h", partsnumber), 'value', convert(WhateverYouNeed["sectiondata"]["h"], 'unit_free'));
+
 		if assigned(WhateverYouNeed["sectiondata"]["bout"]) then
 			if WhateverYouNeed["sectiondata"]["bout"] <> "false" then
 				SetProperty(cat("TextArea_bout", partsnumber), 'value', convert(convert(WhateverYouNeed["sectiondata"]["bout"], 'unit_free'), string));

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<database version = '2025-01' source_software = 'NODE common file format, generated via Maple' created = '2025-01-25T11:27:01 CET'>
-  <projectdata client = 'NODE rådgivende ingeniører AS' projecttitle = 'Limtreboka Beregningseksempler' projectnumber = '0320.03'/>
+<database version = '2025-01' source_software = 'https://github.com/Anthrazit68/NODEMaple' created = '2025-05-05T19:52:27 CEST'>
+  <projectdata projecttitle = 'Limtreboka Beregningseksempler' projectnumber = '0320.03' client = 'NODE rådgivende ingeniører AS'/>
   <materials>
     <timber>
       <material material = 'timber' name = 'GL 30c / Service class 1 / Short-term' timbertype = 'Glued laminated timber' strengthclass = 'GL 30c' serviceclass = '1' loaddurationclass = 'Short-term' gamma_M = '1.15' k_mod = '.90'>
@@ -29,7 +29,7 @@
           <loadcase name = 'Opplegg' F_xGk = '0' F_xQk = '0' F_xd = '0' M_tGk = '0' M_tQk = '0' M_td = '0' M_yGk = '0' M_yQk = '0' M_yd = '0' M_zGk = '0' M_zQk = '0' M_zd = '0' V_yGk = 'false' V_yQk = 'false' V_yd = '75.8*Units:-Unit(kN)' V_zGk = '0' V_zQk = '0' V_zd = '0' alpha = '0.'/>
         </loadcases>
         <structure>
-          <code_64 l_curve = '5.9*Units:-Unit(m)' r_in = '18*Units:-Unit(m)' t_lam = '44*Units:-Unit(mm)' alpha_ap = '0' tapered_N = 'false' ConstructionType = 'Curved beam'/>
+          <code_64 l_curve = '0' r_in = '0' t_lam = '0' alpha_ap = '0' tapered_N = 'false' ConstructionType = '-'/>
           <buckling l_efy = '.60*Units:-Unit(m)' l_efz = '.60*Units:-Unit(m)' l_ky = '.60*Units:-Unit(m)' l_kz = '.60*Units:-Unit(m)'/>
           <code_615 a_615 = '0' l1_615 = '7500*Units:-Unit(mm)' l_615 = '360*Units:-Unit(mm)' type_615 = 'b'/>
           <code_622 h_622 = '360*Units:-Unit(mm)'/>
