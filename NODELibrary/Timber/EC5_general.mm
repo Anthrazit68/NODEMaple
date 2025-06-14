@@ -482,7 +482,8 @@ GetSectiondata := proc(profilename::string, WhateverYouNeed::table)
 	# need to take into account profile with different outer layer, like 71(40)x215
 	sectiondata := table();
 	# sectiondata["name"] := cat(sectiontype, " / ", b_, "x", h_);
-	sectiondata["name"] := section;
+	sectiondata["name"] := profilename;
+	sectiondata["section"] := section;
 	sectiondata["sectiontype"] := sectiontype;
 	sectiondata["b"] := b;
 	sectiondata["h"] := h;
