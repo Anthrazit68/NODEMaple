@@ -32,7 +32,7 @@
 calculate_t := proc(WhateverYouNeed::table)
 	description "Calculate t and t_pen / effective part thickness and penetration depth";
 	local shearplanes, t_total, t, t_eff, t_ef_814_NA_DE, t_pen, n_tip, n_head, ls, d, chosenFastener, connection, alphaScrew;
-	local checkPassed, structure, sectiondataAll, warnings, comments, fastenervalues, timberlayers, i, nailSurface;
+	local checkPassed, structure, sectiondataAll, warnings, comments, fastenervalues, timberlayers, i, nailSurface, b_max;
 
 	# define local variables
 	structure := WhateverYouNeed["calculations"]["structure"];
@@ -93,10 +93,18 @@ calculate_t := proc(WhateverYouNeed::table)
 	# t_eff["1"], t_eff["2"]
 	if chosenFastener = "Bolt" or chosenFastener = "Dowel" then
 
-		if ls < t_total then		# needs to go through the whole section
-			Alert("Fastener too short", warnings, 5);
+		if ls * sin(alphaScrew) < t_total then		# needs to go through the whole section
+			# check if dowel of type 
+			if WhateverYouNeed["calculatedvalues"]["fastenervalues"]["detailinformation"] = "Self-drilling dowel" then
+				if ls * sin(alphaScrew) < WhateverYouNeed["calculatedvalues"]["fastenervalues"]["b_max"] then
+					Alert("Self-drilling dowel too short", warnings, 5);
+				end if;
+			else
+				Alert("Fastener too short", warnings, 5);
+			end if;
 			return
 		else
+			Alert("Warning: Fastener too long", warnings, 1);
 			ls := t_total			# probably need to limit length to section depth
 		end if;
 
@@ -136,10 +144,18 @@ calculate_t := proc(WhateverYouNeed::table)
 			
 		end do;
 
-		n_tip := 0; 		# part number for which t_pen is defined
-		n_head := 0;
-		t_pen := 0;
-	
+		if WhateverYouNeed["calculatedvalues"]["fastenervalues"]["detailinformation"] = "Self-drilling dowel" then
+			# for timber - steel connections with one or more shearplane, fastener tip is always considered to go into part 1
+			n_tip := "1";
+			n_head := 0;
+			t_eff["1"] := evalf(min(t["1"], ls * sin(alphaScrew) - t["steel"]));
+			# t_pen := 
+		else
+			n_tip := 0; 		# part number for which t_pen is defined
+			n_head := 0;
+			t_pen := 0;
+		end if;
+		
 	elif chosenFastener = "Nail" or chosenFastener = "Screw" then
 
 		# extending formula for inclined screws
