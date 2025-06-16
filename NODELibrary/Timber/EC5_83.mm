@@ -32,7 +32,7 @@
 calculate_t := proc(WhateverYouNeed::table)
 	description "Calculate t and t_pen / effective part thickness and penetration depth";
 	local shearplanes, t_total, t, t_eff, t_ef_814_NA_DE, t_pen, n_tip, n_head, ls, d, chosenFastener, connection, alphaScrew;
-	local checkPassed, structure, sectiondataAll, warnings, comments, fastenervalues, timberlayers, i, nailSurface, b_max;
+	local checkPassed, structure, sectiondataAll, warnings, comments, fastenervalues, timberlayers, i, nailSurface, b_max, l1;
 
 	# define local variables
 	structure := WhateverYouNeed["calculations"]["structure"];
@@ -43,7 +43,10 @@ calculate_t := proc(WhateverYouNeed::table)
 
 	# structure / fastener
 	chosenFastener := structure["fastener"]["chosenFastener"];
-	ls := structure["fastener"]["fastener_ls"];					# length of fastener
+	ls := structure["fastener"]["fastener_ls"];									# length of fastener
+	b_max := WhateverYouNeed["calculatedvalues"]["fastenervalues"]["b_max"];	# SDB dowels
+	l1 := WhateverYouNeed["calculatedvalues"]["fastenervalues"]["l1"];			# SDB dowels
+
 	alphaScrew := structure["fastener"]["alphaScrew"];	# inclination of fastener
 	d := structure["fastener"]["fastener_d"];					# diameter
 	nailSurface := structure["fastener"]["nailSurface"];
@@ -96,7 +99,7 @@ calculate_t := proc(WhateverYouNeed::table)
 		if ls * sin(alphaScrew) < t_total then		# needs to go through the whole section
 			# check if dowel of type 
 			if WhateverYouNeed["calculatedvalues"]["fastenervalues"]["detailinformation"] = "Self-drilling dowel" then
-				if ls * sin(alphaScrew) < WhateverYouNeed["calculatedvalues"]["fastenervalues"]["b_max"] then
+				if ls * sin(alphaScrew) < b_max then
 					Alert("Self-drilling dowel too short", warnings, 5);
 				end if;
 			else
@@ -108,12 +111,12 @@ calculate_t := proc(WhateverYouNeed::table)
 			ls := t_total			# probably need to limit length to section depth
 		end if;
 
-		if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then	# figure 8.2
+		if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then	# figure 8.2, 8.4
 			t_eff["1"] := t["1"];
 			t_eff["2"] := t["2"]
 			
 		elif connection["connection1"] = "Timber" and connection["connection2"] = "Steel" then	# figure 8.3 a - h
-			t_eff["1"] := t["1"];
+			t_eff["1"] := t["1"];	# if Self-drilling dowel, t_eff["1"] will be changed later
 			t_eff["2"] := 0
 			
 		elif connection["connection1"] = "Steel" and connection["connection2"] = "Timber" then	# figure 8.3 j - m
@@ -123,13 +126,41 @@ calculate_t := proc(WhateverYouNeed::table)
 			elif chosenFastener = "Dowel" then
 				Alert("Outside steelplates cannot be used together with dowels", warnings, 5);
 				return
-			end if
-			
+			end if			
+		end if;
+
+		# t_eff for Self-drilling dowels
+		if WhateverYouNeed["calculatedvalues"]["fastenervalues"]["detailinformation"] = "Self-drilling dowel" then
+			local d_ls, b_cover, t1;
+
+			d_ls := ls - l1;											# difference between full and effective length of SDB
+			b_cover := (t_total - ls * sin(alphaScrew)) / 2;			# average cover both sides for SDB
+
+			if shearplanes = 2 then
+				
+				t_eff["1"] := t["1"] - b_cover - d_ls / 2;				# reduction for dowel cover and effective length reduction (assumed equal on both sides)
+
+			elif shearplanes = 4 then
+# NEEDS TO BE CHECKED
+# MIGHT BE THAT t_eff["1"] should not be reduced, as calculation is done in EC5_82 instead
+				if defined(sectiondataAll["1"]["bout"]) then
+					t1 := sectiondataAll["1"]["bout"]
+				else
+					t1 := sectiondataAll["1"]["b"]
+				end if;
+
+				t_eff["1"] := t1 - b_cover - d_ls / 2;					# reduction for dowel cover and effective length reduction (assumed equal on both sides)
+
+			else
+
+				Alert("Self-drilling dowels not valid other than 1 or 2 steelplates", warnings, 5);
+
+			end if;
+
 		end if;
 
 		# t_ef for 8.1.4 NA DE, limtreboka p. 251
-		# tpen not possible to use as bolts and dowels need to go through all parts
-		
+		# tpen not possible to use as bolts and dowels need to go through all parts		
 		for i in {"1", "2"} do
 			
 			if timberlayers[i] > 0 then
@@ -144,17 +175,9 @@ calculate_t := proc(WhateverYouNeed::table)
 			
 		end do;
 
-		if WhateverYouNeed["calculatedvalues"]["fastenervalues"]["detailinformation"] = "Self-drilling dowel" then
-			# for timber - steel connections with one or more shearplane, fastener tip is always considered to go into part 1
-			n_tip := "1";
-			n_head := 0;
-			t_eff["1"] := evalf(min(t["1"], ls * sin(alphaScrew) - t["steel"]));
-			# t_pen := 
-		else
-			n_tip := 0; 		# part number for which t_pen is defined
-			n_head := 0;
-			t_pen := 0;
-		end if;
+		n_tip := 0; 		# part number for which t_pen is defined
+		n_head := 0;
+		t_pen := 0;
 		
 	elif chosenFastener = "Nail" or chosenFastener = "Screw" then
 
@@ -308,7 +331,7 @@ calculate_t := proc(WhateverYouNeed::table)
 
 				end if;					
 
-			elif connection["connection2"] = "Steel" then	# Rothoblaas Alumini / Alumega
+			elif connection["connection2"] = "Steel" then	# Rothoblaas Alumini / Alumega with predrilled holes and screws (LBA, LBS)
 
 				t_eff["1"] := evalf(min(t["1"], ls * sin(alphaScrew) - t["1"] - t["steel"]));
 				t_eff["2"] := 0;
