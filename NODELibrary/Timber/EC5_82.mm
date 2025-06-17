@@ -49,7 +49,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 	f_hk := table();
 	F_vRkmin := table();		# stores groups of combinable shear failure modes
 
-	# modify t_eff if connectionHalfOutsideLayers	
+	# modify t_eff if OutsideLayerDifferent	
 	t_eff := table();	
 	t_eff["1"] := fastenervalues["t_eff"]["1"];		# t_eff 1 inside
 	t_eff["2"] := fastenervalues["t_eff"]["2"];
@@ -182,8 +182,39 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 		f_hk["1"] := calculate_f_hk(WhateverYouNeed, "1", alpha["1"]);		# only used if timber is outside
 
 		t_eff["1o"] := fastenervalues["t_eff"]["1"];
-		if bout1 <> "false" and bout1 < t_eff["1o"] then			# only possible with timber outside / steel inside	
-			t_eff["1o"] := bout1
+
+		# if bout1 <> "false" and bout1 < t_eff["1o"] then			# only possible with timber outside / steel inside
+		# calculate effective length of outer layer
+		if OutsideLayerDifferent then
+
+			if WhateverYouNeed["calculatedvalues"]["fastenervalues"]["detailinformation"] = "Self-drilling dowel" then
+
+				if shearplanes = 2 then
+					Alert("Self-drilling dowels with 1 steelplate and bout <> b ?", warnings, 1)
+
+				elif shearplanes = 4 then
+					local  ls, b_max, l1, t_total, d_ls, b_cover, alphaScrew;
+					ls := structure["fastener"]["fastener_ls"];									# length of fastener
+					b_max := WhateverYouNeed["calculatedvalues"]["fastenervalues"]["b_max"];	# SDB dowels
+					l1 := WhateverYouNeed["calculatedvalues"]["fastenervalues"]["l1"];			# SDB dowels
+					t_total := WhateverYouNeed["calculatedvalues"]["t_total"];
+					alphaScrew := structure["fastener"]["alphaScrew"];	# inclination of fastener
+
+					d_ls := ls - l1;											# difference between full and effective length of SDB
+					b_cover := (t_total - ls * sin(alphaScrew)) / 2;
+					t_eff["1o"] := bout1 - b_cover - d_ls / 2;
+
+				else
+					Alert("Self-drilling dowels not allowed with more than 2 steel plates", warnings, 5)
+
+				end if;
+
+			else
+
+				t_eff["1o"] := bout1
+
+			end if;
+
 		end if;	
 
 		# F_vRk

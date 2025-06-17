@@ -96,10 +96,10 @@ calculate_t := proc(WhateverYouNeed::table)
 	# t_eff["1"], t_eff["2"]
 	if chosenFastener = "Bolt" or chosenFastener = "Dowel" then
 
-		if ls * sin(alphaScrew) < t_total then		# needs to go through the whole section
+		if evalf(ls * sin(alphaScrew)) < t_total then		# needs to go through the whole section
 			# check if dowel of type 
 			if WhateverYouNeed["calculatedvalues"]["fastenervalues"]["detailinformation"] = "Self-drilling dowel" then
-				if ls * sin(alphaScrew) < b_max then
+				if b_max < t_total then
 					Alert("Self-drilling dowel too short", warnings, 5);
 				end if;
 			else
@@ -107,7 +107,7 @@ calculate_t := proc(WhateverYouNeed::table)
 			end if;
 			return
 		else
-			Alert("Warning: Fastener too long", warnings, 1);
+			Alert("Fastener too long", warnings, -2);
 			ls := t_total			# probably need to limit length to section depth
 		end if;
 
@@ -134,22 +134,15 @@ calculate_t := proc(WhateverYouNeed::table)
 			local d_ls, b_cover, t1;
 
 			d_ls := ls - l1;											# difference between full and effective length of SDB
-			b_cover := (t_total - ls * sin(alphaScrew)) / 2;			# average cover both sides for SDB
+			b_cover := evalf((t_total - ls * sin(alphaScrew)) / 2);			# average cover both sides for SDB
 
 			if shearplanes = 2 then
 				
 				t_eff["1"] := t["1"] - b_cover - d_ls / 2;				# reduction for dowel cover and effective length reduction (assumed equal on both sides)
 
 			elif shearplanes = 4 then
-# NEEDS TO BE CHECKED
-# MIGHT BE THAT t_eff["1"] should not be reduced, as calculation is done in EC5_82 instead
-				if defined(sectiondataAll["1"]["bout"]) then
-					t1 := sectiondataAll["1"]["bout"]
-				else
-					t1 := sectiondataAll["1"]["b"]
-				end if;
 
-				t_eff["1"] := t1 - b_cover - d_ls / 2;					# reduction for dowel cover and effective length reduction (assumed equal on both sides)
+				t_eff["1"] := t["1"];
 
 			else
 
@@ -198,8 +191,8 @@ calculate_t := proc(WhateverYouNeed::table)
 			# for timber - timber connections with one shearplane, fastener tip is always considered to be in part 2
 			if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then		# figure 8.2 a - f
 
-				t_eff["1"] := min(t["1"], ls * sin(alphaScrew));						
-				t_eff["2"] := evalf(min(t["2"], ls * sin(alphaScrew) - t["1"]));				# figure 8.4(a)
+				t_eff["1"] := min(t["1"], evalf(ls * sin(alphaScrew)));						
+				t_eff["2"] := evalf(min(t["2"], evalf(ls * sin(alphaScrew) - t["1"])));				# figure 8.4(a)
 				t_pen := t_eff["2"];
 				n_tip := "2";				# number of part with the tip
 				n_head := "1";
@@ -214,7 +207,7 @@ calculate_t := proc(WhateverYouNeed::table)
 			# for timber - steel connections with one shearplane, fastener tip is always considered to go into part 1 (different from above)
 			elif connection["connection1"] = "Timber" and connection["connection2"] = "Steel" then		# Figur 8.3 a - e
 
-				t_eff["1"] := evalf(min(t["1"], ls * sin(alphaScrew) - t["steel"]));	
+				t_eff["1"] := evalf(min(t["1"], evalf(ls * sin(alphaScrew) - t["steel"])));	
 				t_eff["2"] := 0;
 				t_pen := t_eff["1"];
 				n_tip := "1";
@@ -241,16 +234,16 @@ calculate_t := proc(WhateverYouNeed::table)
 
 				# check if nail is in part 1, 2 or 3
 
-				if ls * sin(alphaScrew) <= t["1"] then		# fastener in part 1, too short
+				if evalf(ls * sin(alphaScrew)) <= t["1"] then		# fastener in part 1, too short
 
 					Alert(cat("calculate_t: ", chosenFastener, " tip in part 1, too short"), warnings, 5);
 					return
 
-				elif ls * sin(alphaScrew) > t["1"] and ls * sin(alphaScrew) <= t["1"] + t["2"] then	# fastener in part 2
+				elif evalf(ls * sin(alphaScrew)) > t["1"] and evalf(ls * sin(alphaScrew)) <= t["1"] + t["2"] then	# fastener in part 2
 					
 					t_eff["1"] := t["1"];
 					t_eff["2"] := evalf(ls * sin(alphaScrew) - t["1"]);
-					t_pen := t_eff["2"] / sin(alphaScrew);
+					t_pen := evalf(t_eff["2"] / sin(alphaScrew));
 					n_tip := "2";
 					n_head := "1";
 
@@ -274,7 +267,7 @@ calculate_t := proc(WhateverYouNeed::table)
 
 					t_eff["1"] := evalf(min(t["1"], ls * sin(alphaScrew) - t["2"] - t["1"]));	# 8.4(b)
 					t_eff["2"] := t["2"];
-					t_pen := t_eff["1"] / sin(alphaScrew);
+					t_pen := evalf(t_eff["1"] / sin(alphaScrew));
 					n_tip := "1";
 					n_head := "1";
 
@@ -305,7 +298,7 @@ calculate_t := proc(WhateverYouNeed::table)
 
 				t_eff["1"] := 0;
 				t_eff["2"] := evalf(min(t["2"], ls * sin(alphaScrew) - t["steel"]));					
-				t_pen := t_eff["2"] / sin(alphaScrew);
+				t_pen := evalf(t_eff["2"] / sin(alphaScrew));
 				n_tip := "2";
 				n_head := 0;
 				fastenervalues["doublesided"] := true;
@@ -319,7 +312,7 @@ calculate_t := proc(WhateverYouNeed::table)
 					fastenervalues["overlap"] := true;
 				end if;
 
-				if ls * sin(alphaScrew) > t["2"] + t["steel"] then
+				if evalf(ls * sin(alphaScrew)) > t["2"] + t["steel"] then
 
 					Alert(cat(chosenFastener, " too long", warnings, 5));
 					return
@@ -335,7 +328,7 @@ calculate_t := proc(WhateverYouNeed::table)
 
 				t_eff["1"] := evalf(min(t["1"], ls * sin(alphaScrew) - t["1"] - t["steel"]));
 				t_eff["2"] := 0;
-				t_pen := t_eff["1"] / sin(alphaScrew);
+				t_pen := evalf(t_eff["1"] / sin(alphaScrew));
 				n_tip := "1";
 				n_head := "1";
 
