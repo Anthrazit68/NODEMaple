@@ -829,7 +829,13 @@ calculate_amin_steel := proc(serviceclass::string, WhateverYouNeed::table)
 	# steelgrade := WhateverYouNeed["materialdataAll"]["steel"]["steelgrade"];	
 	d := WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_d"];
 	t := WhateverYouNeed["sectiondataAll"]["steel"]["b"];
-	tolerance := max(2 * Unit('mm'), 0.1 * d);	# 10.4.3(1)
+
+	if WhateverYouNeed["calculatedvalues"]["fastenervalues"]["detailinformation"] = "Self-drilling dowel" then
+		tolerance := 0
+	else
+		tolerance := max(2 * Unit('mm'), 0.1 * d);	# 10.4.3(1)
+	end if;
+	
 	d0 := d + tolerance;
 
 	if assigned(WhateverYouNeed["calculatedvalues"]["distance"]) then

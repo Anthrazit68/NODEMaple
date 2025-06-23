@@ -55,7 +55,7 @@ calculate_t_total := proc(WhateverYouNeed::table)
 		t["1out"] := 0
 	end if;
 	t_steel := sectiondataAll["steel"]["b"];
-	tolerance := connection["connectionInsideTolerance"];
+	tolerance := connection["connectionInsideTolerance"];	# tolerance between layers in connection
 	shearplanes := WhateverYouNeed["calculatedvalues"]["fastenervalues"]["shearplanes"];
 	numberOfLayers := table();
 	eqnumberOfLayers := table();
@@ -65,6 +65,7 @@ calculate_t_total := proc(WhateverYouNeed::table)
 	cat(round(convert(t["1"], 'unit_free') / 2),"mm timber");
 	layer2 := cat(convert(t["2"], 'unit_free'),"mm timber");
 	layerSteel := cat(convert(t_steel, 'unit_free'),"mm steel");
+	
 	if tolerance > 0 then
 		layerTolerance := cat(" + ", shearplanes, "*", convert(tolerance, 'unit_free'), "mm tolerance")
 	else
@@ -795,10 +796,15 @@ EC5_62net := proc(WhateverYouNeed::table)
 	FastenerGroup := WhateverYouNeed["results"]["FastenerGroup"];
 	distance := WhateverYouNeed["calculatedvalues"]["distance"];
 	connection := structure["connection"];
-	tolerance := 1 * Unit('mm');
 	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
 	shearplanes := fastenervalues["shearplanes"];
 	
+	if WhateverYouNeed["calculatedvalues"]["fastenervalues"]["detailinformation"] = "Self-drilling dowel" then
+		tolerance := 0
+	else
+		tolerance := 1 * Unit('mm');	# 10.4.3(1)
+	end if;
+
 	bout1 := connection["bout1"];	
 
 	if F_hd = 0 and F_vd = 0 then		# special case where either everything is zero, or we just have moments on the connection
@@ -1068,7 +1074,12 @@ BoltandSteelCapacity := proc(WhateverYouNeed::table)
 	end if;
 
 	# bearing resistance of steel part
-	tolerance := max(2 * Unit('mm'), 0.1 * d);	# 10.4.3(1)
+	if WhateverYouNeed["calculatedvalues"]["fastenervalues"]["detailinformation"] = "Self-drilling dowel" then
+		tolerance := 0
+	else
+		tolerance := max(2 * Unit('mm'), 0.1 * d);	# 10.4.3(1)
+	end if;
+	
 	d0 := d + tolerance;	
 	p1 := calculatedvalues["distance"]["a1_minsteel"];
 	p2 := calculatedvalues["distance"]["a2_minsteel"];
