@@ -1056,7 +1056,7 @@ end proc:
 calculate_R_axk_n_head := proc(part, WhateverYouNeed)
 	description "Calculates Rax,k for the part of the screw with the head";
 	local chosenFastener, d, ls, t, f_axk, alphaScrew, fastenervalues, structure, sectiondataAll, comments;
-	local R_axk_n_head, lg, lg1, lg2, tol;
+	local R_axk_n_head, lg, lg1, lg2, tolerance;
 
 	# local variables
 	structure := WhateverYouNeed["calculations"]["structure"];
@@ -1074,7 +1074,7 @@ calculate_R_axk_n_head := proc(part, WhateverYouNeed)
 	t["2"] := sectiondataAll["2"]["b"];
 
 	R_axk_n_head := 0;
-	tol := 10 * Unit('mm');     	# tolerance
+	tolerance := 10 * Unit('mm');     	# tolerance
 	lg := 0;					# anchorage length of fastener in part with fastener head
 	
 	# This is for the part with the head
@@ -1085,10 +1085,10 @@ calculate_R_axk_n_head := proc(part, WhateverYouNeed)
 		
 		if lg2 > 0 then	# screw with splitted thread
 			comments["doublethreaded"] := "double-threaded screw";
-			lg := evalf(min(t[part] / sin(alphaScrew), lg2 - tol));
+			lg := evalf(min(t[part] / sin(alphaScrew), lg2 - tolerance));
 		elif assigned(comments["doublethreaded"]) then
 			comments["doublethreaded"] := evaln(comments["doublethreaded"]);
-			lg := evalf(t[part] / sin(alphaScrew) - ls + lg1 - tol);
+			lg := evalf(t[part] / sin(alphaScrew) - ls + lg1 - tolerance);
 		end if;
 		
 		if lg <= 6 * d then
