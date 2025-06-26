@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<database version = '2025-01' source_software = 'https://github.com/Anthrazit68/NODEMaple' created = '2025-06-26T22:53:43 CEST'>
+  <projectdata projecttitle = 'Limtreboka Beregningseksempler' client = 'NODE rådgivende ingeniører AS' projectnumber = '0320.03'/>
+  <materials>
+    <timber/>
+  </materials>
+  <sections>
+    <timber/>
+  </sections>
+  <calculations>
+    <calculation calculationtype = 'NS-EN 1995-1-1, Section 8: Fasteners'>
+      <calculation calculationtype = 'NS-EN 1995-1-1, Section 8: Fasteners' positionnumber = '19' positiontitle = 'Innhengt last i limtrebjelke'>
+        <activesettings activeloadcase = '1' activematerial1 = 'C24 / Service class 1 / Medium-term' activematerial2 = 'C24 / Service class 1 / Medium-term' activesection1 = 'Rectangular / 100x120' activesection2 = 'Rectangular / 160x240' activeFastenerPattern = '1' calculate_814_NA_DE = 'true'/>
+        <loadcases>
+          <loadcase name = '1' F_axGk = '0' F_axQk = '0' F_axd = '0' F_hGk = 'false' F_hQk = 'false' F_hd = '2*Units:-Unit(kN)' F_vGk = 'false' F_vQk = 'false' F_vd = '0' M_yGk = '0' M_yQk = '0' M_yd = '0' f_814 = '.9' loadcenter_x = '0' loadcenter_y = '0'/>
+        </loadcases>
+        <structure>
+          <connection bout1 = 'false' Cutleft1 = 'cut rect.' Cutleft2 = 'cut rect.' Cutleftsteel = 'cut angle' Cutright1 = 'cut rect.' Cutright2 = 'cut rect.' Cutrightsteel = 'cut angle' angleleft1 = '90*Units:-Unit(arcdeg)' angleleft2 = '90*Units:-Unit(arcdeg)' angleleftsteel = 'false' angleright1 = '90*Units:-Unit(arcdeg)' angleright2 = '90*Units:-Unit(arcdeg)' anglerightsteel = 'false' connection1 = 'Timber' connection2 = 'Timber' graindirection1 = '0' graindirection2 = '0' lengthleft1 = '500*Units:-Unit(mm)' lengthleft2 = '250*Units:-Unit(mm)' lengthleftsteel = 'false' lengthright1 = '0' lengthright2 = '500*Units:-Unit(mm)' connectionInsideLayers = '0' graindirectionsteel = 'false' lengthrightsteel = 'false' connectionInsideTolerance = '0'/>
+          <fastener ShearConnector = '-' SplitRingdc = 'false' SplitRingtype = 'false' ToothedPlatedc = 'false' alphaScrew = '90*Units:-Unit(arcdeg)' calculateAsNail = 'false' chosenFastener = 'Screw' fastenerProduct = 'KonstruX ST ZK' fastener_d = '6.5*Units:-Unit(mm)' fastener_dh = '8*Units:-Unit(mm)' fastener_ls = '140*Units:-Unit(mm)' nailForm = 'false' nailSurface = 'false' predrilled = 'false' screwWithWasher = 'false' staggered1 = 'false' staggered2 = 'false' washerProducer = 'false' washerProduct = 'false' SharpMetalLength = '0' SharpMetalProducer = 'false' SharpMetalProduct = 'false' SharpMetalStripes = 'false' ToothedPlatesides = 'false' ToothedPlatetype = 'false' fastenerProducer = 'EUROTEC' ignoreReqPredrilled = 'true'/>
+          <FastenerPatterns>
+            <FastenerPattern name = '1' grid_x1 = '0' grid_y1 = '40' center_x1 = '-125' center_y1 = '0' grid_alpha_11 = '0' grid_alpha_21 = '0' reactionforces = 'false' FastenerPatternType1 = 'grid' FastenerPatternType2 = '-' FastenerPatternType3 = '-' FastenerPatternUnits = 'mm' FastenerPatternCoordinates = 'false'/>
+          </FastenerPatterns>
+        </structure>
+      </calculation>
+    </calculation>
+  </calculations>
+</database>
+
