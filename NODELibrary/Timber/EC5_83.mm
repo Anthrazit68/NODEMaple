@@ -532,7 +532,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 
 		# capacity of head
 		# R_axk_n_head
-		if connection[n_head] = "Timber" then		
+		if connection[cat("connection", n_head)] = "Timber" then		
 			R_axk_n_head := f_axk * d * t[n_head] / sin(alphaScrew) * k_rho[n_head];
 			structure["calculatedvalues"]["R_axk_n_head"] := convert(R_axk_n_head, 'units', 'kN');
 		else
@@ -544,7 +544,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 			calculate_f_headk(WhateverYouNeed);
 			f_headk := fastenervalues["f_headk"]
 		end if;
-		if connection[n_head] = "Timber" then
+		if connection[cat("connection", n_head)] = "Timber" then
 			if screwWithWasher = "true" then		# for some 6mm screws there could be washer (just Rothoblaas HBS for the moment)
 				R_headk := washer_N_axk * k_rho[n_head];
 			else
@@ -556,7 +556,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 		
 		# total capacity
 		# F_axkRk
-		if connection[n_head] = "Timber" then
+		if connection[cat("connection", n_head)] = "Timber" then
 			if chosenFastener = "Nail" and nailSurface = "smooth" then
 				F_axRk := eval(min(R_axk, R_axk_n_head + R_headk));	# 8.24
 				
@@ -606,7 +606,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 			
 			# capacity of the head
 			# R_axk_n_head
-			if connection[n_head] = "Timber" then
+			if connection[cat("connection", n_head)] = "Timber" then
 				local lg, tolerance;
 				tolerance := 0;
 
@@ -644,16 +644,18 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 	
 	R_headk := convert(R_headk, 'units', 'kN');
 	R_axk := convert(R_axk, 'units', 'kN');
+	R_axk_n_head := convert(R_axk_n_head, 'units', 'kN');
 	F_axRk := convert(F_axRk, 'units', 'kN');
-
 
 	SetProperty("MathContainer_R_axk1", 'value', 0);
 	SetProperty("MathContainer_R_axk2", 'value', 0);
 	SetProperty("MathContainer_R_headk1", 'value', 0);
 	SetProperty("MathContainer_R_headk2", 'value', 0);
+
 	if n_tip = "1" or n_tip = "2" then
 		SetProperty(cat("MathContainer_R_axk", n_tip), 'value', round2(R_axk, 1))
 	end if;
+	
 	if n_head = "1" or n_head = "2" then
 		SetProperty(cat("MathContainer_R_axk", n_head), 'value', round2(R_axk_n_head, 1))
 	end if;
@@ -667,11 +669,11 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 	# calculate F_axRd	
 	k_mod := 0;
 
-	if structure["connection"]["connection1"] = "Timber" then		
+	if connection["connection1"] = "Timber" then		
 		k_mod := materialdataAll["1"]["k_mod"]
 	end if;
 
-	if structure["connection"]["connection2"] = "Timber" then
+	if connection["connection2"] = "Timber" then
 		if k_mod = 0 or k_mod > materialdataAll["2"]["k_mod"] then			
 			k_mod := materialdataAll["2"]["k_mod"]		
 		end if;
@@ -690,6 +692,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 	
 	fastenervalues["R_headk"] := R_headk;
 	fastenervalues["R_axk"] := R_axk;
+	fastenervalues["R_axk_n_head"] := R_axk_n_head;
 	fastenervalues["F_axRk"] := F_axRk;
 	fastenervalues["F_axRd"] := F_axRd;
 	fastenervalues["F_axRd_fastener"] := F_axRd_fastener;
