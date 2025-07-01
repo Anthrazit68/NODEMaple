@@ -430,7 +430,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 
 	local calculatedFastener, chosenFastener, t, t_pen, n_tip, rho_k, connection, nailSurface, d, dh, f_axk, f_headk, f_tensk, washer_N_axk, screwWithWasher, alphaScrew, calculateAsNail;
 	local F_axRk, F_axRd, F_axRd_fastener, k_rho, R_axk, R_headk, k_d, n_head, R_axk_n_head, gamma_M, k_mod, ls;
-	local structure, materialdataAll, sectiondataAll, warnings, comments, fastenervalues, numberOfFasteners, k_ef;
+	local structure, materialdataAll, sectiondataAll, warnings, comments, fastenervalues, numberOfFasteners, k_ef, tolerance;
 
 	# define local variables
 	gamma_M := NODETimberEN1995:-gamma_M("Connections"); 		# NS-EN 1995, NA.2.4.1
@@ -511,8 +511,15 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 		if f_axk = 0 then
 			calculate_f_axk(WhateverYouNeed);
 			f_axk := fastenervalues["f_axk"]
-		end if;		
-		R_axk := f_axk * d * t_pen * k_rho[n_tip];		# (8.23), (8.24) part with the tip of the nail, same formula for all nails
+		end if;
+
+		if chosenFastener = "Screw" then
+			tolerance := 10 * Unit('mm');		# default reduction for tip of screw
+		else
+			tolerance := 0 * Unit('mm');		# no reduction for nails
+		end if;
+
+		R_axk := f_axk * d * (t_pen - tolerance) * k_rho[n_tip];		# (8.23), (8.24) part with the tip of the nail, same formula for all nails
 
 		# check if t_pen is sufficient
 		# 8.3.2 (7)
@@ -534,7 +541,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 		# R_axk_n_head
 		if connection[cat("connection", n_head)] = "Timber" then		
 			R_axk_n_head := f_axk * d * t[n_head] / sin(alphaScrew) * k_rho[n_head];
-			structure["calculatedvalues"]["R_axk_n_head"] := convert(R_axk_n_head, 'units', 'kN');
+			# structure["calculatedvalues"]["R_axk_n_head"] := convert(R_axk_n_head, 'units', 'kN');
 		else
 			R_axk_n_head := 0
 		end if;
@@ -560,10 +567,9 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 			if chosenFastener = "Nail" and nailSurface = "smooth" then
 				F_axRk := eval(min(R_axk, R_axk_n_head + R_headk));	# 8.24
 				
-			elif nailSurface = "non smooth" or chosenFastener = "Screw" then			
-				# https://www.linkedin.com/posts/andreaszieritz_timberengineering-timberscrews-eurocode5-activity-7344732846957154304-_-QB
+			elif nailSurface = "non smooth" or chosenFastener = "Screw" then							
 				F_axRk := eval(min(R_axk, max(R_headk, R_axk_n_head)));	# 8.23 with modification for screws with thread in complete length
-
+				# https://www.linkedin.com/posts/andreaszieritz_timberengineering-timberscrews-eurocode5-activity-7344732846957154304-_-QB
 			else
 				F_axRk := 0
 				
@@ -584,6 +590,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 
 	elif calculatedFastener = "Bolt" then
 		R_axk := 0;
+		R_axk_n_head := 0;
 		k_ef := 1;		# reduction factor for connection
 		
 		if chosenFastener = "Bolt" then		# with washer
@@ -594,20 +601,22 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 		# chose to calculate screws >6mm acc. 8.7.2, though screws with d = 6mm should be calculated as nails (see 8.7.1(5))
 		elif chosenFastener = "Screw" then
 
-			k_d := min(d / ( 8 * Unit('mm')), 1);														# (8.40)
+			k_d := min(d / ( 8 * Unit('mm')), 1);			# (8.40)
 			
 			# capacity of the tip
 			# f_axk, R_axk
 			if f_axk = 0 then
 				calculate_f_axk(WhateverYouNeed);
 				f_axk := fastenervalues["f_axk"]
-			end if;		
-			R_axk := f_axk * d * t_pen * k_d / (1.2 * cos(alphaScrew)^2 + sin(alphaScrew)^2) * k_rho[n_tip];	# (8.38)
+			end if;
+
+			tolerance := 10 * Unit('mm');		# default reduction for tip of screw
+			R_axk := f_axk * d * (t_pen - tolerance) * k_d / (1.2 * cos(alphaScrew)^2 + sin(alphaScrew)^2) * k_rho[n_tip];	# (8.38)
 			
 			# capacity of the head
 			# R_axk_n_head
 			if connection[cat("connection", n_head)] = "Timber" then
-				local lg, tolerance;
+				local lg;
 				tolerance := 0;
 
 				if fastenervalues["l2"] > 0 then	# screw with splitted thread
