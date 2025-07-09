@@ -433,8 +433,8 @@ EC5_617 := proc(WhateverYouNeed::table)
 
 	k_v := 1;		# setter default verdi i tilfelle det bare er skj�rkontroll
 
-	# kontroll av innsnitt ved opplegg iht. 6.5.2
-	if endnotched = "true" then	# beregner som bjelker med innsnitt ved opplegget
+	# 6.5.2 Beams with a notch at the support
+	if endnotched = "true" then
 		
 		if h_ef > 0 and l_incl >= 0 then
 			if h_ef > h then
@@ -453,13 +453,18 @@ EC5_617 := proc(WhateverYouNeed::table)
 		else
 			Alert("6.5.2 check not passed: h_ef > 0, l_incl >= 0", WhateverYouNeed["warnings"], 3);
 		end if;
-		tau_yd := evalf(1.5 * V_yd / (kcr * b * h_ef));		# kcr not according to EC5, but calculations in Limtreboka, seems logic to me to reduce section, as no difference to 6.1.7
+
+		# kcr not according to EC5, but calculations in Limtreboka, seems logic to reduce section, as no difference to 6.1.7
+		tau_yd := evalf(1.5 * V_yd / (kcr * b * h_ef));		# (6.60)
 		tau_zd := evalf(1.5 * V_zd / (kcr * b * h_ef));
 		
+		# (6.60)
 		# Eurocode gives no information about how to dimension sections with shear in 2 directions
-		# eta := max(evalf(tau_yd / (k_v * f_vd)), evalf(tau_zd / (k_v * f_vd)));		# maximum of the 2 directions
-		# eta := evalf(tau_yd / (k_v * f_vd) + tau_zd / (k_v * f_vd));				# add utilization of both directions linear
-		eta := evalf(sqrt((tau_yd / (k_v * f_vd))^2 + (tau_zd / (k_v * f_vd))^2));		# add utilization of both directions vectortype (see also Limtreboka)
+		# chose vectortype comparision
+
+		# eta := max(evalf(tau_yd / (k_v * f_vd)), evalf(tau_zd / (k_v * f_vd)));		# 1.) maximum of the 2 directions
+		# eta := evalf(tau_yd / (k_v * f_vd) + tau_zd / (k_v * f_vd));					# 2.) add utilization of both directions linear
+		eta := evalf(sqrt((tau_yd / (k_v * f_vd))^2 + (tau_zd / (k_v * f_vd))^2));		# 3.) add utilization of both directions vectortype (see also Limtreboka)
 		
 
 		usedcode := "6.5.2";
@@ -510,7 +515,7 @@ EC5_618 := proc(WhateverYouNeed::table)
 	# It := 1/3 * a_ * b_^3 * (1 - 0.63 * b_ / a_); 		# denne ble allerede beregnet tidligere
 	tau_tord := convert(M_td * min(b, h) / I_t, 'units', 'N'/'mm^2');
 	
-	k_shape := min(1 + 0.15 * max(h, b) / min(h, b), 2);	# for rektangul�re tverrsnitt
+	k_shape := min(1 + 0.05 * max(h, b) / min(h, b), 2);	# for rectangulare sections, rev. A2
 
 	eta := tau_tord / (k_shape * f_vd);
 

@@ -16,8 +16,9 @@
 
 AnnexA := proc(WhateverYouNeed::table)
 	description "Block Shear check acc. Annex A";
-	local BlockShear, A_net_t, A_net_v, lvl, lvr, L_net_v, L_net_t, fastenervalues, structure, t_eff, bout1, connection, d, t_ef, M_yRk, f_hk, F_hd, F_vd, alphaForce, activeloadcase,
-		dummy, dummy1, t_steel, sectiondataAll, shearplanes, timberlayers, t_1, i, usedcode, comments, warnings, F_bsRk, F_bsRd, f_t0k, f_vk, k_mod, gamma_M, alphaBeam, alpha, F_gd, eta;
+	local BlockShear, A_net_t, A_net_v, lvl, lvr, L_net_v, L_net_t, fastenervalues, structure, t_eff, bout1, connection, d, t_ef, M_yRk, f_hk, F_hd, F_vd, alphaForce,
+	 activeloadcase, dummy, dummy1, t_steel, sectiondataAll, shearplanes, timberlayers, t_1, i, usedcode, comments, warnings, F_bsRk, F_bsRd, f_t0k, f_vk, k_mod,
+	 gamma_M, alphaBeam, alpha, F_gd, eta, k_t;
 
 	structure := WhateverYouNeed["calculations"]["structure"];
 	connection := structure["connection"];
@@ -35,6 +36,8 @@ AnnexA := proc(WhateverYouNeed::table)
 	lvl := WhateverYouNeed["calculatedvalues"]["distance"]["dist"]["a_lvl"];
 	lvr := WhateverYouNeed["calculatedvalues"]["distance"]["dist"]["a_lvr"];
 	BlockShear := WhateverYouNeed["calculatedvalues"]["BlockShear"];
+
+	k_t := 0.9 + 1.4 * sqrt()
 	
 	usedcode := "Annex A";
 	comments := "Block shear and plug shear failure at multiple dowel-type steel-to-timber connections";
@@ -97,8 +100,8 @@ AnnexA := proc(WhateverYouNeed::table)
 	elif connection["connection1"] = "Timber" and connection["connection2"] = "Steel" then
 
 		# common values, independent of layer thickness
-		t_ef["b"] := 1.4 * sqrt(M_yRk / (f_hk * d));									# thin steel plate, (A.6)
-		t_ef["e"] := 2 * sqrt(M_yRk / (f_hk * d));									# thick steel plate, (A.7)	
+		t_ef["b"] := 1.4 * sqrt(M_yRk / (f_hk * d));										# (b) thin steel plate, (A.6)
+		t_ef["e"] := 2 * sqrt(M_yRk / (f_hk * d)) * t_eff["1o"];							# (e)(h) thick steel plate, (A.7)	
 
 		# check if reduced outside layers
 		t_eff["1o"] := fastenervalues["t_eff"]["1"];
@@ -107,8 +110,8 @@ AnnexA := proc(WhateverYouNeed::table)
 		end if;	
 
 		# 1 shear plane
-		t_ef["a"] := 0.4 * t_eff["1o"];											# thin steel plate, (A.6)		
-		t_ef["d"] := t_eff["1o"] * (sqrt(2 + M_yRk / (f_hk * d * t_eff["1o"]^2)) - 1);		# thick steel plate, (A.7)		
+		t_ef["a"] := 0.4 * t_eff["1o"];														# (a) thin steel plate, (A.6)
+		t_ef["d"] := t_eff["1o"] * (sqrt(2 + 4 * M_yRk / (f_hk * d * t_eff["1o"]^2)) - 1);	# (d)(g) thick steel plate, (A.7)		
 
 		# 2 shear planes
 		t_ef["g"] := fastenervalues["t_eff"]["1"] * (sqrt(2 + M_yRk / (f_hk * d * fastenervalues["t_eff"]["1"]^2)) - 1);		# thick steel plate, (A.7)		

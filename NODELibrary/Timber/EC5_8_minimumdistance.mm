@@ -203,7 +203,7 @@ calculate_amin_alpha := proc(part::string, WhateverYouNeed::table)
 		end if;
 
 		# a3t_min
-		# burde vist a3t_min uansett, uavhengig av vinkel.
+		# show a3t_min regardless of angle
 
 		# 8.3.1.2(5)
 		if calculatedFastener = "Nail" or (chosenFastener = "Screw" and calculateAsNail = "true") then
@@ -221,7 +221,7 @@ calculate_amin_alpha := proc(part::string, WhateverYouNeed::table)
 			end if;
 			
 		elif calculatedFastener = "Bolt" or calculatedFastener = "Dowel" then
-			a3t_min[part] := max(7 * d, 80 * Unit('mm'));
+			a3t_min[part] := max(7 * d, 80 * Unit('mm'));		# table 8.5
 		
 		end if;
 
@@ -266,7 +266,10 @@ calculate_amin_alpha := proc(part::string, WhateverYouNeed::table)
 		elif calculatedFastener = "Dowel" then
 		
 #			if alpha["max"] >= 90 * Unit('degree') and alpha["min"] <= 150 * Unit('degree') then
-				a3c_min[part] := max(SinMax * d, 3 * d)
+
+# 				a3c_min[part] := max(SinMax * d, 3 * d)			# rev. A1
+				a3c_min[part] := max(a3t_min[part] * SinMax, 3.5 * d, 40 * Unit('mm'))			# rev. A3
+
 #			elif alpha["max"] >= 150 * Unit('degree') and alpha["min"] <= 210 * Unit('degree') then
 #				a3c_min[part] := 3 * d
 #			elif alpha["max"] >= 210 * Unit('degree') and alpha["min"] <= 270 * Unit('degree') then
@@ -278,7 +281,7 @@ calculate_amin_alpha := proc(part::string, WhateverYouNeed::table)
 			a3c_min[part] := 0
 		end if;
 
-		# setter avstand til venstre kant
+		# setting distance to left side
 		a3_min[part] := max(a3t_min[part], a3c_min[part]);
 
 		# a4t_min
@@ -345,7 +348,7 @@ calculate_amin_alpha := proc(part::string, WhateverYouNeed::table)
 		if chosenFastener = "Screw" and axiallyLoaded = "true" then
 			if evalb(t[part] < 12 * d) then
 				# Alert("axiallyLoaded skrue, t < 12*d");		# litt usikker p� om det er et krav eller noe annet som st�r i standarden
-				comments[cat("872_", part)] := "8.7.2 axiallyLoaded skrue, t < 12*d ikke oppfylt"
+				comments[cat("872_", part)] := "8.7.2(2) axially Loaded screw, t < 12*d, check minimumdistance"
 			end if;
 		
 			a1_min[part] := max(a1_min[part], 7 * d);					
@@ -632,7 +635,7 @@ calculate_amin_max := proc(WhateverYouNeed::table)
 				a3c_min_max[part] := 7 * d;
 			
 			elif calculatedFastener = "Dowel" then
-				a3c_min_max[part] := 3 * d;
+				a3c_min_max[part] := max(3.5 * d, 40 * Unit('mm'));
 
 			end if;
 
@@ -705,7 +708,7 @@ calculate_amin_max := proc(WhateverYouNeed::table)
 			if member(ToothedPlatetype, {"C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9"}) then			
 				a1_min_max[part] := max(a1_min_max[part], (1.2 + 0.3 * 1) * dc);
 				a2_min_max[part] := max(a2_min_max[part], 1.2 * dc);
-				a3t_min_max[part] := max(a3t_min_max[part], 2.0 * dc);
+				a3t_min_max[part] := max(a3t_min_max[part], 1.5 * dc);
 				a3c_min_max[part] := max(a3c_min_max[part], (0.9 + 0.6 * 1) * dc);			
 				a4t_min_max[part] := max(a4t_min_max[part], (0.6 + 0.2 * 1) * dc);
 				a4c_min_max[part] := max(a4c_min_max[part], 0.6 * dc);
@@ -724,7 +727,7 @@ calculate_amin_max := proc(WhateverYouNeed::table)
 
 				a1_min_max[part] := max(a1_min_max[part], (1.2 + 0.8 * 1) * dc);
 				a2_min_max[part] := max(a2_min_max[part], 1.2 * dc);			
-				a3t_min_max[part] := max(a3t_min_max[part], 1.5 * dc);
+				a3t_min_max[part] := max(a3t_min_max[part], 2.0 * dc);		# A2
 				a3c_min_max[part] := max(a3c_min_max[part], (0.4 + 1.6 * 1) * dc);
 				a4t_min_max[part] := max(a4t_min_max[part], (0.6 + 0.2 * 1) * dc);
 				a4c_min_max[part] := max(a4c_min_max[part], 0.6 * dc);
