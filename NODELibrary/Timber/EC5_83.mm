@@ -30,7 +30,7 @@
 # 8.3.1.1(1)
 calculate_t := proc(WhateverYouNeed::table)
 	description "Calculate t and t_pen / effective part thickness and penetration depth";
-	local shearplanes, t_total, t, t_eff, t_ef_814_NA_DE, t_pen, n_tip, n_head, ls, d, chosenFastener, connection, alphaScrew;
+	local shearplanes, t_total, t, t_eff, t_ef_814_NA_DE, t_pen, l_tip, n_tip, n_head, ls, d, chosenFastener, connection, alphaScrew;
 	local checkPassed, structure, sectiondataAll, warnings, comments, fastenervalues, timberlayers, i, nailSurface, b_max, l1;
 
 	# define local variables
@@ -55,6 +55,12 @@ calculate_t := proc(WhateverYouNeed::table)
 	shearplanes := fastenervalues["shearplanes"];		# number of shearplanes due to geometry (theoretical, independent of fasteners)
 	t_total := WhateverYouNeed["calculatedvalues"]["t_total"];		# total thickness of connection
 	timberlayers := WhateverYouNeed["calculatedvalues"]["layers"];
+	
+	if chosenFastener = "Screw" then		# assume general length of tip, reduces t_pen (see 8.24, A2)
+		l_tip := 10 * Unit('mm')
+	else
+		l_tip := 0	
+	end if;
 	
 	# materialdata
 	t := table();
@@ -192,7 +198,7 @@ calculate_t := proc(WhateverYouNeed::table)
 
 				t_eff["1"] := min(t["1"], evalf(ls * sin(alphaScrew)));						
 				t_eff["2"] := evalf(min(t["2"], evalf(ls * sin(alphaScrew) - t["1"])));				# figure 8.4(a)
-				t_pen := t_eff["2"];
+				t_pen := t_eff["2"] - l_tip;
 				n_tip := "2";				# number of part with the tip
 				n_head := "1";
 
@@ -208,7 +214,7 @@ calculate_t := proc(WhateverYouNeed::table)
 
 				t_eff["1"] := evalf(min(t["1"], evalf(ls * sin(alphaScrew) - t["steel"])));	
 				t_eff["2"] := 0;
-				t_pen := t_eff["1"];
+				t_pen := t_eff["1"] - l_tip;
 				n_tip := "1";
 				n_head := 0;
 
@@ -242,7 +248,7 @@ calculate_t := proc(WhateverYouNeed::table)
 					
 					t_eff["1"] := t["1"];
 					t_eff["2"] := evalf(ls * sin(alphaScrew) - t["1"]);
-					t_pen := evalf(t_eff["2"] / sin(alphaScrew));
+					t_pen := evalf(t_eff["2"] / sin(alphaScrew) - l_tip);
 					n_tip := "2";
 					n_head := "1";
 
@@ -266,7 +272,7 @@ calculate_t := proc(WhateverYouNeed::table)
 
 					t_eff["1"] := evalf(min(t["1"], ls * sin(alphaScrew) - t["2"] - t["1"]));	# 8.4(b)
 					t_eff["2"] := t["2"];
-					t_pen := evalf(t_eff["1"] / sin(alphaScrew));
+					t_pen := evalf(t_eff["1"] / sin(alphaScrew) - l_tip);
 					n_tip := "1";
 					n_head := "1";
 
@@ -279,7 +285,7 @@ calculate_t := proc(WhateverYouNeed::table)
 						comments["SingleShearplane"] := cat(chosenFastener, " anchorage length too short in part 3, single shearplane");
 						t_eff["1"] := t["1"];
 						t_eff["2"] := t["2"];
-						t_pen := t["2"];
+						t_pen := t["2"];		# do not reduce with tip length ?
 						n_tip := "2";
 						n_head := "1";						
 
@@ -293,11 +299,11 @@ calculate_t := proc(WhateverYouNeed::table)
 
 				end if;
 
-			elif connection["connection1"] = "Steel" then	# steel - timber - steel / nail screw must always be doublesided
+			elif connection["connection1"] = "Steel" then	# steel - timber - steel / nail, screw must always be doublesided
 
 				t_eff["1"] := 0;
 				t_eff["2"] := evalf(min(t["2"], ls * sin(alphaScrew) - t["steel"]));					
-				t_pen := evalf(t_eff["2"] / sin(alphaScrew));
+				t_pen := evalf(t_eff["2"] / sin(alphaScrew) - l_tip);
 				n_tip := "2";
 				n_head := 0;
 				fastenervalues["doublesided"] := true;
@@ -327,7 +333,7 @@ calculate_t := proc(WhateverYouNeed::table)
 
 				t_eff["1"] := evalf(min(t["1"], ls * sin(alphaScrew) - t["1"] - t["steel"]));
 				t_eff["2"] := 0;
-				t_pen := evalf(t_eff["1"] / sin(alphaScrew));
+				t_pen := evalf(t_eff["1"] / sin(alphaScrew) - l_tip);
 				n_tip := "1";
 				n_head := "1";
 
@@ -430,7 +436,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 
 	local calculatedFastener, chosenFastener, t, t_pen, n_tip, rho_k, connection, nailSurface, d, dh, f_axk, f_headk, f_tensk, washer_N_axk, screwWithWasher, alphaScrew, calculateAsNail;
 	local F_axRk, F_axRd, F_axRd_fastener, k_rho, R_axk, R_headk, k_d, n_head, R_axk_n_head, gamma_M, k_mod, ls;
-	local structure, materialdataAll, sectiondataAll, warnings, comments, fastenervalues, numberOfFasteners, k_ef, tolerance;
+	local structure, materialdataAll, sectiondataAll, warnings, comments, fastenervalues, numberOfFasteners, k_ef;
 
 	# define local variables
 	gamma_M := NODETimberEN1995:-gamma_M("Connections"); 		# NS-EN 1995, NA.2.4.1
@@ -503,8 +509,9 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 		SetProperty("TextArea_k_rho2", 'value', 1);
 	end if;
 
-	# checking agains calculated fastener, might be nail, bolt or dowel (not screw)
-	if calculatedFastener = "Nail" or (chosenFastener = "Screw" and calculateAsNail = "true") then
+	# checking agains calculated fastener, might be nail, bolt, dowel or screw
+	# if calculatedFastener = "Nail" or (chosenFastener = "Screw" and calculateAsNail = "true") then
+	if calculatedFastener = "Nail" then
 
 		# capacity of tip
 		# f_axk, R_axk
@@ -513,13 +520,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 			f_axk := fastenervalues["f_axk"]
 		end if;
 
-		if chosenFastener = "Screw" then
-			tolerance := 10 * Unit('mm');		# default reduction for tip of screw
-		else
-			tolerance := 0 * Unit('mm');		# no reduction for nails
-		end if;
-
-		R_axk := f_axk * d * (t_pen - tolerance) * k_rho[n_tip];		# (8.23), (8.24) part with the tip of the nail, same formula for all nails
+		R_axk := f_axk * d * t_pen * k_rho[n_tip];		# (8.23), (8.24) part with the tip of the nail, same formula for all nails
 
 		# check if t_pen is sufficient
 		# 8.3.2 (7)
@@ -588,66 +589,62 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 		F_axRk := 0;
 		k_ef := 1;		# reduction factor for connection
 
-	elif calculatedFastener = "Bolt" then
+		# screws >= 6mm and <= 12mm calculted acc. 8.7.2
+		# chose to calculate screws >6mm acc. 8.7.2, though screws with d = 6mm should be calculated as nails (see 8.7.1(5))
+
+	elif chosenFastener = "Screw" then
+
+		k_d := min(d / ( 8 * Unit('mm')), 1);			# (8.40)
+		
+		# capacity of the tip
+		# f_axk, R_axk
+		if f_axk = 0 then
+			calculate_f_axk(WhateverYouNeed);
+			f_axk := fastenervalues["f_axk"]
+		end if;
+
+		R_axk := f_axk * d * t_pen * k_d / (1.2 * cos(alphaScrew)^2 + sin(alphaScrew)^2) * k_rho[n_tip];	# (8.38)
+		
+		# capacity of the head
+		# R_axk_n_head
+		if connection[cat("connection", n_head)] = "Timber" then
+			local lg;				
+
+			if fastenervalues["l2"] > 0 then	# screw with splitted thread
+				comments["doublethreaded"] := "double-threaded screw";
+				lg := evalf(min(t[n_head] / sin(alphaScrew), fastenervalues["l2"]));
+			else
+				if assigned(comments["doublethreaded"]) then
+					comments["doublethreaded"] := evaln(comments["doublethreaded"]);
+				end if;
+				lg := evalf(t[n_head] / sin(alphaScrew) - ls + fastenervalues["l1"]);
+			end if;				
+
+			R_axk_n_head := f_axk * d * lg * k_d / (1.2 * cos(alphaScrew)^2 + sin(alphaScrew)^2) * k_rho[n_head];	# (8.38)
+			
+			if screwWithWasher = true then		# 6mm screws could be with washers (just Rothoblaas HBS for the moment)
+				R_headk := washer_N_axk * k_rho[n_head];
+			else
+				R_headk := f_headk * dh^2 * k_rho[n_head];		# 8.40b
+			end if;
+			
+		else # screw against steel
+			R_headk := f_tensk;
+			
+		end if;
+
+		# https://www.linkedin.com/posts/andreaszieritz_timberengineering-timberscrews-eurocode5-activity-7344732846957154304-_-QB			
+		F_axRk := eval(min(R_axk, max(R_axk_n_head, R_headk), f_tensk));
+
+		k_ef := 0.9;	# reduction factor for connection
+
+	elif chosenFastener = "Bolt" then # with washer
 		R_axk := 0;
 		R_axk_n_head := 0;
 		k_ef := 1;		# reduction factor for connection
-		
-		if chosenFastener = "Bolt" then		# with washer
-			R_headk := washer_N_axk * k_rho[n_head];
-			F_axRk := eval(min(f_tensk, R_headk))
 
-		# screws >= 6mm and <= 12mm calculted acc. 8.7.2
-		# chose to calculate screws >6mm acc. 8.7.2, though screws with d = 6mm should be calculated as nails (see 8.7.1(5))
-		elif chosenFastener = "Screw" then
-
-			k_d := min(d / ( 8 * Unit('mm')), 1);			# (8.40)
-			
-			# capacity of the tip
-			# f_axk, R_axk
-			if f_axk = 0 then
-				calculate_f_axk(WhateverYouNeed);
-				f_axk := fastenervalues["f_axk"]
-			end if;
-
-			tolerance := 10 * Unit('mm');		# default reduction for tip of screw
-			R_axk := f_axk * d * (t_pen - tolerance) * k_d / (1.2 * cos(alphaScrew)^2 + sin(alphaScrew)^2) * k_rho[n_tip];	# (8.38)
-			
-			# capacity of the head
-			# R_axk_n_head
-			if connection[cat("connection", n_head)] = "Timber" then
-				local lg;
-				tolerance := 0;
-
-				if fastenervalues["l2"] > 0 then	# screw with splitted thread
-					comments["doublethreaded"] := "double-threaded screw";
-					lg := evalf(min(t[n_head] / sin(alphaScrew), fastenervalues["l2"] - tolerance));
-				else
-					if assigned(comments["doublethreaded"]) then
-						comments["doublethreaded"] := evaln(comments["doublethreaded"]);
-					end if;
-					lg := evalf(t[n_head] / sin(alphaScrew) - ls + fastenervalues["l1"] - tolerance);
-				end if;				
-
-				R_axk_n_head := f_axk * d * lg * k_d / (1.2 * cos(alphaScrew)^2 + sin(alphaScrew)^2) * k_rho[n_head];	# (8.38)
-				
-				if screwWithWasher = true then		# 6mm screws could be with washers (just Rothoblaas HBS for the moment)
-					R_headk := washer_N_axk * k_rho[n_head];
-				else
-					R_headk := f_headk * dh^2 * k_rho[n_head];		# 8.40b
-				end if;
-				
-			else # screw against steel
-				R_headk := f_tensk;
-				
-			end if;
-
-			# https://www.linkedin.com/posts/andreaszieritz_timberengineering-timberscrews-eurocode5-activity-7344732846957154304-_-QB			
-			F_axRk := eval(min(R_axk, max(R_axk_n_head, R_headk), f_tensk));
-
-			k_ef := 0.9;	# reduction factor for connection
-			
-		end if;
+		R_headk := washer_N_axk * k_rho[n_head];
+		F_axRk := eval(min(f_tensk, R_headk))
 		
 	end if;
 	
