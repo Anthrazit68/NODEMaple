@@ -36,8 +36,6 @@ AnnexA := proc(WhateverYouNeed::table)
 	lvl := WhateverYouNeed["calculatedvalues"]["distance"]["dist"]["a_lvl"];
 	lvr := WhateverYouNeed["calculatedvalues"]["distance"]["dist"]["a_lvr"];
 	BlockShear := WhateverYouNeed["calculatedvalues"]["BlockShear"];
-
-	k_t := 0.9 + 1.4 * sqrt()
 	
 	usedcode := "Annex A";
 	comments := "Block shear and plug shear failure at multiple dowel-type steel-to-timber connections";
@@ -64,6 +62,7 @@ AnnexA := proc(WhateverYouNeed::table)
 		f_vk := WhateverYouNeed["materialdataAll"]["1"]["f_vk"];
 		k_mod := WhateverYouNeed["materialdataAll"]["1"]["k_mod"];
 		alphaBeam := evalf(WhateverYouNeed["calculations"]["structure"]["connection"]["graindirection1"]);
+		k_t := evalf(0.9 + 1.4 * sqrt(WhateverYouNeed["materialdataAll"]["1"]["G_mean"] / WhateverYouNeed["materialdataAll"]["1"]["E_m0mean"]));
 	
 	elif connection["connection1"] = "Steel" and connection["connection2"] = "Timber" then		# Steel - Timber
 		f_hk := WhateverYouNeed["calculatedvalues"]["f_h0k"]["2"];
@@ -71,6 +70,7 @@ AnnexA := proc(WhateverYouNeed::table)
 		f_vk := WhateverYouNeed["materialdataAll"]["2"]["f_vk"];
 		k_mod := WhateverYouNeed["materialdataAll"]["2"]["k_mod"];
 		alphaBeam := evalf(WhateverYouNeed["calculations"]["structure"]["connection"]["graindirection2"]);
+		k_t := evalf(0.9 + 1.4 * sqrt(WhateverYouNeed["materialdataAll"]["2"]["G_mean"] / WhateverYouNeed["materialdataAll"]["2"]["E_m0mean"]));
 		
 	else
 		Alert("Undefined connection for AnnexA", warnings, 3)		
@@ -100,8 +100,8 @@ AnnexA := proc(WhateverYouNeed::table)
 	elif connection["connection1"] = "Timber" and connection["connection2"] = "Steel" then
 
 		# common values, independent of layer thickness
-		t_ef["b"] := 1.4 * sqrt(M_yRk / (f_hk * d));										# (b) thin steel plate, (A.6)
-		t_ef["e"] := 2 * sqrt(M_yRk / (f_hk * d)) * t_eff["1o"];							# (e)(h) thick steel plate, (A.7)	
+		t_ef["b"] := 1.4 * sqrt(M_yRk / (f_hk * d));			# (b) thin steel plate, (A.6)
+		t_ef["e"] := 2 * sqrt(M_yRk / (f_hk * d));				# (e)(h) thick steel plate, (A.7), fixed wrong formula (t1 must be removed from equation)
 
 		# check if reduced outside layers
 		t_eff["1o"] := fastenervalues["t_eff"]["1"];
@@ -111,10 +111,10 @@ AnnexA := proc(WhateverYouNeed::table)
 
 		# 1 shear plane
 		t_ef["a"] := 0.4 * t_eff["1o"];														# (a) thin steel plate, (A.6)
-		t_ef["d"] := t_eff["1o"] * (sqrt(2 + 4 * M_yRk / (f_hk * d * t_eff["1o"]^2)) - 1);	# (d)(g) thick steel plate, (A.7)		
+		t_ef["d"] := t_eff["1o"] * (sqrt(2 + 4 * M_yRk / (f_hk * d * t_eff["1o"]^2)) - 1);	# (d) thick steel plate, (A.7)		
 
 		# 2 shear planes
-		t_ef["g"] := fastenervalues["t_eff"]["1"] * (sqrt(2 + M_yRk / (f_hk * d * fastenervalues["t_eff"]["1"]^2)) - 1);		# thick steel plate, (A.7)		
+		t_ef["g"] := fastenervalues["t_eff"]["1"] * (sqrt(2 + 4 * M_yRk / (f_hk * d * fastenervalues["t_eff"]["1"]^2)) - 1);		# (g) thick steel plate, (A.7)
 		t_ef["h"] := t_ef["e"];		# thick steel plate
 
 		# precalculating t_ef, 1 shear plane, dependent on steel plate thickness, interpolating values
@@ -180,7 +180,8 @@ AnnexA := proc(WhateverYouNeed::table)
 		end if;
 	end do;
 
-	F_bsRk := max(1.5 * A_net_t["total"] * f_t0k, 0.7 * A_net_v["total"] * f_vk);
+	F_bsRk := max(k_t * A_net_t["total"] * f_t0k, 0.7 * A_net_v["total"] * f_vk);			# (A.1), NA (A2)
+	# F_bsRk := max(1.5 * A_net_t["total"] * f_t0k, 0.7 * A_net_v["total"] * f_vk);			# (A.1)
 	F_bsRk := convert(F_bsRk, 'units', 'kN');
 	F_bsRd := F_bsRk * k_mod / gamma_M;
 
