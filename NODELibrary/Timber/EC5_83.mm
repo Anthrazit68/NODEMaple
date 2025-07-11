@@ -56,8 +56,8 @@ calculate_t := proc(WhateverYouNeed::table)
 	t_total := WhateverYouNeed["calculatedvalues"]["t_total"];		# total thickness of connection
 	timberlayers := WhateverYouNeed["calculatedvalues"]["layers"];
 	
-	if chosenFastener = "Screw" then		# assume general length of tip, reduces t_pen (see 8.24, A2)
-		l_tip := 10 * Unit('mm')
+	if chosenFastener = "Screw" then		
+		l_tip := min(l1 / 10, 10 * Unit('mm'))		# assume length of tip, reduces t_pen (see 8.24, A2)
 	else
 		l_tip := 0	
 	end if;
