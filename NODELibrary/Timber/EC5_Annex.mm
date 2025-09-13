@@ -255,13 +255,21 @@ checkServiceclass := proc(WhateverYouNeed::table)
 
 	warnings := WhateverYouNeed["warnings"];
 	
-	if WhateverYouNeed["calculations"]["structure"]["connection"]["connection1"] = "Timber" then
-		timber := "1"
-	elif WhateverYouNeed["calculations"]["structure"]["connection"]["connection2"] = "Timber" then
-		timber := "2"
-	end if;
+	if WhateverYouNeed["calculations"]["calculationtype"] = "NS-EN 1995-1-1, Section 8: Fasteners" then
 
-	serviceclass := WhateverYouNeed["materialdataAll"][timber]["serviceclass"];
+		if WhateverYouNeed["calculations"]["structure"]["connection"]["connection1"] = "Timber" then
+			timber := "1"
+		elif WhateverYouNeed["calculations"]["structure"]["connection"]["connection2"] = "Timber" then
+			timber := "2"
+		end if;
+
+		serviceclass := WhateverYouNeed["materialdataAll"][timber]["serviceclass"];
+
+	elif WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" then
+
+		serviceclass := WhateverYouNeed["materialdata"]["serviceclass"];
+
+	end if;
 
 	if parse(serviceclass) > WhateverYouNeed["calculatedvalues"]["fastenervalues"]["serviceclass"] then
 		Alert("Fastener Service Class lower than required", warnings, 2)

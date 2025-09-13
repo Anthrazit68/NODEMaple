@@ -202,67 +202,72 @@ PlotResults := proc(WhateverYouNeed::table)
 		# CenterOfFasteners
 		# CenterOfForce			
 		# https://mapleprimes.com/questions/236156-Convert-In-Nested-Lists?reply=reply
-		geometry:-point(CenterOfFasteners, convert~(convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfFasteners"], list), 'unit_free'));
-		geometry:-point(CenterOfForce, convert~(convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfForce"], list), 'unit_free'));
-		geometryList := [op(geometryList), CenterOfFasteners('symbol' = 'cross', 'color' = "SteelBlue", 'symbolsize' = 30)];
-		geometryList := [op(geometryList), CenterOfForce('symbol' = 'diagonalcross', 'color' = "Red", 'symbolsize' = 30)];
+		if WhateverYouNeed["calculations"]["calculationtype"] = "NS-EN 1995-1-1, Section 8: Fasteners" or 
+			WhateverYouNeed["calculations"]["calculationtype"] = "Loads on Fastener Group" then
+
+			geometry:-point(CenterOfFasteners, convert~(convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfFasteners"], list), 'unit_free'));
+			geometry:-point(CenterOfForce, convert~(convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfForce"], list), 'unit_free'));
+			geometryList := [op(geometryList), CenterOfFasteners('symbol' = 'cross', 'color' = "SteelBlue", 'symbolsize' = 30)];
+			geometryList := [op(geometryList), CenterOfForce('symbol' = 'diagonalcross', 'color' = "Red", 'symbolsize' = 30)];
 					
-		# displayPoints := [pointplot(convert~(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfFasteners"], 'unit_free'), symbol = 'cross', 'color' = "SteelBlue", 'symbolsize' = 30), 
-		#	pointplot(convert~(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfForce"], 'unit_free'), symbol = 'diagonalcross', 'color' = "Red", 'symbolsize' = 30, 'scaling' = constrained)];
+			# displayPoints := [pointplot(convert~(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfFasteners"], 'unit_free'), symbol = 'cross', 'color' = "SteelBlue", 'symbolsize' = 30), 
+			#	pointplot(convert~(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfForce"], 'unit_free'), symbol = 'diagonalcross', 'color' = "Red", 'symbolsize' = 30, 'scaling' = constrained)];
 
-		# Fasteners
-		for i from 1 to numelems(fasteners) do
-			geometry:-point(parse(cat("F", i)), convert~(convert(fasteners[i], list), 'unit_free'));
-			fastenerPointlist := [op(fastenerPointlist), parse(cat("F", i))];
-			if assigned(WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_d"]) = false then										
-				geometryList := [op(geometryList), parse(cat("F", i))('symbol' = 'solidcircle', 'color' = "SteelBlue", 'symbolsize' = r)];
-			else										
-				geometry:-circle(parse(cat("fastener", i)), [parse(cat("F", i)), r], 'centername' = parse(cat("F", i)));
-				geometryList := [op(geometryList), parse(cat("fastener", i))('color' = "Black", 'filled' = true)];
-			end if;
+			# Fasteners
+			for i from 1 to numelems(fasteners) do
+				geometry:-point(parse(cat("F", i)), convert~(convert(fasteners[i], list), 'unit_free'));
+				fastenerPointlist := [op(fastenerPointlist), parse(cat("F", i))];
+				if assigned(WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_d"]) = false then										
+					geometryList := [op(geometryList), parse(cat("F", i))('symbol' = 'solidcircle', 'color' = "SteelBlue", 'symbolsize' = r)];
+				else										
+					geometry:-circle(parse(cat("fastener", i)), [parse(cat("F", i)), r], 'centername' = parse(cat("F", i)));
+					geometryList := [op(geometryList), parse(cat("fastener", i))('color' = "Black", 'filled' = true)];
+				end if;
 
-			# Shear Connectors
-			if fastener["ShearConnector"] = "Toothed-plate" then
-				# outer circle
-				geometry:-circle(parse(cat("fastener", i,"_bulldogo")), [parse(cat("F", i)), convert(fastener["ToothedPlatedc"] / 2, 'unit_free')]);
-				geometryList := [op(geometryList), parse(cat("fastener", i,"_bulldogo"))('color' = "Niagara DarkOrchid", 'linestyle' = "dash")];
-				# inner circle				
-				geometry:-circle(parse(cat("fastener", i,"_bulldogi")), [parse(cat("F", i)), convert(fastenervalues["ToothedPlated1"] / 2, 'unit_free')]);
-				geometryList := [op(geometryList), parse(cat("fastener", i,"_bulldogi"))('color' = "Niagara DarkOrchid", 'linestyle' = "dash")];
+				# Shear Connectors
+				if fastener["ShearConnector"] = "Toothed-plate" then
+					# outer circle
+					geometry:-circle(parse(cat("fastener", i,"_bulldogo")), [parse(cat("F", i)), convert(fastener["ToothedPlatedc"] / 2, 'unit_free')]);
+					geometryList := [op(geometryList), parse(cat("fastener", i,"_bulldogo"))('color' = "Niagara DarkOrchid", 'linestyle' = "dash")];
+					# inner circle				
+					geometry:-circle(parse(cat("fastener", i,"_bulldogi")), [parse(cat("F", i)), convert(fastenervalues["ToothedPlated1"] / 2, 'unit_free')]);
+					geometryList := [op(geometryList), parse(cat("fastener", i,"_bulldogi"))('color' = "Niagara DarkOrchid", 'linestyle' = "dash")];
 
-			elif fastener["ShearConnector"] = "Split ring" then
-				# outer circle
-				geometry:-circle(parse(cat("fastener", i,"_bulldogo")), [parse(cat("F", i)), convert(fastener["SplitRingdc"] / 2, 'unit_free')]);
-				geometryList := [op(geometryList), parse(cat("fastener", i,"_bulldogo"))('color' = "Niagara DarkOrchid", 'linestyle' = "dash")];
-			end if;
+				elif fastener["ShearConnector"] = "Split ring" then
+					# outer circle
+					geometry:-circle(parse(cat("fastener", i,"_bulldogo")), [parse(cat("F", i)), convert(fastener["SplitRingdc"] / 2, 'unit_free')]);
+					geometryList := [op(geometryList), parse(cat("fastener", i,"_bulldogo"))('color' = "Niagara DarkOrchid", 'linestyle' = "dash")];
+				end if;
+				
+			end do;
+			graphicsElements["fastenerPointlist"] := fastenerPointlist;
+
+			#if assigned(WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_d"]) = false then
+				# displayPoints := [op(displayPoints), pointplot((convert~)~(fasteners, 'unit_free'), symbol = 'solidcircle', 'color' = "SteelBlue", 'symbolsize' = r)]
+				
+			#else
+			#	for i from 1 to numelems(fasteners) do
+			#		fastener := disk(convert~([fasteners[i][1], fasteners[i][2]], 'unit_free'), r, 'color' = "SteelBlue");
+			#		displayPoints := [op(displayPoints), fastener]
+			#	end do
+				# displayPoints := [op(displayPoints), disk((convert~)~(fasteners, 'unit_free'), r, 'color' = "SteelBlue")]
+			# end if;
+
+			# forces
+			# https://www.mapleprimes.com/questions/232971-Copy-Values-Of-Mutable-Content
 			
-		end do;
-		graphicsElements["fastenerPointlist"] := fastenerPointlist;
-		
-		#if assigned(WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_d"]) = false then
-			# displayPoints := [op(displayPoints), pointplot((convert~)~(fasteners, 'unit_free'), symbol = 'solidcircle', 'color' = "SteelBlue", 'symbolsize' = r)]
-			
-		#else
-		#	for i from 1 to numelems(fasteners) do
-		#		fastener := disk(convert~([fasteners[i][1], fasteners[i][2]], 'unit_free'), r, 'color' = "SteelBlue");
-		#		displayPoints := [op(displayPoints), fastener]
-		#	end do
-			# displayPoints := [op(displayPoints), disk((convert~)~(fasteners, 'unit_free'), r, 'color' = "SteelBlue")]
-		# end if;
+			displayForceVectors := table();
+			for i from 1 to nops(results) do
+				displayForceVectors[i] := arrow(convert~([fasteners[i][1], fasteners[i][2]], 'unit_free'), [convert(results[i][1], 'unit_free') * scalefactor, convert(results[i][2], 'unit_free') * scalefactor], 'color'='blue');	# if results includes joint coordinates
+			end do;
+			displayForceVectors := convert(displayForceVectors, list);
 
-		# forces
-		# https://www.mapleprimes.com/questions/232971-Copy-Values-Of-Mutable-Content
-		
-		displayForceVectors := table();
-		for i from 1 to nops(results) do
-			displayForceVectors[i] := arrow(convert~([fasteners[i][1], fasteners[i][2]], 'unit_free'), [convert(results[i][1], 'unit_free') * scalefactor, convert(results[i][2], 'unit_free') * scalefactor], 'color'='blue');	# if results includes joint coordinates
-		end do;
-		displayForceVectors := convert(displayForceVectors, list);
+			# text
+			annotations := [textplot([seq([convert(fasteners[i][1], 'unit_free'), convert(fasteners[i][2], 'unit_free'), convert(i, string)], i = 1 .. nops(fasteners))], 'align'={'below', 'right'}),
+				textplot([convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfFasteners"][1], 'unit_free'), convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfFasteners"][2], 'unit_free'), "Fasteners"],'align'={'below', 'right'}), 
+				textplot([convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfForce"][1], 'unit_free'), convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfForce"][2], 'unit_free'), "Force"], 'align'={'below', 'right'})];
 
-		# text
-		annotations := [textplot([seq([convert(fasteners[i][1], 'unit_free'), convert(fasteners[i][2], 'unit_free'), convert(i, string)], i = 1 .. nops(fasteners))], 'align'={'below', 'right'}),
-			textplot([convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfFasteners"][1], 'unit_free'), convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfFasteners"][2], 'unit_free'), "Fasteners"],'align'={'below', 'right'}), 
-			textplot([convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfForce"][1], 'unit_free'), convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfForce"][2], 'unit_free'), "Force"], 'align'={'below', 'right'})];
+		end if;
 
 		# geometry of beams
 		# Beams
@@ -278,18 +283,23 @@ PlotResults := proc(WhateverYouNeed::table)
 		if assigned(structure["connection"]) then       # find item number of 2 beams, will not be run in "Loads on Fastener Group"
 			
 			for part from 1 to 2 do
-				
-				if assigned(structure["connection"][cat("connection", part)]) then
-					if structure["connection"][cat("connection", part)] = "Timber" then
-						beamnumber[part] := convert(part, string)
-					elif structure["connection"][cat("connection", part)] = "Steel" then
-						beamnumber[part] := "steel"
-					end if
+
+				if WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" and part = 1 then
+					i = "1"
+				elif WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" and part = 2 then
+					next part
+				else
+					if assigned(structure["connection"][cat("connection", part)]) then
+						if structure["connection"][cat("connection", part)] = "Timber" then
+							beamnumber[part] := convert(part, string)
+						elif structure["connection"][cat("connection", part)] = "Steel" then
+							beamnumber[part] := "steel"
+						end if
+					end if;
+					i := beamnumber[part];		# "1", "2", "steel"
 				end if;
 
-				i := beamnumber[part];		# "1", "2", "steel"
-
-				if assigned(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", i)]) and WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", i)] <> "false" then
+				if assigned(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", i)]) and WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", i)] <> "false"
 		
 					alpha[i] := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", i)]);
 		
@@ -393,7 +403,13 @@ PlotResults := proc(WhateverYouNeed::table)
 			# probably enough to just move point positions
 			for part from 1 to 2 do
 
-				i := beamnumber[part];		# "1", "2", "steel"
+				if WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" and part = 1 then
+					i = "1"
+				elif WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" and part = 2 then
+					next part		
+				else
+					i := beamnumber[part];		# "1", "2", "steel"
+				end if;
 
 				lengthleft := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthleft", i)], 'unit_free');				# could be "false"
 				lengthright := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthright", i)], 'unit_free');
