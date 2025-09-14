@@ -76,12 +76,12 @@
                               <xs:sequence>
                                 <xs:element name="connection">
                                   <xs:complexType>
-                                    <xs:attribute name="Cutleft1" type="xs:string"/>
-                                    <xs:attribute name="Cutleft2" type="xs:string"/>
-                                    <xs:attribute name="Cutleftsteel" type="xs:string"/>
-                                    <xs:attribute name="Cutright1" type="xs:string"/>
-                                    <xs:attribute name="Cutright2" type="xs:string"/>
-                                    <xs:attribute name="Cutrightsteel" type="xs:string"/>
+                                    <xs:attribute name="cutleft1" type="xs:string"/>
+                                    <xs:attribute name="cutleft2" type="xs:string"/>
+                                    <xs:attribute name="cutleftsteel" type="xs:string"/>
+                                    <xs:attribute name="cutright1" type="xs:string"/>
+                                    <xs:attribute name="cutright2" type="xs:string"/>
+                                    <xs:attribute name="cutrightsteel" type="xs:string"/>
                                     <xs:attribute name="bout1" type="xs:string"/>
                                     <xs:attribute name="connection1" type="xs:string"/>
                                     <xs:attribute name="connection2" type="xs:string"/>
