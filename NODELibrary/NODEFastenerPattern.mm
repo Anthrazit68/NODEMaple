@@ -162,7 +162,7 @@ PlotResults := proc(WhateverYouNeed::table)
 	local structure, i, displayForceVectors, fastener, fasteners, fastenervalues, fastenerPointlist, results, scalefactor, r, len, alpha, geometryList, graphicsElements, warnings,
 		sectiondataAll, h, beamBoundarylines, annotations_a, annotations, x, y, lengthleft, lengthright, angleleft, angleright, beams, clr, beamPoints, minimumangle,
 		plotitems, beamnumber, displayBlockShear, cutleft, cutright, part, deltaangle;
-DEBUG();
+# DEBUG();
 	warnings := WhateverYouNeed["warnings"];
 	structure := WhateverYouNeed["calculations"]["structure"];
 	graphicsElements := table();
@@ -547,39 +547,41 @@ DEBUG();
 				end if;
 			end do;
 
-			if CheckPointInPolygon(WhateverYouNeed) then		# check if fasteners er inside of parts
+			if CheckPointInPolygon(WhateverYouNeed) then		# check if fasteners are inside of parts
+# DEBUG();
+				if WhateverYouNeed["calculations"]["calculationtype"] = "NS-EN 1995-1-1, Section 8: Fasteners" then
+					annotations_a := calculate_a(WhateverYouNeed);			# calculate a-values according to EC5
+					displayBlockShear := BlockShearPath(WhateverYouNeed);	# calculate BlockShear
+				end if;
+				# geometryList := [op(geometryList), op(segmentlist)];
 
-				annotations_a := calculate_a(WhateverYouNeed);			# calculate a-values according to EC5
 				if MASTERALARM(warnings) = true then
 					return
 				end if;
-
-				displayBlockShear := BlockShearPath(WhateverYouNeed);	# calculate BlockShear
-				# geometryList := [op(geometryList), op(segmentlist)];
 
 				beams := convert(beams, list);
 
 				plotitems := [op(beams)];
 
-				if GetProperty("CheckBox_GraphicsShowAnnotations", value) = "true" then
+				if assigned(annotations) and GetProperty("CheckBox_GraphicsShowAnnotations", value) = "true" then
 					if numelems(annotations) > 0 then
 						plotitems := [op(plotitems), op(annotations)]
 					end if;
 				end if;
 			
-				if GetProperty("CheckBox_GraphicsShowDistances", value) = "true" then
+				if assigned(annotations_a) and GetProperty("CheckBox_GraphicsShowDistances", value) = "true" then
 					if numelems(annotations_a) > 0 then
 						plotitems := [op(plotitems), op(annotations_a)]
 					end if;
 				end if;
 			
-				if GetProperty("CheckBox_GraphicsShowForces", value) = "true" then
+				if assigned(displayForceVectors) and GetProperty("CheckBox_GraphicsShowForces", value) = "true" then
 					if numelems(displayForceVectors) > 0 then
 						plotitems := [op(plotitems), op(displayForceVectors)]
 					end if
 				end if;
 				
-				if GetProperty("CheckBox_GraphicsShowBlockShear", value) = "true" then
+				if assigned(displayBlockShear) and GetProperty("CheckBox_GraphicsShowBlockShear", value) = "true" then
 					if numelems(displayBlockShear) > 0 then
 						plotitems := [op(plotitems), geometry:-draw(displayBlockShear)]
 					end if;
@@ -1948,9 +1950,9 @@ CheckPointInPolygon := proc(WhateverYouNeed::table)::boolean;
 
 		end do;
 
-	else	# no check necessary for other calculation types
-		
-		InsidePolygon := true;
+	else	
+
+		InsidePolygon := true;	# no check necessary for other calculation types
 
 	end if;
 

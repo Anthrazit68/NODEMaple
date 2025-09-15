@@ -276,3 +276,23 @@ checkServiceclass := proc(WhateverYouNeed::table)
 	end if;
 		
 end proc:
+
+
+checkOpeningGeometry := proc(WhateverYouNeed::table)
+	description "check opening geometry in beams with opening";
+	local opening, h, warnings;
+
+	warnings := WhateverYouNeed["warnings"];
+
+	opening :=  WhateverYouNeed["calculations"]["structure"]["opening"];
+	h := WhateverYouNeed["sectiondataAll"]["1"]["h"];
+	
+	if opening["opening_a"] / 2 + opening["opening_e"] >= h / 2 then
+		Alert("Opening > top beam", warnings, 5);
+	
+	elif abs(-opening["opening_a"] / 2 + opening["opening_e"]) >= h / 2 then
+		Alert("Opening > top beam", warnings, 5);	
+
+	end if;
+
+end proc:
