@@ -280,19 +280,72 @@ end proc:
 
 checkOpeningGeometry := proc(WhateverYouNeed::table)
 	description "check opening geometry in beams with opening";
-	local opening, h, warnings;
+	local opening, h, warnings, openingtype, a, hd, e, lv, lA, lz, r, withoutReinforcement, h_ro, h_ru, dummy, usedcode, comments;
 
 	warnings := WhateverYouNeed["warnings"];
+	usedcode := "DIN NA";
+	comments :=  WhateverYouNeed["calculations"]["comments"];
 
+	# definition of variables
 	opening :=  WhateverYouNeed["calculations"]["structure"]["opening"];
 	h := WhateverYouNeed["sectiondataAll"]["1"]["h"];
+	openingtype := opening["openingtype"];
+	a := opening["opening_a"];
+	hd := opening["opening_hd"];
+	e := opening["opening_e"];
+	lv := opening["opening_lv"];
+	lA := opening["opening_lA"];
+	lz := opening["opening_lz"];
+	r := opening["opening_r"];
 	
-	if opening["opening_a"] / 2 + opening["opening_e"] >= h / 2 then
-		Alert("Opening > top beam", warnings, 5);
-	
-	elif abs(-opening["opening_a"] / 2 + opening["opening_e"]) >= h / 2 then
-		Alert("Opening > top beam", warnings, 5);	
+	# hd is defined for both rectangular and circular openings
+	h_ro := h / 2 - hd / 2 - e;		
+	h_ru := h / 2 - hd / 2 + e;
 
+	# check if opening outside beam
+	if  h_ro <= 0 then
+		Alert("Opening outside top beam", warnings, 5);
+	elif h_ru <= 0 then
+		Alert("Opening outside bottom beam", warnings, 5);	
+	end if;
+
+	# check if size and placement of opening fulfills criteria for beams without reinforcement acc. DIN EN 1995-1-1/NA (limtreboka p. 88)
+	withoutReinforcement := true;
+
+	if lv < h then
+		dummy := "lv < h";
+		withoutReinforcement := false;
+
+	elif lz <> 0 and lz < 1.5*h and lz > 300 * Unit('mm') then
+		dummy := "lz < 1.5*h (300mm)";
+		withoutReinforcement := false;
+
+	elif lA < 0.5*h then
+		dummy := "lA < 0.5*h";
+		withoutReinforcement := false;
+
+	elif h_ro < 0.35*h or h_ru < 0.35*h then
+		dummy := "h_rou < 0.35*h";
+		withoutReinforcement := false;
+
+	elif a > 0.4*h then
+		dummy := "a > 0.4*h";
+		withoutReinforcement := false;
+	
+	elif hd > 0.15*h then
+		dummy := "hd > 0.15*h";
+		withoutReinforcement := false;
+
+	elif openingtype = "rectangular" and r < 15 * Unit('mm') then
+		dummy := "r < 15mm ";
+		withoutReinforcement := false;
+
+	end if;
+
+	if withoutReinforcement then 
+		comments["checkOpeningGeometry"] := "Beam opening: reinforcement not necessary"
+	else
+		comments["checkOpeningGeometry"] := cat("Beam opening: reinforcement necessary, ", dummy)		
 	end if;
 
 end proc:
