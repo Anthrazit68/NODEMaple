@@ -513,7 +513,7 @@ PlotResults := proc(WhateverYouNeed::table)
 
 			graphicsElements["beamBoundarylines"] := beamBoundarylines;
 			graphicsElements["beamPoints"] := beamPoints;
-			
+
 			# plot polygons
 			for i in {"1", "2", "steel"} do
 				if assigned(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", i)]) 
@@ -547,8 +547,30 @@ PlotResults := proc(WhateverYouNeed::table)
 				end if;
 			end do;
 
+			# opening
+			if assigned(WhateverYouNeed["calculations"]["structure"]["opening"]) then
+				local opening, openingOutline;
+				opening := WhateverYouNeed["calculations"]["structure"]["opening"];
+				openingOutline := [];
+
+#				a := opening["opening_a"];
+#				hd := opening["opening_hd"];
+#				e := opening["opening_e"];
+#				lv := opening["opening_lv"];
+#				lA := opening["opening_lA"];
+#				lz := opening["opening_lz"];
+#				r := opening["opening_r"];
+
+				if opening["openingtype"] = "circular" then
+					geometry:-circle(C, [geometry:-point(O, 0, 0), convert(opening["opening_a"], 'unit_free')]);
+					openingOutline := [op(openingOutline), C];
+					graphicsElements["opening"] := openingOutline;
+					geometryList := [op(geometryList), C];
+				end if;
+			end if;
+
 			if CheckPointInPolygon(WhateverYouNeed) then		# check if fasteners are inside of parts
-# DEBUG();
+
 				if WhateverYouNeed["calculations"]["calculationtype"] = "NS-EN 1995-1-1, Section 8: Fasteners" then
 					annotations_a := calculate_a(WhateverYouNeed);			# calculate a-values according to EC5
 					displayBlockShear := BlockShearPath(WhateverYouNeed);	# calculate BlockShear

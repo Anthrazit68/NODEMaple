@@ -242,7 +242,7 @@ WriteValueToComponent := proc(compvariable::string, b, check_calculations::set)
 				if checkvar then
 					upd_check_calculations := upd_check_calculations minus {compvariable};
 				end if;
-			else
+			elif checkvar then
 				Alert(cat("ComboBox_", compvariable, ": no value found ", componentvalue), table(), 1)
 			end if;
 		end if;
@@ -283,7 +283,7 @@ WriteValueToComponent := proc(compvariable::string, b, check_calculations::set)
 					if checkvar then
 						upd_check_calculations := upd_check_calculations minus {compvariable};
 					end if;
-				else
+				elif checkvar then
 					Alert(cat(compvariable, ": value not found ", componentvalue), table(), 1)
 				end if;
 			end if;
@@ -292,12 +292,12 @@ WriteValueToComponent := proc(compvariable::string, b, check_calculations::set)
 			if checkvar then
 				upd_check_calculations := upd_check_calculations minus {compvariable};
 			end if;
-		else
+		elif checkvar then
 			Alert(cat("No component found for ", compvariable), table(), 1)
 		end if
 	
 	else
-		if componentvalue <> "" then
+		if componentvalue <> "" and checkvar then
 			Alert(cat("No component found for ", compvariable), table(), 1)
 		end if;
 	end if;
