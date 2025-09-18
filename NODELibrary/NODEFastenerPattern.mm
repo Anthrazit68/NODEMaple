@@ -161,7 +161,8 @@ PlotResults := proc(WhateverYouNeed::table)
 	description "Plot results of calculation";
 	local structure, i, displayForceVectors, fastener, fasteners, fastenervalues, fastenerPointlist, results, scalefactor, r, len, alpha, geometryList, graphicsElements, warnings,
 		sectiondataAll, h, beamBoundarylines, annotations_a, annotations, x, y, lengthleft, lengthright, angleleft, angleright, beams, clr, beamPoints, minimumangle,
-		plotitems, beamnumber, displayBlockShear, cutleft, cutright, part, deltaangle;
+		plotitems, beamnumber, displayBlockShear, cutleft, cutright, part, deltaangle,
+		opening, openingOutline, one_poly, a, hd;
 # DEBUG();
 	warnings := WhateverYouNeed["warnings"];
 	structure := WhateverYouNeed["calculations"]["structure"];
@@ -548,24 +549,47 @@ PlotResults := proc(WhateverYouNeed::table)
 			end do;
 
 			# opening
-			if assigned(WhateverYouNeed["calculations"]["structure"]["opening"]) then
-				local opening, openingOutline;
-				opening := WhateverYouNeed["calculations"]["structure"]["opening"];
-				openingOutline := [];
-
-#				a := opening["opening_a"];
-#				hd := opening["opening_hd"];
+			if assigned(WhateverYouNeed["calculations"]["structure"]["opening"]) then				
+				opening := WhateverYouNeed["calculations"]["structure"]["opening"];				
+				a := opening["opening_a"];
 #				e := opening["opening_e"];
 #				lv := opening["opening_lv"];
 #				lA := opening["opening_lA"];
 #				lz := opening["opening_lz"];
-#				r := opening["opening_r"];
 
 				if opening["openingtype"] = "circular" then
-					geometry:-circle(C, [geometry:-point(O, 0, 0), convert(opening["opening_a"], 'unit_free')]);
-					openingOutline := [op(openingOutline), C];
-					graphicsElements["opening"] := openingOutline;
-					geometryList := [op(geometryList), C];
+					# geometry:-circle(OPENING, [geometry:-point(O, 0, 0), convert(opening["opening_a"], 'unit_free')]);
+					openingOutline := disk([0, 0], convert(a/2, 'unit_free'), 'color' = "black");
+					
+					# openingOutline := [op(openingOutline), OPENING];
+					# graphicsElements["opening"] := openingOutline;
+					# geometryList := [op(geometryList), OPENING('color' = "black")];
+
+				elif opening["openingtype"] = "rectangular" then
+
+					r := opening["opening_r"];
+					hd := opening["opening_hd"];
+
+					if r = 0 then
+						openingOutline := polygonplot(Matrix([[-a/2, -hd/2], [-a/2, hd/2], [a/2, hd/2], [a/2, -hd/2]], datatype = float), 'color' = "black")
+
+					else
+						local step_size, arc_points, t;
+						arc_points := table();
+
+						# Define a variable for the step size, ensuring it's a numeric float.
+						step_size := evalf(Pi/180):
+
+						# Define points for the arc, using the pre-calculated step_size.
+						arc_points[1] := [seq([evalf(a/2 - r + r*cos(t)), evalf(hd/2 - r + r*sin(t))], t = 0 .. evalf(Pi/2), step_size)];
+						arc_points[2] := [seq([evalf((-a/2 + r) + r*cos(t)), evalf(hd/2 - r + r*sin(t))], t = evalf(Pi/2) .. evalf(Pi), step_size)];
+						arc_points[3] := [seq([evalf((-a/2 + r) + r*cos(t)), evalf((-hd/2 + r) + r*sin(t))], t = evalf(Pi) .. evalf((3*Pi)/2), step_size)];
+						arc_points[4] := [seq([evalf(a/2 - r + r*cos(t)), evalf((-hd/2 + r) + r*sin(t))], t = evalf((3*Pi)/2) .. evalf(2*Pi), step_size)];
+
+						# Plot the shape with a yellow fill.
+						openingOutline := polygonplot([op(arc_points[1]), op(arc_points[2]), op(arc_points[3]), op(arc_points[4])], color = "black");
+					end if;
+
 				end if;
 			end if;
 
@@ -607,7 +631,11 @@ PlotResults := proc(WhateverYouNeed::table)
 					if numelems(displayBlockShear) > 0 then
 						plotitems := [op(plotitems), geometry:-draw(displayBlockShear)]
 					end if;
-				end if;			
+				end if;
+
+				if assigned(openingOutline) then
+					plotitems := [op(plotitems), openingOutline]
+				end if;
 
 				SetProperty("Plot_result", 'value', display(geometry:-draw(geometryList), plotitems));		# combine geometry and plots elements
 

@@ -309,6 +309,22 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 		Alert("Opening outside bottom beam", warnings, 5);	
 	end if;
 
+	if openingtype = "rectangular" then
+		if r < 0 then
+			opening["opening_r"] := 0;
+			if ComponentExists("TextArea_opening_r") then
+				Alert("radius = 0", warnings, 1);
+				SetProperty("TextArea_opening_r", 'value', 0)
+			end if;
+		elif r > a / 2 or r > hd / 2 then
+			opening["opening_r"] := min(a/2, hd/2);
+			if ComponentExists("TextArea_opening_r") then
+				Alert(cat("r set to ", convert(r, 'unit_free')), warnings, 1);
+				SetProperty("TextArea_opening_r", 'value', convert(r, 'unit_free'))
+			end if;
+		end if;
+	end if;
+
 	# check if size and placement of opening fulfills criteria for beams without reinforcement acc. DIN EN 1995-1-1/NA (limtreboka p. 88)
 	withoutReinforcement := true;
 
