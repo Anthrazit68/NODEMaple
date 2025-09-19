@@ -280,11 +280,12 @@ end proc:
 
 checkOpeningGeometry := proc(WhateverYouNeed::table)
 	description "check opening geometry in beams with opening";
-	local opening, h, warnings, openingtype, a, hd, e, lv, lA, lz, r, withoutReinforcement, h_ro, h_ru, dummy, usedcode, comments;
+	local opening, h, warnings, openingtype, a, hd, e, lv, lA, lz, r, withoutReinforcement, h_ro, h_ru, dummy, usedcode, comments, openingResult;
 
 	warnings := WhateverYouNeed["warnings"];
 	usedcode := "DIN NA";
-	comments :=  WhateverYouNeed["calculations"]["comments"];
+	comments :=  WhateverYouNeed["results"]["comments"];
+	openingResult := WhateverYouNeed["results"]["opening"];
 
 	# definition of variables
 	opening :=  WhateverYouNeed["calculations"]["structure"]["opening"];
@@ -356,11 +357,33 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 		dummy := "r < 15mm ";
 		withoutReinforcement := false;
 
+	elif WhateverYouNeed["materialdata"]["serviceclass"] = "3" then
+		dummy := "serviceclass 3 ";
+		withoutReinforcement := false;
+
 	end if;
 
-	if withoutReinforcement then 
-		comments["checkOpeningGeometry"] := "Beam opening: reinforcement not necessary"
-	else
+	# check if hole is minor
+	openingResult["minorOpening"] := false;
+
+	if openingtype = "circular" then
+
+		if hd <= 50 * Unit('mm') and hd <= 0.15 * h and e <= 0.15 * h then		# no strict rules for e in code, assumed same as for hd
+			openingResult["minorOpening"] := true;
+			comments["minorOpening"] := "minor opening"
+		end if;
+
+	elif openingtype = "circular" then
+
+		if evalf(sqrt(a^2 + hd^2)) <= 50 * Unit('mm') and hd <= 0.15 * h and e <= 0.15 * h then		# no strict rules for e in code, assumed same as for hd
+			openingResult["minorOpening"] := true;
+			comments["minorOpening"] := "minor opening"
+		end if;
+
+	end if;
+
+	openingResult["withoutReinforcement"] := withoutReinforcement;
+	if withoutReinforcement = false then
 		comments["checkOpeningGeometry"] := cat("Beam opening: reinforcement necessary, ", dummy)		
 	end if;
 

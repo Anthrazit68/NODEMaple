@@ -752,6 +752,18 @@ ReadComponentsCommon := proc(action::string, WhateverYouNeed::table)
 		end if;
 	end if;
 
+	# ShowErrorsDuringReadin
+	if action = "all" then
+		if ComponentExists("CheckBox_ShowErrorsDuringReadin") then
+			if GetProperty("CheckBox_ShowErrorsDuringReadin", 'value') = "true" then
+				calculations["ShowErrorsDuringReadin"] := true
+			else
+				calculations["ShowErrorsDuringReadin"] := false
+			end if
+		end if;
+	end if;
+
+	# loadcases
 	if action = "calculateAllLoadcases" or ComponentExists("Button_calculateAllLoadcases") = false then
 		WhateverYouNeed["calculateAllLoadcases"] := true
 	else
@@ -2081,9 +2093,10 @@ end proc:
 
 StoredsettingsToComponents := proc(WhateverYouNeed::table)
 	description "Write stored values to components in sheet";
-	local checkvar, dummy, j, k, storeitems, parent, child;
+	local checkvar, dummy, j, k, storeitems, parent, child, ShowErrorsDuringReadin;
 
 	storeitems := WhateverYouNeed["componentvariables"]["var_storeitems"];
+	ShowErrorsDuringReadin := calculations["ShowErrorsDuringReadin"];
 
 	for dummy in storeitems do
 		
