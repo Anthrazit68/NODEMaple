@@ -280,7 +280,8 @@ end proc:
 
 checkOpeningGeometry := proc(WhateverYouNeed::table)
 	description "check opening geometry in beams with opening";
-	local opening, h, warnings, openingtype, a, hd, e, lv, lA, lz, r, withoutReinforcement, h_ro, h_ru, dummy, usedcode, comments, openingResult;
+	local opening, h, warnings, openingtype, a, hd, e, lv, lA, lz, r, withoutReinforcement, h_r, h_ro, h_ru, dummy, usedcode, comments, openingResult,
+		l_t90, k_t90, K_corner;
 
 	warnings := WhateverYouNeed["warnings"];
 	usedcode := "DIN NA";
@@ -302,6 +303,25 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 	# hd is defined for both rectangular and circular openings
 	h_ro := h / 2 - hd / 2 - e;		
 	h_ru := h / 2 - hd / 2 + e;
+
+	if openingtype = "rectangular" then					
+		h_r := min(h_ru, h_ro);					# limtreboka, p 90, (5-9), (5-10)
+		l_t90 := 0.5*(hd + h)					# limtreboka, p 90, (5-11), (5-12)
+
+	elif openingtype = "circular" then
+		h_r := min(h_ru + 0.15 * hd, h_ro + 0.15 * hd);
+		l_t90 := 0.35*hd + 0.5*h
+
+	end if;
+
+	k_t90 := evalf(min(1, (450 * Unit('mm') / h)^0.5));
+
+	K_corner := evalf(1.84 * (1+a/h)/(1-hd/h) * (hd/h)^0.2);
+
+	openingResult["h_r"] := h_r;
+	openingResult["l_t90"] := l_t90;
+	openingResult["k_t90"] := k_t90;
+	openingResult["K_corner"] := K_corner;
 
 	# check if opening outside beam
 	if  h_ro <= 0 then
@@ -386,5 +406,51 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 	if withoutReinforcement = false then
 		comments["checkOpeningGeometry"] := cat("Beam opening: reinforcement necessary, ", dummy)		
 	end if;
+
+end proc:
+
+
+calculate_BeamWithOpening := proc(WhateverYouNeed::table)
+	description "Timber beam with opening";
+	local opening, hd, hd_, openingResult, b, h, h_r, sigma_t90d, f_t90d, eta, usedcode, comments, loadcase, F_vd, M_yd, F_t90d, l_t90, A, k_t90, K_corner, tau_cornerd;
+
+	# define local variables
+	opening :=  WhateverYouNeed["calculations"]["structure"]["opening"];
+	hd := opening["opening_hd"];
+	b := WhateverYouNeed["sectiondataAll"]["1"]["b"];
+	h := WhateverYouNeed["sectiondataAll"]["1"]["h"];	
+	openingResult := WhateverYouNeed["results"]["opening"];
+	h_r := openingResult["h_r"];
+	l_t90 := openingResult["l_t90"];
+	k_t90 := openingResult["k_t90"];
+	
+	f_t90d := WhateverYouNeed["materialdata"]["f_t90d"];
+	loadcase := WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"];
+	F_vd := WhateverYouNeed["calculations"]["loadcases"][loadcase]["F_vd"];
+	M_yd := WhateverYouNeed["calculations"]["loadcases"][loadcase]["M_yd"];
+	
+	if opening["openingtype"] = "circular" then
+		hd_ := 0.7 * hd
+	elif opening["openingtype"] = "rectangular" then
+		hd_ := hd
+	end if;
+
+	A := evalf(0.5 * l_t90 * b);
+
+	F_t90d := evalf(F_vd * hd_ / (4*h) * (3 - hd_^2 / h^2) + 0.008 * M_yd / h_r);
+	sigma_t90d := convert(F_t90d / A, 'units', 'N'/'mm^2');
+
+	K_corner := openingResult["K_corner"];
+	tau_cornerd := evalf(K_corner * 3 * F_vd / (2 * b * h));
+
+	openingResult["F_t90d"] := F_t90d;
+	openingResult["sigma_t90d"] := sigma_t90d;
+	openingResult["tau_cornerd"] := tau_cornerd;
+
+	eta := evalf(sigma_t90d / (k_t90 * f_t90d));
+	usedcode := "Beam with opening";
+	comments := "Timber beam with opening";
+	
+	return eta, usedcode, comments
 
 end proc:
