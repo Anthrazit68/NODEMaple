@@ -172,12 +172,13 @@ AnnexA := proc(WhateverYouNeed::table)
 	end if;
 
 	for i in {"a", "b", "d", "e", "g", "h"} do
-		dummy := cat("MathContainer_t_ef", i);
-		if ComponentExists(dummy) then 
-			SetProperty(dummy, 'value', round(t_ef[i]))
-		else
-			SetProperty(dummy, 'value', 0)
-		end if;
+#		dummy := cat("MathContainer_t_ef", i);
+		WriteValueToComponent(cat("t_ef", i), round(t_ef[i]), {"nocheck"});
+#		if ComponentExists(dummy) then 
+#			SetProperty(dummy, 'value', round(t_ef[i]))
+#		else
+#			SetProperty(dummy, 'value', 0)
+#		end if;
 	end do;
 
 	F_bsRk := max(k_t * A_net_t["total"] * f_t0k, 0.7 * A_net_v["total"] * f_vk);			# (A.1), NA (A2)
@@ -212,30 +213,39 @@ AnnexA := proc(WhateverYouNeed::table)
 	# end do;
 
 	# workaround
-	if ComponentExists("MathContainer_AnnexA_t_1") then
-		SetProperty("MathContainer_AnnexA_t_1", 'value', round(t_1))
-	end if;
-	if ComponentExists("MathContainer_AnnexA_t_ef") then
-		SetProperty("MathContainer_AnnexA_t_ef", 'value', round(t_ef["a-e"]))
-	end if;
-	if ComponentExists("MathContainer_L_net_v") then
-		SetProperty("MathContainer_L_net_v", 'value', round(L_net_v))
-	end if;
-	if ComponentExists("MathContainer_L_net_t") then
-		SetProperty("MathContainer_L_net_t", 'value', round(L_net_t))
-	end if;
-	if ComponentExists("MathContainer_A_net_v") then
-		SetProperty("MathContainer_A_net_v", 'value', round(A_net_v["total"]))
-	end if;
-	if ComponentExists("MathContainer_A_net_t") then
-		SetProperty("MathContainer_A_net_t", 'value', round(A_net_t["total"]))
-	end if;
-	if ComponentExists("MathContainer_F_bsRk") then
-		SetProperty("MathContainer_F_bsRk", 'value', round(F_bsRk))
-	end if;
-	if ComponentExists("MathContainer_F_bsRd") then
-		SetProperty("MathContainer_F_bsRd", 'value', round(F_bsRd))
-	end if;
+	WriteValueToComponent("AnnexA_t_1", round(t_1), {"nocheck"});
+	WriteValueToComponent("AnnexA_t_ef", round(t_ef["a-e"]), {"nocheck"});
+	WriteValueToComponent("L_net_v", round(L_net_v), {"nocheck"});
+	WriteValueToComponent("L_net_t", round(L_net_t), {"nocheck"});
+	WriteValueToComponent("A_net_v", round(A_net_v["total"]), {"nocheck"});
+	WriteValueToComponent("A_net_t", round(A_net_t["total"]), {"nocheck"});
+	WriteValueToComponent("F_bsRk", round(F_bsRk), {"nocheck"});
+	WriteValueToComponent("F_bsRd", round(F_bsRd), {"nocheck"});
+	
+#	if ComponentExists("MathContainer_AnnexA_t_1") then
+#		SetProperty("MathContainer_AnnexA_t_1", 'value', round(t_1))
+#	end if;
+#	if ComponentExists("MathContainer_AnnexA_t_ef") then
+#		SetProperty("MathContainer_AnnexA_t_ef", 'value', round(t_ef["a-e"]))
+#	end if;
+#	if ComponentExists("MathContainer_L_net_v") then
+#		SetProperty("MathContainer_L_net_v", 'value', round(L_net_v))
+#	end if;
+#	if ComponentExists("MathContainer_L_net_t") then
+#		SetProperty("MathContainer_L_net_t", 'value', round(L_net_t))
+#	end if;
+#	if ComponentExists("MathContainer_A_net_v") then
+#		SetProperty("MathContainer_A_net_v", 'value', round(A_net_v["total"]))
+#	end if;
+#	if ComponentExists("MathContainer_A_net_t") then
+#		SetProperty("MathContainer_A_net_t", 'value', round(A_net_t["total"]))
+#	end if;
+#	if ComponentExists("MathContainer_F_bsRk") then
+#		SetProperty("MathContainer_F_bsRk", 'value', round(F_bsRk))
+#	end if;
+#	if ComponentExists("MathContainer_F_bsRd") then
+#		SetProperty("MathContainer_F_bsRd", 'value', round(F_bsRd))
+#	end if;
 
 	BlockShear["L_net_v"] := L_net_v;
 	BlockShear["L_net_t"] := L_net_t;
@@ -318,8 +328,8 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 
 	K_corner := evalf(1.84 * (1+a/h)/(1-hd/h) * (hd/h)^0.2);
 
-	openingResult["h_r"] := h_r;
-	openingResult["l_t90"] := l_t90;
+	openingResult["h_r"] := evalf(h_r);
+	openingResult["l_t90"] := evalf(l_t90);
 	openingResult["k_t90"] := k_t90;
 	openingResult["K_corner"] := K_corner;
 
@@ -407,12 +417,18 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 		comments["checkOpeningGeometry"] := cat("Beam opening: reinforcement necessary, ", dummy)		
 	end if;
 
+	# write results
+	WriteValueToComponent("h_r", round(h_r), {"nocheck"});
+	WriteValueToComponent("l_t90", round(l_t90), {"nocheck"});
+	WriteValueToComponent("k_t90", round2(k_t90, 2), {"nocheck"});
+	WriteValueToComponent("K_corner", round2(K_corner, 2), {"nocheck"});
+
 end proc:
 
 
 calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	description "Timber beam with opening";
-	local opening, hd, hd_, openingResult, b, h, h_r, sigma_t90d, f_t90d, eta, usedcode, comments, loadcase, F_vd, M_yd, F_t90d, l_t90, A, k_t90, K_corner, tau_cornerd;
+	local opening, hd, openingResult, b, h, h_r, sigma_t90d, f_t90d, eta, usedcode, comments, loadcase, F_vd, M_yd, F_t90d, l_t90, A, k_t90, K_corner, tau_cornerd;
 
 	# define local variables
 	opening :=  WhateverYouNeed["calculations"]["structure"]["opening"];
@@ -429,19 +445,20 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	F_vd := WhateverYouNeed["calculations"]["loadcases"][loadcase]["F_vd"];
 	M_yd := WhateverYouNeed["calculations"]["loadcases"][loadcase]["M_yd"];
 	
-	if opening["openingtype"] = "circular" then
-		hd_ := 0.7 * hd
-	elif opening["openingtype"] = "rectangular" then
-		hd_ := hd
-	end if;
+	# reduction factor mentioned in limtreboka for circular openings is neither used in example 18, nor in Holzbau Taschenbuch Example A.4.2
+	# if opening["openingtype"] = "circular" then
+	# 	hd_ := 0.7 * hd
+	# elif opening["openingtype"] = "rectangular" then
+	# 	hd_ := hd
+	# end if;
 
 	A := evalf(0.5 * l_t90 * b);
 
-	F_t90d := evalf(F_vd * hd_ / (4*h) * (3 - hd_^2 / h^2) + 0.008 * M_yd / h_r);
+	F_t90d := convert(evalf(F_vd * hd / (4*h) * (3 - hd^2 / h^2) + 0.008 * M_yd / h_r), 'units', 'kN');
 	sigma_t90d := convert(F_t90d / A, 'units', 'N'/'mm^2');
 
 	K_corner := openingResult["K_corner"];
-	tau_cornerd := evalf(K_corner * 3 * F_vd / (2 * b * h));
+	tau_cornerd := convert(evalf(K_corner * 3 * F_vd / (2 * b * h)), 'units', 'N'/'mm^2');
 
 	openingResult["F_t90d"] := F_t90d;
 	openingResult["sigma_t90d"] := sigma_t90d;
@@ -450,6 +467,10 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	eta := evalf(sigma_t90d / (k_t90 * f_t90d));
 	usedcode := "Beam with opening";
 	comments := "Timber beam with opening";
+
+	WriteValueToComponent("F_t90d", round2(F_t90d, 2), {"nocheck"});
+	WriteValueToComponent("sigma_t90d", round2(sigma_t90d, 2), {"nocheck"});
+	WriteValueToComponent("tau_cornerd", round2(tau_cornerd, 2), {"nocheck"});
 	
 	return eta, usedcode, comments
 

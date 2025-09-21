@@ -212,93 +212,98 @@ WriteValueToComponent := proc(compvariable::string, b, check_calculations::set)
 
 	componentvalue := b;		# need to copy that to a local variable, as we need to strip value of units
 
-	if type(componentvalue, 'with_unit') then
-		componentvalue := convert(componentvalue, 'unit_free')
-	end if;
-
-	if ComponentExists(cat("TextArea_", compvariable)) then
-		if componentvalue = "false" or componentvalue = false then
-			SetProperty(cat("TextArea_", compvariable), 'enabled', "false");
-		else
-			SetProperty(cat("TextArea_", compvariable), 'value', componentvalue);
-			SyncSliderWithTextArea(compvariable)		# there could be a slider to be adjusted as well
+	# 2025-09-21, add MathContainer check before rest
+	if ComponentExists(cat("MathContainer_", compvariable)) then
+		SetProperty(cat("MathContainer_", compvariable), 'value', componentvalue);
+	else
+		if type(componentvalue, 'with_unit') then
+			componentvalue := convert(componentvalue, 'unit_free')
 		end if;
-		if checkvar then
-			upd_check_calculations := upd_check_calculations minus {compvariable};
-		end if;
-
-	# ComboBox with predefined values
-	elif ComponentExists(cat("ComboBox_", compvariable)) then
-		foundvalue := ListTools:-Search(convert(componentvalue, string), DocumentTools:-GetProperty(cat("ComboBox_", compvariable), 'itemList'));		# need to convert to string
-		if foundvalue > 0 then
-			SetProperty(cat("ComboBox_", compvariable), 'enabled', "true");
-			SetProperty(cat("ComboBox_", compvariable), 'selectedindex', foundvalue - 1);
+	
+		if ComponentExists(cat("TextArea_", compvariable)) then
+			if componentvalue = "false" or componentvalue = false then
+				SetProperty(cat("TextArea_", compvariable), 'enabled', "false");
+			else
+				SetProperty(cat("TextArea_", compvariable), 'value', componentvalue);
+				SyncSliderWithTextArea(compvariable)		# there could be a slider to be adjusted as well
+			end if;
 			if checkvar then
 				upd_check_calculations := upd_check_calculations minus {compvariable};
 			end if;
-		else
-			if componentvalue = "false" or componentvalue = false then
-				SetProperty(cat("ComboBox_", compvariable), 'enabled', "false");
-				if checkvar then
-					upd_check_calculations := upd_check_calculations minus {compvariable};
-				end if;
-			elif checkvar then
-				Alert(cat("ComboBox_", compvariable, ": no value found ", componentvalue), table(), 1)
-			end if;
-		end if;
 
-	elif ComponentExists(cat("CheckBox_", compvariable)) then
-		SetProperty(cat("CheckBox_", compvariable), 'value', componentvalue);
-		if checkvar then
-			upd_check_calculations := upd_check_calculations minus {compvariable};
-		end if;
-
-	# contrary to other fields, slider values must be numeric, not string!
-	elif ComponentExists(cat("Slider_", compvariable)) then
-		if type(componentvalue, string) then
-			SetProperty(cat("Slider_", compvariable), 'value', parse(componentvalue))
-		elif type(componentvalue, numeric) then
-			SetProperty(cat("Slider_", compvariable), 'value', componentvalue)
-		elif type(componentvalue, with_unit) then
-			SetProperty(cat("Slider_", compvariable), 'value', convert(componentvalue, 'unit_free'))
-		else
-			Alert("Can't set value to slider component", table(), 1)
-		end if;
-		if checkvar then
-			upd_check_calculations := upd_check_calculations minus {compvariable};
-		end if;
-
-	elif ComponentExists(compvariable) then			# some variables are defined with componentsettings
-		if searchtext("ComboBox", compvariable) = 1 then
-			foundvalue := ListTools:-Search(componentvalue, DocumentTools:-GetProperty(compvariable, 'itemList'));
+		# ComboBox with predefined values
+		elif ComponentExists(cat("ComboBox_", compvariable)) then
+			foundvalue := ListTools:-Search(convert(componentvalue, string), DocumentTools:-GetProperty(cat("ComboBox_", compvariable), 'itemList'));		# need to convert to string
 			if foundvalue > 0 then
-				SetProperty(compvariable, 'enabled', "true");
-				SetProperty(compvariable, 'selectedindex', foundvalue - 1);
+				SetProperty(cat("ComboBox_", compvariable), 'enabled', "true");
+				SetProperty(cat("ComboBox_", compvariable), 'selectedindex', foundvalue - 1);
 				if checkvar then
 					upd_check_calculations := upd_check_calculations minus {compvariable};
 				end if;
 			else
 				if componentvalue = "false" or componentvalue = false then
-					DocumentTools:-SetProperty(compvariable, 'enabled', "false");
+					SetProperty(cat("ComboBox_", compvariable), 'enabled', "false");
 					if checkvar then
 						upd_check_calculations := upd_check_calculations minus {compvariable};
 					end if;
 				elif checkvar then
-					Alert(cat(compvariable, ": value not found ", componentvalue), table(), 1)
+					Alert(cat("ComboBox_", compvariable, ": no value found ", componentvalue), table(), 1)
 				end if;
 			end if;
-		elif searchtext("CheckBox", compvariable) = 1 then
-			DocumentTools:-SetProperty(compvariable, 'value', componentvalue);
+
+		elif ComponentExists(cat("CheckBox_", compvariable)) then
+			SetProperty(cat("CheckBox_", compvariable), 'value', componentvalue);
 			if checkvar then
 				upd_check_calculations := upd_check_calculations minus {compvariable};
 			end if;
-		elif checkvar then
-			Alert(cat("No component found for ", compvariable), table(), 1)
-		end if
-	
-	else
-		if componentvalue <> "" and checkvar then
-			Alert(cat("No component found for ", compvariable), table(), 1)
+
+		# contrary to other fields, slider values must be numeric, not string!
+		elif ComponentExists(cat("Slider_", compvariable)) then
+			if type(componentvalue, string) then
+				SetProperty(cat("Slider_", compvariable), 'value', parse(componentvalue))
+			elif type(componentvalue, numeric) then
+				SetProperty(cat("Slider_", compvariable), 'value', componentvalue)
+			elif type(componentvalue, with_unit) then
+				SetProperty(cat("Slider_", compvariable), 'value', convert(componentvalue, 'unit_free'))
+			else
+				Alert("Can't set value to slider component", table(), 1)
+			end if;
+			if checkvar then
+				upd_check_calculations := upd_check_calculations minus {compvariable};
+			end if;
+
+		elif ComponentExists(compvariable) then			# some variables are defined with componentsettings
+			if searchtext("ComboBox", compvariable) = 1 then
+				foundvalue := ListTools:-Search(componentvalue, DocumentTools:-GetProperty(compvariable, 'itemList'));
+				if foundvalue > 0 then
+					SetProperty(compvariable, 'enabled', "true");
+					SetProperty(compvariable, 'selectedindex', foundvalue - 1);
+					if checkvar then
+						upd_check_calculations := upd_check_calculations minus {compvariable};
+					end if;
+				else
+					if componentvalue = "false" or componentvalue = false then
+						DocumentTools:-SetProperty(compvariable, 'enabled', "false");
+						if checkvar then
+							upd_check_calculations := upd_check_calculations minus {compvariable};
+						end if;
+					elif checkvar then
+						Alert(cat(compvariable, ": value not found ", componentvalue), table(), 1)
+					end if;
+				end if;
+			elif searchtext("CheckBox", compvariable) = 1 then
+				DocumentTools:-SetProperty(compvariable, 'value', componentvalue);
+				if checkvar then
+					upd_check_calculations := upd_check_calculations minus {compvariable};
+				end if;
+			elif checkvar then
+				Alert(cat("No component found for ", compvariable), table(), 1)
+			end if
+		
+		else
+			if componentvalue <> "" and checkvar then
+				Alert(cat("No component found for ", compvariable), table(), 1)
+			end if;
 		end if;
 	end if;
 
