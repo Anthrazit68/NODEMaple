@@ -428,7 +428,7 @@ end proc:
 
 calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	description "Timber beam with opening";
-	local opening, hd, openingResult, b, h, h_r, sigma_t90d, f_t90d, eta, usedcode, comments, loadcase, F_vd, M_yd, F_t90d, l_t90, A, k_t90, K_corner, tau_cornerd;
+	local opening, hd, openingResult, b, h, h_r, sigma_t90d, f_vd, f_t90d, eta, usedcode, comments, loadcase, F_vd, M_yd, F_t90d, l_t90, A, k_t90, K_corner, tau_cornerd;
 
 	# define local variables
 	opening :=  WhateverYouNeed["calculations"]["structure"]["opening"];
@@ -441,9 +441,13 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	k_t90 := openingResult["k_t90"];
 	
 	f_t90d := WhateverYouNeed["materialdata"]["f_t90d"];
+	f_vd := WhateverYouNeed["materialdata"]["f_vd"];
 	loadcase := WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"];
 	F_vd := WhateverYouNeed["calculations"]["loadcases"][loadcase]["F_vd"];
 	M_yd := WhateverYouNeed["calculations"]["loadcases"][loadcase]["M_yd"];
+
+	eta := table();
+	comments := table();
 	
 	# reduction factor mentioned in limtreboka for circular openings is neither used in example 18, nor in Holzbau Taschenbuch Example A.4.2
 	# if opening["openingtype"] = "circular" then
@@ -452,26 +456,33 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	# 	hd_ := hd
 	# end if;
 
-	A := evalf(0.5 * l_t90 * b);
-
 	F_t90d := convert(evalf(F_vd * hd / (4*h) * (3 - hd^2 / h^2) + 0.008 * M_yd / h_r), 'units', 'kN');
+	A := evalf(0.5 * l_t90 * b);
 	sigma_t90d := convert(F_t90d / A, 'units', 'N'/'mm^2');
 
+	# check tension perp. to grain
+	eta["Ft90"] := evalf(sigma_t90d / (k_t90 * f_t90d));
+	usedcode := "Beam with opening";
+	comments["Ft90"] := "F,t90";
+
+	# check shear at opening ?
 	K_corner := openingResult["K_corner"];
 	tau_cornerd := convert(evalf(K_corner * 3 * F_vd / (2 * b * h)), 'units', 'N'/'mm^2');
+	eta["tau_corner"] := evalf(tau_cornerd / f_vd);
+	comments["tau_corner"] := "tau_corner";
+
+	# check remaining section
 
 	openingResult["F_t90d"] := F_t90d;
 	openingResult["sigma_t90d"] := sigma_t90d;
 	openingResult["tau_cornerd"] := tau_cornerd;
 
-	eta := evalf(sigma_t90d / (k_t90 * f_t90d));
-	usedcode := "Beam with opening";
-	comments := "Timber beam with opening";
-
 	WriteValueToComponent("F_t90d", round2(F_t90d, 2), {"nocheck"});
 	WriteValueToComponent("sigma_t90d", round2(sigma_t90d, 2), {"nocheck"});
 	WriteValueToComponent("tau_cornerd", round2(tau_cornerd, 2), {"nocheck"});
-	
+
+	Write_eta(eta, comments);
+
 	return eta, usedcode, comments
 
 end proc:
