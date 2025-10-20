@@ -14,6 +14,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+# 2025-10-20: adding version numbering
+version := "1.0.0";
+
 #============================================================
 # Maple mangler forel�pig funksjoner for runding
 # https://www.mapleprimes.com/questions/229309-Round-Function
@@ -1947,9 +1950,9 @@ LibInitCommon := proc(WhateverYouNeed, calculationtype)
 	# loadvariables, based on existance of Components
 	loadvariables := {};
 	var_loadvariables := {"alpha", "F_axGk", "F_axQk", "F_xGk", "F_xQk", "F_hGk", "F_hQk", "F_vGk", "F_vQk", "V_zGk", "V_zQk", "V_yGk", "V_yQk", "M_yGk", "M_yQk", "M_zGk", "M_zQk", "M_tGk", "M_tQk",
-							"F_axd", "F_xd", "F_hd", "F_vd", "V_yd", "V_zd", "M_yd", "M_zd", "M_td", "loadcenter_x", "loadcenter_y"};
+							"F_axd", "F_xd", "F_hd", "F_vd", "V_yd", "V_zd", "M_yd", "M_zd", "M_td", "loadcenter_x", "loadcenter_y", "loadside"};
 	for i in var_loadvariables do
-		if ComponentExists(cat("TextArea_", i)) or ComponentExists(cat("Slider_", i)) then
+		if ComponentExists(cat("TextArea_", i)) or ComponentExists(cat("Slider_", i)) or ComponentExists(cat("ComboBox_", i)) then
 			loadvariables := loadvariables union {i}
 		end if;
 	end do;
