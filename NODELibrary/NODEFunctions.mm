@@ -818,13 +818,16 @@ ReadComponentsCommon := proc(action::string, WhateverYouNeed::table)
 		loadcases := table();
 		WhateverYouNeed["calculations"]["loadcases"] := eval(loadcases);	# https://www.mapleprimes.com/questions/235292-Store-Values-Between-Sessions-Including
 		activeloadcase := "1";
+
 		if ComponentExists("ComboBox_loadcases") then
 			SetProperty("ComboBox_loadcases", 'itemList', [activeloadcase]);
 			SetProperty("ComboBox_loadcases", 'selectedindex', 0)
 		end if;
+
 		if ComponentExists("TextArea_activeloadcase") then
 			SetProperty("TextArea_activeloadcase", 'value', activeloadcase)
 		end if;
+
 		for i in loadvariables do
 			dummy := cat("TextArea_", i);
 			if ComponentExists(dummy) then
@@ -834,8 +837,13 @@ ReadComponentsCommon := proc(action::string, WhateverYouNeed::table)
 				dummy := cat("Slider_", i);
 				SetProperty(dummy, 'enabled', true);
 				SetProperty(dummy, 'value', 0);
+			elif ComponentExists(cat("ComboBox_", i)) then
+				dummy := cat("ComboBox_", i);
+				SetProperty(dummy, 'enabled', true);
+				SetProperty(dummy, 'selectedindex', 0);
 			end if;
 		end do;
+
 		CalculateLoads(activeloadcase, true, "verify", WhateverYouNeed);
 	end if;
 
@@ -932,6 +940,7 @@ ModifyLoadcases := proc(combobox::string, action::string, variables::set, loadca
 			loadcase["name"] := activeloadcase;
 			
 			for i in variables do
+
 				if ComponentExists(cat("TextArea_", i)) then
 					dummy := cat("TextArea_", i);
 					if GetProperty(dummy, 'enabled') = "true" then
@@ -973,11 +982,18 @@ ModifyLoadcases := proc(combobox::string, action::string, variables::set, loadca
 				elif ComponentExists(cat("Slider_", i)) then
 					dummy := cat("Slider_", i);
 					loadcase[i] := GetProperty(dummy, value) * Unit('degree');
+
+				elif ComponentExists(cat("ComboBox_", i)) then
+					dummy := cat("ComboBox_", i);
+					loadcase[i] := GetProperty(dummy, value);
+
 				end if;
 			end do;
 			loadcases[activeloadcase] := eval(loadcase);
+
 		else
 			Alert(cat("Missing loadname ", activeloadcase), table(), 1);
+
 		end if;
 		
 	elif action = "Delete" then
@@ -1077,8 +1093,8 @@ end proc:
 
 CalculateLoads := proc(loadcase::string, loadsaving::boolean, action::string, WhateverYouNeed::table)
 	description "Calculate loads from components";
-	local i, val, gamma_G, gamma_Q, loadvariablesShort, load_Gk, load_Qk, load_d, load_d_calculated, loadcase_Gk, loadcase_Qk, loadcase_d, definedCharacteristic, nonloads;
-	local loadcases, loadvariables, warnings;
+	local i, val, gamma_G, gamma_Q, loadvariablesShort, load_Gk, load_Qk, load_d, load_d_calculated, loadcase_Gk, loadcase_Qk, loadcase_d, definedCharacteristic,
+	 	nonloads, loadcases, loadvariables, warnings;
 
 	loadcases := WhateverYouNeed["calculations"]["loadcases"];
 	loadvariables := WhateverYouNeed["calculations"]["loadvariables"];
@@ -1425,6 +1441,7 @@ WriteLoadsToDocument := proc(loadcase, WhateverYouNeed::table)
 	SetProperty("TextArea_activeloadcase", 'value', loadcase);
 
 	for i in loadvariables do
+
 		if ComponentExists(cat("TextArea_", i)) then
 			dummy := cat("TextArea_", i);	
 			if assigned(loadcases[loadcase][i]) then
@@ -1442,8 +1459,13 @@ WriteLoadsToDocument := proc(loadcase, WhateverYouNeed::table)
 	
 		elif ComponentExists(cat("Slider_", i)) then
 			SetProperty(cat("Slider_", i), 'value', convert(loadcases[loadcase][i], 'unit_free'));		
+
+		elif ComponentExists(cat("ComboBox_", i)) then
+			WriteValueToComponent(i, loadcases[loadcase][i], {"nocheck"});
+
 		else
 			Alert(cat("Error in WriteLoadsToDocument with ", i), WhateverYouNeed["warnings"], 5)
+
 		end if;
 	end do;
 
@@ -1493,13 +1515,17 @@ ExcelFileInOut := proc(action::string, WhateverYouNeed::table) :: string;
 
 	# template
 	if action = "template" or action = "export" then
+
 		if assigned(WhateverYouNeed["calculations"]["loadvariables"]) then
+
 			loadvariables := eval(WhateverYouNeed["calculations"]["loadvariables"]);
 			cellvalue := Vector[row](numelems(loadvariables)+4);
 			cellvalue(1) := "Loadcase";
+
 			for i from 1 to numelems(loadvariables) do
 				cellvalue(i+1) := loadvariables[i]
 			end do;
+
 			if action = "export" then
 				cellvalue(numelems(loadvariables)+2) := "eta";
 				cellvalue(numelems(loadvariables)+3) := "codecheck";
@@ -1509,7 +1535,9 @@ ExcelFileInOut := proc(action::string, WhateverYouNeed::table) :: string;
 				cellvalue(numelems(loadvariables)+3) := "";
 				cellvalue(numelems(loadvariables)+4) := "";
 			end if;
+
 			ExcelTools:-Export(cellvalue, filename,	WhateverYouNeed["calculations"]["calculationtype_short"]);
+
 		end if;
 
 		# Fastener Group coordinate export
@@ -1525,7 +1553,9 @@ ExcelFileInOut := proc(action::string, WhateverYouNeed::table) :: string;
 	end if;
 
 	if action = "export" then
+
 		if assigned(WhateverYouNeed["calculations"]["loadvariables"]) and assigned(WhateverYouNeed["calculations"]["loadcases"]) then
+
 			loadvariables := eval(WhateverYouNeed["calculations"]["loadvariables"]);
 			loadcases := eval(WhateverYouNeed["calculations"]["loadcases"]);
 			cellvalue := Vector[row](numelems(loadvariables)+4);
@@ -1534,7 +1564,9 @@ ExcelFileInOut := proc(action::string, WhateverYouNeed::table) :: string;
 			loadnames := sort([seq(indices(loadcases)[i][1], i = 1 .. numelems(loadcases))]);
 	
 			for i, loadname in loadnames do
+
 				cellvalue(1) := loadname;
+
 				for j from 1 to numelems(loadvariables) do
 					cellvalue(j+1) := convert(loadcases[loadname][loadvariables[j]], 'unit_free')
 				end do;
@@ -1556,6 +1588,7 @@ ExcelFileInOut := proc(action::string, WhateverYouNeed::table) :: string;
 				end if;
 				
 				ExcelTools:-Export(cellvalue, filename, WhateverYouNeed["calculations"]["calculationtype_short"], cat("A",i+1));
+
 			end do;
 		end if;
 
@@ -1592,6 +1625,7 @@ ExcelFileInOut := proc(action::string, WhateverYouNeed::table) :: string;
 			if loadname <> "" then
 			
 				for j in loadvariables do
+
 					if not type(j, string) then
 						Alert(cat("Invalid variable type of ", j, " - type is: ", whattype(j)), WhateverYouNeed["warnings"], 3)
 					#else
@@ -1607,6 +1641,7 @@ ExcelFileInOut := proc(action::string, WhateverYouNeed::table) :: string;
 							SetProperty(cat("TextArea_", j), 'enabled', "true");
 							SetProperty(cat("TextArea_", j), 'value', cellvalue)
 						end if
+
 					elif ComponentExists(cat("Slider_", j)) then
 						if cellvalue = "false" then
 							SetProperty(cat("Slider_", j), 'enabled', "false")
@@ -1614,6 +1649,15 @@ ExcelFileInOut := proc(action::string, WhateverYouNeed::table) :: string;
 							SetProperty(cat("Slider_", j), 'enabled', "true");
 							SetProperty(cat("Slider_", j), 'value', cellvalue)
 						end if
+
+					elif ComponentExists(cat("ComboBox_", j)) then
+						if cellvalue = "false" then
+							SetProperty(cat("ComboBox_", j), 'enabled', "false")
+						else
+							SetProperty(cat("ComboBox_", j), 'enabled', "true");
+							WriteValueToComponent(i, loadcases[loadcase][i], {"nocheck"});
+						end if
+
 					end if;					
 				end do;
 				MainCommon("NewLoadcase")
@@ -1951,10 +1995,13 @@ LibInitCommon := proc(WhateverYouNeed, calculationtype)
 	loadvariables := {};
 	var_loadvariables := {"alpha", "F_axGk", "F_axQk", "F_xGk", "F_xQk", "F_hGk", "F_hQk", "F_vGk", "F_vQk", "V_zGk", "V_zQk", "V_yGk", "V_yQk", "M_yGk", "M_yQk", "M_zGk", "M_zQk", "M_tGk", "M_tQk",
 							"F_axd", "F_xd", "F_hd", "F_vd", "V_yd", "V_zd", "M_yd", "M_zd", "M_td", "loadcenter_x", "loadcenter_y", "loadside"};
+	
 	for i in var_loadvariables do
+
 		if ComponentExists(cat("TextArea_", i)) or ComponentExists(cat("Slider_", i)) or ComponentExists(cat("ComboBox_", i)) then
 			loadvariables := loadvariables union {i}
 		end if;
+
 	end do;
 	
 	# clear warnings Textfield

@@ -587,7 +587,7 @@ PlotResults := proc(WhateverYouNeed::table)
 						arc_points[4] := [seq([evalf(a/2 - r + r*cos(t)), evalf((-hd/2 + r) + r*sin(t))], t = evalf((3*Pi)/2) .. evalf(2*Pi), step_size)];
 
 						# Plot the shape with a yellow fill.
-						openingOutline := polygonplot([op(arc_points[1]), op(arc_points[2]), op(arc_points[3]), op(arc_points[4])], color = "black");
+						openingOutline := polygonplot([op(arc_points[1]), op(arc_points[2]), op(arc_points[3]), op(arc_points[4])], color = "white");
 					end if;
 
 				end if;
