@@ -291,15 +291,15 @@ end proc:
 checkOpeningGeometry := proc(WhateverYouNeed::table)
 	description "check opening geometry in beams with opening";
 	local opening, h, warnings, openingtype, a, hd, e, lv, lA, lz, r, withoutReinforcement, h_r, h_ro, h_ru, dummy, usedcode, comments, openingResult,
-		l_t90, k_t90, K_corner;
+		l_t90, k_t90, K_corner, l_ad;
 
 	warnings := WhateverYouNeed["warnings"];
 	usedcode := "DIN NA";
 	comments :=  WhateverYouNeed["results"]["comments"];
-	openingResult := WhateverYouNeed["results"]["opening"];
+	openingResult := WhateverYouNeed["results"]["opening"];		# calculated values
 
-	# definition of variables
-	opening :=  WhateverYouNeed["calculations"]["structure"]["opening"];
+	# get predefined geometric input values
+	opening :=  WhateverYouNeed["calculations"]["structure"]["opening"];		# defined in TeamBeamWithOpening:-ReadComponentsSpecific
 	h := WhateverYouNeed["sectiondataAll"]["1"]["h"];
 	openingtype := opening["openingtype"];
 	a := opening["opening_a"];
@@ -311,27 +311,31 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 	r := opening["opening_r"];
 	
 	# hd is defined for both rectangular and circular openings
+	l_ad := table();
 	h_ro := h / 2 - hd / 2 - e;		
 	h_ru := h / 2 - hd / 2 + e;
 
-	if openingtype = "rectangular" then					
-		h_r := min(h_ru, h_ro);					# limtreboka, p 90, (5-9), (5-10)
-		l_t90 := 0.5*(hd + h)					# limtreboka, p 90, (5-11), (5-12)
+	if openingtype = "rectangular" then
+		l_ad["left"] := h_ru;
+		l_ad["right"] := h_ro;
+		h_r := min(h_ru, h_ro);					# limtreboka, p 90, (5-9)
+		l_t90 := 0.5*(hd + h);					# limtreboka, p 90, (5-11)
+		K_corner := evalf(1.84 * (1+a/h)/(1-hd/h) * (hd/h)^0.2);	# (5-14)
 
 	elif openingtype = "circular" then
-		h_r := min(h_ru + 0.15 * hd, h_ro + 0.15 * hd);
-		l_t90 := 0.35*hd + 0.5*h
-
+		l_ad["left"] := h_ru + 0.15 * hd;
+		l_ad["right"] := h_ro + 0.15 * hd;
+		h_r := min(h_ru + 0.15 * hd, h_ro + 0.15 * hd);			# (5-10)
+		l_t90 := 0.35*hd + 0.5*h;								# (5-12)
+		K_corner := 1							# assumed value, needs to be verified
 	end if;
 
-	k_t90 := evalf(min(1, (450 * Unit('mm') / h)^0.5));
-
-	K_corner := evalf(1.84 * (1+a/h)/(1-hd/h) * (hd/h)^0.2);
-
+	k_t90 := evalf(min(1, (450 * Unit('mm') / h)^0.5));			# (5-13)
 	openingResult["h_r"] := evalf(h_r);
 	openingResult["l_t90"] := evalf(l_t90);
 	openingResult["k_t90"] := k_t90;
 	openingResult["K_corner"] := K_corner;
+	openingResult["l_ad"] := l_ad;
 
 	# check if opening outside beam
 	if  h_ro <= 0 then
@@ -363,8 +367,8 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 		dummy := "lv < h";
 		withoutReinforcement := false;
 
-	elif lz <> 0 and lz < 1.5*h and lz > 300 * Unit('mm') then
-		dummy := "lz < 1.5*h (300mm)";
+	elif lz <> 0 and (lz < 1.5*h or lz < 300 * Unit('mm')) then
+		dummy := "lz < 1.5*h or < 300mm";
 		withoutReinforcement := false;
 
 	elif lA < 0.5*h then
@@ -372,7 +376,7 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 		withoutReinforcement := false;
 
 	elif h_ro < 0.35*h or h_ru < 0.35*h then
-		dummy := "h_rou < 0.35*h";
+		dummy := "h_r(o,u) < 0.35*h";
 		withoutReinforcement := false;
 
 	elif a > 0.4*h then
@@ -387,7 +391,7 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 		dummy := "r < 15mm ";
 		withoutReinforcement := false;
 
-	elif WhateverYouNeed["materialdata"]["serviceclass"] = "3" then
+	elif WhateverYouNeed["materialdata"]["serviceclass"] = "3" then	# Limtreboka, p. 88, bottom page
 		dummy := "serviceclass 3 ";
 		withoutReinforcement := false;
 
@@ -399,24 +403,19 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 	if openingtype = "circular" then
 
 		if hd <= 50 * Unit('mm') and hd <= 0.15 * h and e <= 0.15 * h then		# no strict rules for e in code, assumed same as for hd
-			openingResult["minorOpening"] := true;
-			comments["minorOpening"] := "minor opening"
+			openingResult["minorOpening"] := true;			
 		end if;
 
 	elif openingtype = "circular" then
 
 		if evalf(sqrt(a^2 + hd^2)) <= 50 * Unit('mm') and hd <= 0.15 * h and e <= 0.15 * h then		# no strict rules for e in code, assumed same as for hd
-			openingResult["minorOpening"] := true;
-			comments["minorOpening"] := "minor opening"
+			openingResult["minorOpening"] := true;			
 		end if;
 
 	end if;
 
 	openingResult["withoutReinforcement"] := withoutReinforcement;
-	if withoutReinforcement = false then
-		comments["checkOpeningGeometry"] := cat("Beam opening: reinforcement necessary, ", dummy)		
-	end if;
-
+	
 	# write results
 	WriteValueToComponent("h_r", round(h_r), {"nocheck"});
 	WriteValueToComponent("l_t90", round(l_t90), {"nocheck"});
@@ -428,7 +427,8 @@ end proc:
 
 calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	description "Timber beam with opening";
-	local opening, hd, openingResult, b, h, h_r, sigma_t90d, f_vd, f_t90d, eta, usedcode, comments, loadcase, F_vd, M_yd, F_t90d, l_t90, A, k_t90, K_corner, tau_cornerd;
+	local opening, hd, openingResult, b, h, h_r, sigma_t90d, f_vd, f_t90d, eta, usedcode, comments, loadcase, F_vd, M_yd, F_t90d, l_t90, A, k_t90, K_corner, tau_cornerd,
+		F_t90Vd, F_t90Md, l_ad, loadside;
 
 	# define local variables
 	opening :=  WhateverYouNeed["calculations"]["structure"]["opening"];
@@ -439,12 +439,15 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	h_r := openingResult["h_r"];
 	l_t90 := openingResult["l_t90"];
 	k_t90 := openingResult["k_t90"];
+	K_corner := openingResult["K_corner"];
 	
 	f_t90d := WhateverYouNeed["materialdata"]["f_t90d"];
 	f_vd := WhateverYouNeed["materialdata"]["f_vd"];
 	loadcase := WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"];
 	F_vd := WhateverYouNeed["calculations"]["loadcases"][loadcase]["F_vd"];
 	M_yd := WhateverYouNeed["calculations"]["loadcases"][loadcase]["M_yd"];
+	loadside := WhateverYouNeed["calculations"]["loadcases"][loadcase]["loadside"];
+	l_ad := openingResult["l_ad"][loadside];
 
 	eta := table();
 	comments := table();
@@ -456,9 +459,12 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	# 	hd_ := hd
 	# end if;
 
-	F_t90d := convert(evalf(F_vd * hd / (4*h) * (3 - hd^2 / h^2) + 0.008 * M_yd / h_r), 'units', 'kN');
+	F_t90Vd := convert(evalf(F_vd * hd / (4*h) * (3 - hd^2 / h^2)), 'units', 'kN');
+	F_t90Md := convert(evalf(0.008 * M_yd / h_r), 'units', 'kN');
+	F_t90d := convert(evalf(F_t90Vd + F_t90Md), 'units', 'kN');				# (5-8)
+
 	A := evalf(0.5 * l_t90 * b);
-	sigma_t90d := convert(F_t90d / A, 'units', 'N'/'mm^2');
+	sigma_t90d := convert(F_t90d / A, 'units', 'N'/'mm^2');					# (5-7)
 
 	# check tension perp. to grain
 	eta["Ft90"] := evalf(sigma_t90d / (k_t90 * f_t90d));
@@ -466,20 +472,32 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	comments["Ft90"] := "F,t90";
 
 	# check shear at opening ?
-	K_corner := openingResult["K_corner"];
-	tau_cornerd := convert(evalf(K_corner * 3 * F_vd / (2 * b * h)), 'units', 'N'/'mm^2');
+	tau_cornerd := convert(evalf(K_corner * 3 * F_vd / (2 * b * h)), 'units', 'N'/'mm^2');	# (5-14)
 	eta["tau_corner"] := evalf(tau_cornerd / f_vd);
 	comments["tau_corner"] := "tau_corner";
 
 	# check remaining section
 
+	if openingResult["withoutReinforcement"] = false then
+		comments["checkOpeningGeometry"] := cat("Beam opening: reinforcement necessary, ", dummy)
+	end if;
+
+	if openingResult["minorOpening"] = true then
+		comments["minorOpening"] := cat("minor opening, ", dummy)
+	end if;
+
+	openingResult["F_t90Vd"] := F_t90Vd;
+	openingResult["F_t90Md"] := F_t90Md;
 	openingResult["F_t90d"] := F_t90d;
 	openingResult["sigma_t90d"] := sigma_t90d;
 	openingResult["tau_cornerd"] := tau_cornerd;
 
+	WriteValueToComponent("F_t90Vd", round2(F_t90Vd, 2), {"nocheck"});
+	WriteValueToComponent("F_t90Md", round2(F_t90Md, 2), {"nocheck"});
 	WriteValueToComponent("F_t90d", round2(F_t90d, 2), {"nocheck"});
 	WriteValueToComponent("sigma_t90d", round2(sigma_t90d, 2), {"nocheck"});
 	WriteValueToComponent("tau_cornerd", round2(tau_cornerd, 2), {"nocheck"});
+	WriteValueToComponent("l_ad", round(l_ad), {"nocheck"});
 
 	Write_eta(eta, comments);
 
