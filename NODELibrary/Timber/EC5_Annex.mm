@@ -290,8 +290,8 @@ end proc:
 
 checkOpeningGeometry := proc(WhateverYouNeed::table)
 	description "check opening geometry in beams with opening";
-	local opening, h, warnings, openingtype, a, hd, e, lv, lA, lz, r, withoutReinforcement, h_r, h_ro, h_ru, dummy, usedcode, comments, openingResult,
-		l_t90, k_t90, K_corner, l_ad;
+	local opening, h, warnings, openingtype, a, hd, e, lv, lA, lz, r, openingValid, h_r, h_ro, h_ru, dummy, usedcode, comments, openingResult,
+		l_t90, k_t90, K_corner, l_ad, reinforcmentType;
 
 	warnings := WhateverYouNeed["warnings"];
 	usedcode := "DIN NA";
@@ -361,41 +361,69 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 	end if;
 
 	# check if size and placement of opening fulfills criteria for beams without reinforcement acc. DIN EN 1995-1-1/NA (limtreboka p. 88)
-	withoutReinforcement := true;
+	openingValid := true;
 
 	if lv < h then
 		dummy := "lv < h";
-		withoutReinforcement := false;
+		openingValid := false;
 
-	elif lz <> 0 and (lz < 1.5*h or lz < 300 * Unit('mm')) then
-		dummy := "lz < 1.5*h or < 300mm";
-		withoutReinforcement := false;
+	elif lz <> 0 and (lz < 1.0*h or lz < 300 * Unit('mm')) then
+		dummy := "lz < 1.0*h or < 300mm";
+		openingValid := false;
 
 	elif lA < 0.5*h then
 		dummy := "lA < 0.5*h";
-		withoutReinforcement := false;
+		openingValid := false;
 
-	elif h_ro < 0.35*h or h_ru < 0.35*h then
-		dummy := "h_r(o,u) < 0.35*h";
-		withoutReinforcement := false;
+	elif h_ro < 0.25*h or h_ru < 0.25*h then
+		dummy := "h_r(o,u) < 0.25*h";
+		openingValid := false;
 
-	elif a > 0.4*h then
-		dummy := "a > 0.4*h";
-		withoutReinforcement := false;
+	elif a > 1.0*h or a > 2.5 * hd then
+		dummy := "a > h or a > 2.5*hd";
+		openingValid := false;
 	
-	elif hd > 0.15*h then
-		dummy := "hd > 0.15*h";
-		withoutReinforcement := false;
+	elif hd > 0.4*h then			# 0.3*h for inner reinforcement, 0.4*h for outer reinforcement
+		dummy := "hd > 0.4*h (outer reinforcement)";
+		openingValid := false;
 
 	elif openingtype = "rectangular" and r < 15 * Unit('mm') then
 		dummy := "r < 15mm ";
-		withoutReinforcement := false;
-
-	elif WhateverYouNeed["materialdata"]["serviceclass"] = "3" then	# Limtreboka, p. 88, bottom page
-		dummy := "serviceclass 3 ";
-		withoutReinforcement := false;
+		openingValid := false;
 
 	end if;
+
+	openingResult["openingValid"] := openingValid;
+
+	if openingValid = false then
+		Alert(cat("Opening invalid: ", dummy), warnings, 5);
+		return
+	end if;
+
+	# check if reinforcment necessary, or type of reinforcement
+	reinforcmentType := "none";
+
+	if lz <> 0 and lz < 1.5*h then
+		reinforcmentType := "both"
+
+	elif h_ro < 0.35*h or h_ru < 0.35*h then
+		reinforcmentType := "both"
+
+	elif a > 0.4*h then
+		reinforcmentType := "both"
+	
+	elif hd > 0.15*h then
+		reinforcmentType := "both";
+		if hd > 0.3*h then
+			reinforcmentType := "outside";
+		end if
+
+	elif WhateverYouNeed["materialdata"]["serviceclass"] = "3" then	# Limtreboka, p. 88, bottom page
+		reinforcmentType := "both";
+
+	end if;
+
+	openingResult["reinforcmentType"] := reinforcmentType;
 
 	# check if hole is minor
 	openingResult["minorOpening"] := false;
@@ -413,8 +441,6 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 		end if;
 
 	end if;
-
-	openingResult["withoutReinforcement"] := withoutReinforcement;
 	
 	# write results
 	WriteValueToComponent("h_r", round(h_r), {"nocheck"});
@@ -447,7 +473,7 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	F_vd := WhateverYouNeed["calculations"]["loadcases"][loadcase]["F_vd"];
 	M_yd := WhateverYouNeed["calculations"]["loadcases"][loadcase]["M_yd"];
 	loadside := WhateverYouNeed["calculations"]["loadcases"][loadcase]["loadside"];
-	l_ad := openingResult["l_ad"][loadside];
+	l_ad := max(entries(openingResult["l_ad"]));		# longest distance from beam edge to crack for longest screw length
 
 	eta := table();
 	comments := table();
@@ -469,19 +495,17 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	# check tension perp. to grain
 	eta["Ft90"] := evalf(sigma_t90d / (k_t90 * f_t90d));
 	usedcode := "Beam with opening";
-	comments["Ft90"] := "F,t90";
+	# comments["Ft90"] := "F,t90";
 
 	# check shear at opening ?
 	tau_cornerd := convert(evalf(K_corner * 3 * F_vd / (2 * b * h)), 'units', 'N'/'mm^2');	# (5-14)
 	eta["tau_corner"] := evalf(tau_cornerd / f_vd);
-	comments["tau_corner"] := "tau_corner";
+	# comments["tau_corner"] := "tau_corner";
 
-	# check remaining section
-
-	if openingResult["withoutReinforcement"] = false then
-		comments["checkOpeningGeometry"] := cat("Beam opening: reinforcement necessary, ", dummy)
-	end if;
-
+	
+	# comments
+	comments["reinforcmentType"] := cat("reinforcement: ", openingResult["reinforcmentType"], ",");
+	
 	if openingResult["minorOpening"] = true then
 		comments["minorOpening"] := cat("minor opening, ", dummy)
 	end if;
