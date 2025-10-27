@@ -431,14 +431,14 @@ end proc:
 
 
 # 8.3.2, 8.7.2
-# need to rewrite a bit to allow for reinforcement calculations for beams with openings etc. (just one beam)
+
 calculate_F_axR := proc(WhateverYouNeed::table)
 	description "calculate F_axR for nails and screws";
 
 	local calculatedFastener, chosenFastener, t, t_pen, n_tip, rho_k, connection, nailSurface, d, dh, f_axk, f_headk, f_tensk, washer_N_axk, screwWithWasher, alphaScrew, calculateAsNail;
 	local F_axRk, F_axRd, F_axRd_fastener, k_rho, R_axk, R_headk, k_d, n_head, R_axk_n_head, gamma_M, k_mod, ls;
 	local structure, materialdataAll, sectiondataAll, warnings, comments, fastenervalues, numberOfFasteners, k_ef;
-
+DEBUG();
 	# define local variables
 	gamma_M := NODETimberEN1995:-gamma_M("Connections"); 		# NS-EN 1995, NA.2.4.1
 	structure := WhateverYouNeed["calculations"]["structure"];
@@ -448,17 +448,12 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 	comments := WhateverYouNeed["results"]["comments"];
 	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
 	numberOfFasteners := numelems(WhateverYouNeed["results"]["FastenerGroup"]["Fasteners"]);
+	connection := structure["connection"];
 
 	k_rho := table();		# correction for non default timber density
 	R_axk := 0;
 	R_axk_n_head := 0;
 	R_headk := 0;
-
-	# stored values
-	connection := structure["connection"];
-	n_tip := fastenervalues["n_tip"];
-	n_head := fastenervalues["n_head"];
-	t_pen := fastenervalues["t_pen"];
 
 	# structure / fastener
 	chosenFastener := structure["fastener"]["chosenFastener"];
@@ -474,14 +469,35 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 	washer_N_axk := fastenervalues["washer_N_axk"];
 	alphaScrew := structure["fastener"]["alphaScrew"];
 	ls := structure["fastener"]["fastener_ls"];			# length of fastener
-	
+
 	rho_k := table();
 	rho_k["1"] := materialdataAll["1"]["rho_k"];
 	rho_k["2"] := materialdataAll["2"]["rho_k"];
 
 	t := table();
-	t["1"] := sectiondataAll["1"]["b"];
-	t["2"] := sectiondataAll["2"]["b"];
+
+	# need to rewrite a bit to allow for reinforcement calculations for beams with openings etc. (just one beam)	
+	if WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" then
+
+		n_tip := "2";
+		n_head := "1";
+		t["1"] := min(entries(WhateverYouNeed["sectiondataAll"]["1"]["l_ad"]));					# minimum thickness of part with the head
+		t["2"] := evalf(WhateverYouNeed["sectiondataAll"]["1"]["h"] - max(entries(WhateverYouNeed["sectiondataAll"]["1"]["l_ad"]))); # minimum thickness of part with tip
+		t_pen := evalf(ls - max(entries(WhateverYouNeed["sectiondataAll"]["1"]["l_ad"])));
+
+		# need to check t_pen
+		# should we enhance calculate_t for beams with openings, or copy checks in here?
+
+	else
+
+		n_tip := fastenervalues["n_tip"];
+		n_head := fastenervalues["n_head"];
+		t_pen := fastenervalues["t_pen"];
+
+		t["1"] := sectiondataAll["1"]["b"];
+		t["2"] := sectiondataAll["2"]["b"];
+
+	end if;
 	
 	# modification factor for f_axk, which is defined for timber with 350 kg/m3
 	# for screws: (8.39) uses rho_k ^ 0.8, (8.40b) uses the same formula
@@ -499,15 +515,19 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 	end if;
 	
 	if n_tip <> 0 then
-		SetProperty(cat("TextArea_k_rho", n_tip), 'value', round2(k_rho[n_tip], 2));
+		WriteValueToComponent(cat("k_rho", n_tip), round2(k_rho[n_tip], 2), {"nocheck"});
+		# SetProperty(cat("TextArea_k_rho", n_tip), 'value', round2(k_rho[n_tip], 2));
 	else
-		SetProperty("TextArea_k_rho1", 'value', 1);
+		WriteValueToComponent("k_rho1", 1, {"nocheck"});
+		# SetProperty("TextArea_k_rho1", 'value', 1);
 	end if;
 	
 	if n_head <> 0 then
-		SetProperty(cat("TextArea_k_rho", n_head), 'value', round2(k_rho[n_head], 2));
+		WriteValueToComponent(cat("k_rho", n_head), round2(k_rho[n_head], 2), {"nocheck"});
+		# SetProperty(cat("TextArea_k_rho", n_head), 'value', round2(k_rho[n_head], 2));
 	else
-		SetProperty("TextArea_k_rho2", 'value', 1);
+		WriteValueToComponent("k_rho2", 1, {"nocheck"});
+		# SetProperty("TextArea_k_rho2", 'value', 1);
 	end if;
 
 	# checking agains calculated fastener, might be nail, bolt, dowel or screw
@@ -654,24 +674,33 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 	R_axk_n_head := convert(R_axk_n_head, 'units', 'kN');
 	F_axRk := convert(F_axRk, 'units', 'kN');
 
-	SetProperty("MathContainer_R_axk1", 'value', 0);
-	SetProperty("MathContainer_R_axk2", 'value', 0);
-	SetProperty("MathContainer_R_headk1", 'value', 0);
-	SetProperty("MathContainer_R_headk2", 'value', 0);
+	WriteValueToComponent("R_axk1", 0, {"nocheck"});
+	WriteValueToComponent("R_axk2", 0, {"nocheck"});
+	WriteValueToComponent("R_headk1", 0, {"nocheck"});
+	WriteValueToComponent("R_headk2", 0, {"nocheck"});
+
+	# SetProperty("MathContainer_R_axk1", 'value', 0);
+	# SetProperty("MathContainer_R_axk2", 'value', 0);
+	# SetProperty("MathContainer_R_headk1", 'value', 0);
+	# SetProperty("MathContainer_R_headk2", 'value', 0);
 
 	if n_tip = "1" or n_tip = "2" then
-		SetProperty(cat("MathContainer_R_axk", n_tip), 'value', round2(R_axk, 1))
+		WriteValueToComponent(cat("R_axk", n_tip), round2(R_axk, 1), {"nocheck"});
+		# SetProperty(cat("MathContainer_R_axk", n_tip), 'value', round2(R_axk, 1))
 	end if;
 	
 	if n_head = "1" or n_head = "2" then
-		SetProperty(cat("MathContainer_R_axk", n_head), 'value', round2(R_axk_n_head, 1))
+		WriteValueToComponent(cat("R_axk", n_head), round2(R_axk_n_head, 1), {"nocheck"});
+		# SetProperty(cat("MathContainer_R_axk", n_head), 'value', round2(R_axk_n_head, 1))
 	end if;
 	
 	if n_head = "1" or n_head = "2" then
-		SetProperty(cat("MathContainer_R_headk", n_head), 'value', round2(R_headk, 1))
+		WriteValueToComponent(cat("R_headk", n_head), round2(R_headk, 1), {"nocheck"});
+		# SetProperty(cat("MathContainer_R_headk", n_head), 'value', round2(R_headk, 1))
 	end if;
 	
-	SetProperty("MathContainer_F_axRk", 'value', round2(F_axRk, 1));
+	WriteValueToComponent(F_axRk, round2(F_axRk, 1), {"nocheck"});
+	# SetProperty("MathContainer_F_axRk", 'value', round2(F_axRk, 1));
 
 	# calculate F_axRd	
 	k_mod := 0;
@@ -688,14 +717,17 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 	
 	# F_axRd is for single shearplane, one fastener
 	F_axRd := eval(F_axRk * k_mod / gamma_M);
-	SetProperty("MathContainer_F_axRd", 'value', round2(F_axRd, 1));
+	WriteValueToComponent(F_axRd, round2(F_axRd, 1), {"nocheck"});
+	# SetProperty("MathContainer_F_axRd", 'value', round2(F_axRd, 1));
 
 	F_axRd_fastener := F_axRd * (numberOfFasteners ^ k_ef / numberOfFasteners);
-	SetProperty("MathContainer_F_axRd_fastener", 'value', round2(F_axRd_fastener, 1));
+	WriteValueToComponent(F_axRd_fastener, round2(F_axRd_fastener, 1), {"nocheck"});
+	# SetProperty("MathContainer_F_axRd_fastener", 'value', round2(F_axRd_fastener, 1));
 
-	if ComponentExists("TextArea_gamma_M") then
-		SetProperty("TextArea_gamma_M", 'value', round2(gamma_M, 2))
-	end if;
+	# if ComponentExists("TextArea_gamma_M") then
+		WriteValueToComponent(gamma_M, round2(gamma_M, 2), {"nocheck"});
+		# SetProperty("TextArea_gamma_M", 'value', round2(gamma_M, 2))
+	# end if;
 	
 	fastenervalues["R_headk"] := R_headk;
 	fastenervalues["R_axk"] := R_axk;
