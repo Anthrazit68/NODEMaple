@@ -336,6 +336,7 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 	openingResult["k_t90"] := k_t90;
 	openingResult["K_corner"] := K_corner;
 	openingResult["l_ad"] := l_ad;
+	WhateverYouNeed["sectiondataAll"]["1"]["l_ad"] := l_ad;		# for calculation of F_axR
 
 	# check if opening outside beam
 	if  h_ro <= 0 then

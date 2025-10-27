@@ -431,6 +431,7 @@ end proc:
 
 
 # 8.3.2, 8.7.2
+# need to rewrite a bit to allow for reinforcement calculations for beams with openings etc. (just one beam)
 calculate_F_axR := proc(WhateverYouNeed::table)
 	description "calculate F_axR for nails and screws";
 
