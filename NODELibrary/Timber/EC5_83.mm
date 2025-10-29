@@ -28,11 +28,13 @@
 # Kapittel 8.3 Spikerforbindelser
 
 # 8.3.1.1(1)
+# extending procedure for use when calculating reinforcements with metal fasteners in beams (beam with opening)
+# in that case height and split heights will replace beam widths of the specific beams
 calculate_t := proc(WhateverYouNeed::table)
 	description "Calculate t and t_pen / effective part thickness and penetration depth";
-	local shearplanes, t_total, t, t_eff, t_ef_814_NA_DE, t_pen, l_tip, n_tip, n_head, ls, d, chosenFastener, connection, alphaScrew;
-	local checkPassed, structure, sectiondataAll, warnings, comments, fastenervalues, timberlayers, i, nailSurface, b_max, l1;
-
+	local shearplanes, t_total, t, t_eff, t_ef_814_NA_DE, t_pen, l_tip, n_tip, n_head, ls, d, chosenFastener, connection, alphaScrew,
+		checkPassed, structure, sectiondataAll, warnings, comments, fastenervalues, timberlayers, i, nailSurface, b_max, l1;
+DEBUG();
 	# define local variables
 	structure := WhateverYouNeed["calculations"]["structure"];
 	sectiondataAll := WhateverYouNeed["sectiondataAll"];
@@ -57,7 +59,7 @@ calculate_t := proc(WhateverYouNeed::table)
 	timberlayers := WhateverYouNeed["calculatedvalues"]["layers"];
 	
 	if chosenFastener = "Screw" then		
-		l_tip := min(l1 / 10, 10 * Unit('mm'))		# assume length of tip, reduces t_pen (see 8.24, A2)
+		l_tip := min(l1 / 10, 10 * Unit('mm'))		# assume length of tip, reduces t_pen (see 8.24, A2)t
 	else
 		l_tip := 0	
 	end if;
@@ -65,22 +67,33 @@ calculate_t := proc(WhateverYouNeed::table)
 	# materialdata
 	t := table();
 
-	if assigned(sectiondataAll["1"]["b"]) then
-		t["1"] := sectiondataAll["1"]["b"];
-	else
-		t["1"] := 0
-	end if;
+	if WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" then
 
-	if assigned(sectiondataAll["2"]["b"]) then
-		t["2"] := sectiondataAll["2"]["b"];
-	else
-		t["2"] := 0
-	end if;
+		t_total := WhateverYouNeed["sectiondataAll"]["1"]["h"];
+		t["1"] := min(entries(WhateverYouNeed["sectiondataAll"]["1"]["l_ad"]));															# minimum thickness of part with the head
+		t["2"] := evalf(WhateverYouNeed["sectiondataAll"]["1"]["h"] - max(entries(WhateverYouNeed["sectiondataAll"]["1"]["l_ad"]))); 	# minimum thickness of part with tip
+		t["steel"] := 0		
 
-	if assigned(sectiondataAll["steel"]["b"]) then
-		t["steel"] := sectiondataAll["steel"]["b"];
 	else
-		t["steel"] := 0
+
+		if assigned(sectiondataAll["1"]["b"]) then
+			t["1"] := sectiondataAll["1"]["b"];
+		else
+			t["1"] := 0
+		end if;
+
+		if assigned(sectiondataAll["2"]["b"]) then
+			t["2"] := sectiondataAll["2"]["b"];
+		else
+			t["2"] := 0
+		end if;
+
+		if assigned(sectiondataAll["steel"]["b"]) then
+			t["steel"] := sectiondataAll["steel"]["b"];
+		else
+			t["steel"] := 0
+		end if;
+
 	end if;
 
 	t_eff := table();
@@ -101,81 +114,89 @@ calculate_t := proc(WhateverYouNeed::table)
 	# t_eff["1"], t_eff["2"]
 	if chosenFastener = "Bolt" or chosenFastener = "Dowel" then
 
-		if evalf(ls * sin(alphaScrew)) < t_total then		# needs to go through the whole section
-			# check if dowel of type 
-			if WhateverYouNeed["calculatedvalues"]["fastenervalues"]["detailinformation"] = "Self-drilling dowel" then
-				if b_max < t_total then
-					Alert("Self-drilling dowel too short", warnings, 5);
-				end if;
-			else
-				Alert("Fastener too short", warnings, 5);
-			end if;
-			return
+		if WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" then
+
+			Alert("Timber beam with opening / calculate_t: missing implementation of Bolt or Dowel used", warnings, 3);
+
 		else
-			Alert("Fastener too long", warnings, -2);
-			ls := t_total			# probably need to limit length to section depth
-		end if;
 
-		if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then	# figure 8.2, 8.4
-			t_eff["1"] := t["1"];
-			t_eff["2"] := t["2"]
-			
-		elif connection["connection1"] = "Timber" and connection["connection2"] = "Steel" then	# figure 8.3 a - h
-			t_eff["1"] := t["1"];	# if Self-drilling dowel, t_eff["1"] will be changed later
-			t_eff["2"] := 0
-			
-		elif connection["connection1"] = "Steel" and connection["connection2"] = "Timber" then	# figure 8.3 j - m
-			if chosenFastener = "Bolt" then
-				t_eff["1"] := 0;
-				t_eff["2"] := t["2"]
-			elif chosenFastener = "Dowel" then
-				Alert("Outside steelplates cannot be used together with dowels", warnings, 5);
+			if evalf(ls * sin(alphaScrew)) < t_total then		# needs to go through the whole section
+				# check if dowel of type 
+				if WhateverYouNeed["calculatedvalues"]["fastenervalues"]["detailinformation"] = "Self-drilling dowel" then
+					if b_max < t_total then
+						Alert("Self-drilling dowel too short", warnings, 5);
+					end if;
+				else
+					Alert("Fastener too short", warnings, 5);
+				end if;
 				return
-			end if			
-		end if;
-
-		# t_eff for Self-drilling dowels
-		if WhateverYouNeed["calculatedvalues"]["fastenervalues"]["detailinformation"] = "Self-drilling dowel" then
-			local d_ls, b_cover, t1;
-
-			d_ls := ls - l1;											# difference between full and effective length of SDB
-			b_cover := evalf((t_total - ls * sin(alphaScrew)) / 2);			# average cover both sides for SDB
-
-			if shearplanes = 2 then
-				
-				t_eff["1"] := t["1"] - b_cover - d_ls / 2;				# reduction for dowel cover and effective length reduction (assumed equal on both sides)
-
-			elif shearplanes = 4 then
-
-				t_eff["1"] := t["1"];
-
 			else
+				Alert("Fastener too long", warnings, -2);
+				ls := t_total			# probably need to limit length to section depth
+			end if;
 
-				Alert("Self-drilling dowels not valid other than 1 or 2 steelplates", warnings, 5);
+			if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then	# figure 8.2, 8.4
+				t_eff["1"] := t["1"];
+				t_eff["2"] := t["2"]
+				
+			elif connection["connection1"] = "Timber" and connection["connection2"] = "Steel" then	# figure 8.3 a - h
+				t_eff["1"] := t["1"];	# if Self-drilling dowel, t_eff["1"] will be changed later
+				t_eff["2"] := 0
+				
+			elif connection["connection1"] = "Steel" and connection["connection2"] = "Timber" then	# figure 8.3 j - m
+				if chosenFastener = "Bolt" then
+					t_eff["1"] := 0;
+					t_eff["2"] := t["2"]
+				elif chosenFastener = "Dowel" then
+					Alert("Outside steelplates cannot be used together with dowels", warnings, 5);
+					return
+				end if			
+			end if;
+
+			# t_eff for Self-drilling dowels
+			if WhateverYouNeed["calculatedvalues"]["fastenervalues"]["detailinformation"] = "Self-drilling dowel" then
+				local d_ls, b_cover, t1;
+
+				d_ls := ls - l1;											# difference between full and effective length of SDB
+				b_cover := evalf((t_total - ls * sin(alphaScrew)) / 2);			# average cover both sides for SDB
+
+				if shearplanes = 2 then
+					
+					t_eff["1"] := t["1"] - b_cover - d_ls / 2;				# reduction for dowel cover and effective length reduction (assumed equal on both sides)
+
+				elif shearplanes = 4 then
+
+					t_eff["1"] := t["1"];
+
+				else
+
+					Alert("Self-drilling dowels not valid other than 1 or 2 steelplates", warnings, 5);
+
+				end if;
 
 			end if;
 
-		end if;
-
-		# t_ef for 8.1.4 NA DE, limtreboka p. 251
-		# tpen not possible to use as bolts and dowels need to go through all parts		
-		for i in {"1", "2"} do
-			
-			if timberlayers[i] > 0 then
+			# t_ef for 8.1.4 NA DE, limtreboka p. 251
+			# tpen not possible to use as bolts and dowels need to go through all parts		
+			for i in {"1", "2"} do
 				
-				if shearplanes = 1 then	# single sided connection
-					t_ef_814_NA_DE[i] := min(t[i] * timberlayers[i], 6 * d)
-				else
-					t_ef_814_NA_DE[i] := min(t[i] * timberlayers[i], 12 * d)
+				if timberlayers[i] > 0 then
+					
+					if shearplanes = 1 then	# single sided connection
+						t_ef_814_NA_DE[i] := min(t[i] * timberlayers[i], 6 * d)
+					else
+						t_ef_814_NA_DE[i] := min(t[i] * timberlayers[i], 12 * d)
+					end if;
+					
 				end if;
 				
-			end if;
-			
-		end do;
+			end do;
 
-		n_tip := 0; 		# part number for which t_pen is defined
-		n_head := 0;
-		t_pen := 0;
+			n_tip := 0; 		# part number for which t_pen is defined
+			n_head := 0;
+			t_pen := 0;
+
+		end if;
 		
 	elif chosenFastener = "Nail" or chosenFastener = "Screw" then
 
@@ -191,7 +212,20 @@ calculate_t := proc(WhateverYouNeed::table)
 			return
 		end if;
 
-		if shearplanes = 1 then			# just 2 parts
+		if WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" then
+
+			t_eff["1"] := min(t["1"], evalf(ls * sin(alphaScrew)));			
+			t_eff["2"] := evalf(min(t["2"], ls * sin(alphaScrew) - max(entries(WhateverYouNeed["sectiondataAll"]["1"]["l_ad"]))));
+			t_pen := t_eff["2"] - l_tip;
+			n_tip := "2";				# number of part with the tip
+			n_head := "1";
+
+			if (chosenFastener = "Nail" and nailSurface = "smooth" and t_pen < 8 * d) or t_pen < 6 * d then		# 8.3.1.2				
+				Alert(cat("calculate_t: ", chosenFastener, " too short"), warnings, 5);
+				return
+			end if;
+
+		elif shearplanes = 1 then			# just 2 parts
 			
 			# for timber - timber connections with one shearplane, fastener tip is always considered to be in part 2
 			if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then		# figure 8.2 a - f
@@ -388,14 +422,18 @@ calculate_t := proc(WhateverYouNeed::table)
 
 		# check if thread length is shorter than penetration depth (just screws)
 		if structure["fastener"]["chosenFastener"] = "Screw" then
+
 			if fastenervalues["l1"] < t_pen then
 				t_pen := fastenervalues["l1"];
 				comments["threadlength"] := "t,pen limited by thread length";	
 			elif assigned(comments["threadlength"]) then
 				comments["threadlength"] := evaln(comments["threadlength"])	
 			end if
+
 		elif assigned(comments["threadlength"]) then
+
 			comments["threadlength"] := evaln(comments["threadlength"])	
+
 		end if;		
 
 	else
@@ -405,6 +443,7 @@ calculate_t := proc(WhateverYouNeed::table)
 	end if;
 
 	for i in {"overlap", "doublesided"} do		# "SingleShearplane" is defined directly
+
 		if assigned(fastenervalues[i]) then
 			if fastenervalues[i] = true then
 				comments[i] := i;
@@ -412,15 +451,24 @@ calculate_t := proc(WhateverYouNeed::table)
 				comments[i] := cat("no ", i);	# write text that says 
 			end if;
 		end if;
+
 	end do;
 	
-	SetProperty("MathContainer_t1", 'value', round(t["1"]));
-	SetProperty("MathContainer_t2", 'value', round(t["2"]));
-	SetProperty("MathContainer_t_eff1", 'value', round(t_eff["1"]));
-	SetProperty("MathContainer_t_eff2", 'value', round(t_eff["2"]));
-	SetProperty("MathContainer_t_pen", 'value', round(t_pen));
-	SetProperty("TextArea_shearplanes", 'value', fastenervalues["shearplanes"]);
+	WriteValueToComponent("t1", round(t["1"]), {"nocheck"});
+	WriteValueToComponent("t2", round(t["2"]), {"nocheck"});
+	WriteValueToComponent("t_eff1", round(t_eff["1"]), {"nocheck"});
+	WriteValueToComponent("t_eff2", round(t_eff["2"]), {"nocheck"});
+	WriteValueToComponent("t_pen", round(t_pen), {"nocheck"});
+	WriteValueToComponent("shearplanes", fastenervalues["shearplanes"], {"nocheck"});
 
+#	SetProperty("MathContainer_t1", 'value', round(t["1"]));
+#	SetProperty("MathContainer_t2", 'value', round(t["2"]));
+#	SetProperty("MathContainer_t_eff1", 'value', round(t_eff["1"]));
+#	SetProperty("MathContainer_t_eff2", 'value', round(t_eff["2"]));
+#	SetProperty("MathContainer_t_pen", 'value', round(t_pen));
+#	SetProperty("TextArea_shearplanes", 'value', fastenervalues["shearplanes"]);
+
+	fastenervalues["t"] := eval(t);
 	fastenervalues["t_eff"] := eval(t_eff);
 	fastenervalues["t_ef_814_NA_DE"] := t_ef_814_NA_DE;
 	fastenervalues["t_pen"] := t_pen;
@@ -438,7 +486,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 	local calculatedFastener, chosenFastener, t, t_pen, n_tip, rho_k, connection, nailSurface, d, dh, f_axk, f_headk, f_tensk, washer_N_axk, screwWithWasher, alphaScrew, calculateAsNail;
 	local F_axRk, F_axRd, F_axRd_fastener, k_rho, R_axk, R_headk, k_d, n_head, R_axk_n_head, gamma_M, k_mod, ls;
 	local structure, materialdataAll, sectiondataAll, warnings, comments, fastenervalues, numberOfFasteners, k_ef;
-DEBUG();
+
 	# define local variables
 	gamma_M := NODETimberEN1995:-gamma_M("Connections"); 		# NS-EN 1995, NA.2.4.1
 	structure := WhateverYouNeed["calculations"]["structure"];
@@ -474,30 +522,10 @@ DEBUG();
 	rho_k["1"] := materialdataAll["1"]["rho_k"];
 	rho_k["2"] := materialdataAll["2"]["rho_k"];
 
-	t := table();
-
-	# need to rewrite a bit to allow for reinforcement calculations for beams with openings etc. (just one beam)	
-	if WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" then
-
-		n_tip := "2";
-		n_head := "1";
-		t["1"] := min(entries(WhateverYouNeed["sectiondataAll"]["1"]["l_ad"]));					# minimum thickness of part with the head
-		t["2"] := evalf(WhateverYouNeed["sectiondataAll"]["1"]["h"] - max(entries(WhateverYouNeed["sectiondataAll"]["1"]["l_ad"]))); # minimum thickness of part with tip
-		t_pen := evalf(ls - max(entries(WhateverYouNeed["sectiondataAll"]["1"]["l_ad"])));
-
-		# need to check t_pen
-		# should we enhance calculate_t for beams with openings, or copy checks in here?
-
-	else
-
-		n_tip := fastenervalues["n_tip"];
-		n_head := fastenervalues["n_head"];
-		t_pen := fastenervalues["t_pen"];
-
-		t["1"] := sectiondataAll["1"]["b"];
-		t["2"] := sectiondataAll["2"]["b"];
-
-	end if;
+	t := fastenervalues["t"];
+	n_tip := fastenervalues["n_tip"];
+	n_head := fastenervalues["n_head"];
+	t_pen := fastenervalues["t_pen"];
 	
 	# modification factor for f_axk, which is defined for timber with 350 kg/m3
 	# for screws: (8.39) uses rho_k ^ 0.8, (8.40b) uses the same formula
@@ -699,7 +727,7 @@ DEBUG();
 		# SetProperty(cat("MathContainer_R_headk", n_head), 'value', round2(R_headk, 1))
 	end if;
 	
-	WriteValueToComponent(F_axRk, round2(F_axRk, 1), {"nocheck"});
+	WriteValueToComponent("F_axRk", round2(F_axRk, 1), {"nocheck"});
 	# SetProperty("MathContainer_F_axRk", 'value', round2(F_axRk, 1));
 
 	# calculate F_axRd	
@@ -717,15 +745,15 @@ DEBUG();
 	
 	# F_axRd is for single shearplane, one fastener
 	F_axRd := eval(F_axRk * k_mod / gamma_M);
-	WriteValueToComponent(F_axRd, round2(F_axRd, 1), {"nocheck"});
+	WriteValueToComponent("F_axRd", round2(F_axRd, 1), {"nocheck"});
 	# SetProperty("MathContainer_F_axRd", 'value', round2(F_axRd, 1));
 
 	F_axRd_fastener := F_axRd * (numberOfFasteners ^ k_ef / numberOfFasteners);
-	WriteValueToComponent(F_axRd_fastener, round2(F_axRd_fastener, 1), {"nocheck"});
+	WriteValueToComponent("F_axRd_fastener", round2(F_axRd_fastener, 1), {"nocheck"});
 	# SetProperty("MathContainer_F_axRd_fastener", 'value', round2(F_axRd_fastener, 1));
 
 	# if ComponentExists("TextArea_gamma_M") then
-		WriteValueToComponent(gamma_M, round2(gamma_M, 2), {"nocheck"});
+		WriteValueToComponent("gamma_M", round2(gamma_M, 2), {"nocheck"});
 		# SetProperty("TextArea_gamma_M", 'value', round2(gamma_M, 2))
 	# end if;
 	
