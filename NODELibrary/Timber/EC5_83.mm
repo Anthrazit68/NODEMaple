@@ -34,7 +34,7 @@ calculate_t := proc(WhateverYouNeed::table)
 	description "Calculate t and t_pen / effective part thickness and penetration depth";
 	local shearplanes, t_total, t, t_eff, t_ef_814_NA_DE, t_pen, l_tip, n_tip, n_head, ls, d, chosenFastener, connection, alphaScrew,
 		checkPassed, structure, sectiondataAll, warnings, comments, fastenervalues, timberlayers, i, nailSurface, b_max, l1;
-DEBUG();
+
 	# define local variables
 	structure := WhateverYouNeed["calculations"]["structure"];
 	sectiondataAll := WhateverYouNeed["sectiondataAll"];

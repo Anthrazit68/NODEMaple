@@ -28,7 +28,7 @@
   <calculations>
     <calculation calculationtype = 'Timber beam with opening'>
       <calculation calculationtype = 'Timber beam with opening' positionnumber = '18' positiontitle = 'Forsterkning av bjelke med hull'>
-        <activesettings activeloadcase = 'right' activematerial = 'GL 30c / Service class 2 / Instantaneous' activesection = 'Rectangular / 140x585' activeFastenerPattern = '1'/>
+        <activesettings activeloadcase = 'right' activematerial = 'GL 30c / Service class 2 / Instantaneous' activesection = 'Rectangular / 140x585'/>
         <loadcases>
           <loadcase name = 'left' F_axGk = '0' F_axQk = '0' F_axd = '0' F_hGk = '0' F_hQk = '0' F_hd = '0' F_vGk = 'false' F_vQk = 'false' F_vd = '64.5*Units:-Unit(kN)' M_yGk = 'false' M_yQk = 'false' M_yd = '39.3*Units:-Unit(kN*m)' loadcenter_x = '-80*Units:-Unit(mm)' loadcenter_y = '0'/>
           <loadcase name = 'right' F_axGk = '0' F_axQk = '0' F_axd = '0' F_hGk = '0' F_hQk = '0' F_hd = '0' F_vGk = 'false' F_vQk = 'false' F_vd = '61*Units:-Unit(kN)' M_yGk = 'false' M_yQk = 'false' M_yd = '50.3*Units:-Unit(kN*m)' loadcenter_x = '80*Units:-Unit(mm)' loadcenter_y = '0'/>
@@ -37,9 +37,6 @@
           <opening opening_a = '175*Units:-Unit(mm)' opening_e = '0' opening_hd = '175*Units:-Unit(mm)' opening_lA = '560*Units:-Unit(mm)' opening_lv = '673*Units:-Unit(mm)' opening_lz = '0' opening_r = '75*Units:-Unit(mm)' openingtype = 'circular'/>
           <connection angleleft1 = '90*Units:-Unit(arcdeg)' angleright1 = '90*Units:-Unit(arcdeg)' cutleft1 = 'cut rect.' cutright1 = 'cut rect.' graindirection1 = '0' lengthleft1 = '500*Units:-Unit(mm)' lengthright1 = '500*Units:-Unit(mm)'/>
           <fastener calculateAsNail = 'true' chosenFastener = 'Screw' fastenerProduct = 'KonstruX ST ZK' fastener_d = '6.5*Units:-Unit(mm)' fastener_dh = '8*Units:-Unit(mm)' fastener_ls = '160*Units:-Unit(mm)' nailForm = 'false' nailSurface = 'false' predrilled = 'false' fastenerProducer = 'EUROTEC' ignoreReqPredrilled = 'true'/>
-          <FastenerPatterns>
-            <FastenerPattern name = '1' grid_x1 = '0' grid_y1 = '40' center_x1 = '-125' center_y1 = '0' grid_alpha_11 = '0' grid_alpha_21 = '0' reactionforces = 'false' FastenerPatternType1 = 'grid' FastenerPatternType2 = '-' FastenerPatternType3 = '-' FastenerPatternUnits = 'mm' FastenerPatternCoordinates = 'false'/>
-          </FastenerPatterns>
         </structure>
       </calculation>
     </calculation>
