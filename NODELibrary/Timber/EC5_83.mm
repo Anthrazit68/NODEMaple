@@ -33,7 +33,7 @@
 calculate_t := proc(WhateverYouNeed::table)
 	description "Calculate t and t_pen / effective part thickness and penetration depth";
 	local shearplanes, t_total, t, t_eff, t_ef_814_NA_DE, t_pen, l_tip, n_tip, n_head, ls, d, chosenFastener, connection, alphaScrew,
-		checkPassed, structure, sectiondataAll, warnings, comments, fastenervalues, timberlayers, i, nailSurface, b_max, l1;
+		checkPassed, structure, sectiondataAll, warnings, comments, fastenervalues, timberlayers, i, nailSurface, b_max, l1, lmin;
 
 	# define local variables
 	structure := WhateverYouNeed["calculations"]["structure"];
@@ -199,7 +199,7 @@ calculate_t := proc(WhateverYouNeed::table)
 		end if;
 		
 	elif chosenFastener = "Nail" or chosenFastener = "Screw" then
-
+DEBUG();
 		# extending formula for inclined screws
 		if alphaScrew <> 90  * Unit('degree') then
 			comments["alphaScrew"] := cat("screw inclined ", convert(alphaScrew, 'unit_free'), " degrees")
@@ -220,8 +220,14 @@ calculate_t := proc(WhateverYouNeed::table)
 			n_tip := "2";				# number of part with the tip
 			n_head := "1";
 
-			if (chosenFastener = "Nail" and nailSurface = "smooth" and t_pen < 8 * d) or t_pen < 6 * d then		# 8.3.1.2				
-				Alert(cat("calculate_t: ", chosenFastener, " too short"), warnings, 5);
+			if chosenFastener = "Nail" and nailSurface = "smooth" then
+				lmin := 8 * d
+			else
+				lmin := 6 * d
+			end if;
+
+			if t_pen < lmin then		# 8.3.1.2				
+				Alert(cat("calculate_t: ", chosenFastener, " ", round(evalf(lmin - t_pen)), " too short"), warnings, 5);
 				return
 			end if;
 
@@ -236,8 +242,14 @@ calculate_t := proc(WhateverYouNeed::table)
 				n_tip := "2";				# number of part with the tip
 				n_head := "1";
 
-				if (chosenFastener = "Nail" and nailSurface = "smooth" and t_pen < 8 * d) or t_pen < 6 * d then		# 8.3.1.2				
-					Alert(cat("calculate_t: ", chosenFastener, " too short"), warnings, 5);
+				if chosenFastener = "Nail" and nailSurface = "smooth" then
+					lmin := 8 * d
+				else
+					lmin := 6 * d
+				end if;
+
+				if t_pen < lmin then		# 8.3.1.2
+					Alert(cat("calculate_t: ", chosenFastener, " ", round(evalf(lmin - t_pen)), " too short"), warnings, 5);
 					return
 				else
 					fastenervalues["doublesided"] := false;
@@ -252,8 +264,14 @@ calculate_t := proc(WhateverYouNeed::table)
 				n_tip := "1";
 				n_head := 0;
 
-				if (chosenFastener = "Nail" and nailSurface = "smooth" and t_pen < 8 * d) or t_pen < 6 * d then		# 8.3.1.2				
-					Alert(cat("calculate_t: ", chosenFastener, " too short"), warnings, 5);
+				if chosenFastener = "Nail" and nailSurface = "smooth" then
+					lmin := 8 * d
+				else
+					lmin := 6 * d
+				end if;
+
+				if t_pen < lmin then		# 8.3.1.2
+					Alert(cat("calculate_t: ", chosenFastener, " ", round(evalf(lmin - t_pen)), " too short"), warnings, 5);
 					return
 				else
 					fastenervalues["doublesided"] := false;
