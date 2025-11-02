@@ -199,7 +199,7 @@ calculate_t := proc(WhateverYouNeed::table)
 		end if;
 		
 	elif chosenFastener = "Nail" or chosenFastener = "Screw" then
-DEBUG();
+# DEBUG();
 		# extending formula for inclined screws
 		if alphaScrew <> 90  * Unit('degree') then
 			comments["alphaScrew"] := cat("screw inclined ", convert(alphaScrew, 'unit_free'), " degrees")
@@ -227,7 +227,8 @@ DEBUG();
 			end if;
 
 			if t_pen < lmin then		# 8.3.1.2				
-				Alert(cat("calculate_t: ", chosenFastener, " ", round(evalf(lmin - t_pen)), " too short"), warnings, 5);
+				# Alert(cat("calculate_t: ", chosenFastener, " ", round(evalf(lmin - t_pen)), " too short"), warnings, 5);		# bug in round? https://mapleprimes.com/questions/241946-Bug-In-Round-With-Units?sq=241946
+				Alert(cat("calculate_t: ", chosenFastener, " ", round2(evalf(lmin - t_pen), 0), " too short"), warnings, 5);
 				return
 			end if;
 
@@ -410,31 +411,34 @@ DEBUG();
 		end if;
 		
 		# t_ef for 8.1.4 NA DE
-		for i in {"1", "2"} do
-			
-			if timberlayers[i] > 0 then
+		if assigned(WhateverYouNeed["calculations"]["activesettings"]["calculate_814_NA_DE"])
+			 and WhateverYouNeed["calculations"]["activesettings"]["calculate_814_NA_DE"] = "true" then
+			for i in {"1", "2"} do
 				
-				if shearplanes = 1 then	# single sided connection
-						
-					if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then
-						t_ef_814_NA_DE[i] := min(t[i] * timberlayers[i], t_pen, 12 * d)
-					else
-						t_ef_814_NA_DE[i] := min(t[i] * timberlayers[i], t_pen, 15 * d)	# steel - timber connection, nail (and screw)						
+				if timberlayers[i] > 0 then
+					
+					if shearplanes = 1 then	# single sided connection
+							
+						if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then
+							t_ef_814_NA_DE[i] := min(t[i] * timberlayers[i], t_pen, 12 * d)
+						else
+							t_ef_814_NA_DE[i] := min(t[i] * timberlayers[i], t_pen, 15 * d)	# steel - timber connection, nail (and screw)						
+						end if;
+					
+					else					# symmectric connections
+					
+						if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then
+							t_ef_814_NA_DE[i] := min(t[i] * timberlayers[i], 2 * t_pen, 24 * d)						
+						else
+							t_ef_814_NA_DE[i] := min(t[i] * timberlayers[i], 2 * t_pen, 30 * d)	# steel - timber connection, nail (and screw)						
+						end if;
+									
 					end if;
-				
-				else					# symmectric connections
-				
-					if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then
-						t_ef_814_NA_DE[i] := min(t[i] * timberlayers[i], 2 * t_pen, 24 * d)						
-					else
-						t_ef_814_NA_DE[i] := min(t[i] * timberlayers[i], 2 * t_pen, 30 * d)	# steel - timber connection, nail (and screw)						
-					end if;
-								
+									
 				end if;
-								
-			end if;
-			
-		end do;					
+				
+			end do;					
+		end if;
 
 		t_pen := evalf(t_pen);
 
@@ -512,8 +516,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 	sectiondataAll := WhateverYouNeed["sectiondataAll"];
 	warnings := WhateverYouNeed["warnings"];
 	comments := WhateverYouNeed["results"]["comments"];
-	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
-	numberOfFasteners := numelems(WhateverYouNeed["results"]["FastenerGroup"]["Fasteners"]);
+	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];	
 	connection := structure["connection"];
 
 	k_rho := table();		# correction for non default timber density
@@ -765,6 +768,13 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 	F_axRd := eval(F_axRk * k_mod / gamma_M);
 	WriteValueToComponent("F_axRd", round2(F_axRd, 1), {"nocheck"});
 	# SetProperty("MathContainer_F_axRd", 'value', round2(F_axRd, 1));
+
+# temporary fix for special calculation, needs to be changed later
+	if WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" then
+		numberOfFasteners := 1
+	else
+		numberOfFasteners := numelems(WhateverYouNeed["results"]["FastenerGroup"]["Fasteners"]);
+	end if;
 
 	F_axRd_fastener := F_axRd * (numberOfFasteners ^ k_ef / numberOfFasteners);
 	WriteValueToComponent("F_axRd_fastener", round2(F_axRd_fastener, 1), {"nocheck"});
