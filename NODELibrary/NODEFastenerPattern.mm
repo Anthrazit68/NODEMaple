@@ -1138,7 +1138,7 @@ calculate_a := proc(WhateverYouNeed::table)			# calculate a-values according to 
 	segmentlist := [];
 	annotations := {};
 	a1_FastenersInRow := table();		# indexed table of a1_row elements
-	a1_nFastenersInRow := table();	# number of fasteners in row
+	a1_nFastenersInRow := table();		# number of fasteners in row
 	a2_FastenersInColumn := table();	# indexed table of a2_column elements
 	a2_nFastenersInColumn := table();	# number of fasteners in column
 
@@ -1318,6 +1318,7 @@ calculate_a := proc(WhateverYouNeed::table)			# calculate a-values according to 
 #			end if;	
 
 		if searchtext("steel", beamBoundarylines[beamBoundaryline]) = 0 then
+
 			beamindex := substring(convert(beamBoundarylines[beamBoundaryline], string), -1..-1);
 			beamside := substring(convert(beamBoundarylines[beamBoundaryline], string), -2..-2);
 		else
@@ -1337,7 +1338,7 @@ calculate_a := proc(WhateverYouNeed::table)			# calculate a-values according to 
 				a2_column := {i};
 
 				for k from i+1 to numelems(fastenerPointlist) do		# check distance between fastener points i and k
-					
+
 					geometry:-projection(parse(cat("a1_", beamBoundaryline, i, k)), fastenerPointlist[k], parse(dummy));		# a1_BLL112, projection point on line through fastenerPoint k
 					a1distance := geometry:-distance(fastenerPointlist[i], parse(cat("a1_", beamBoundaryline, i, k)));			# check distance for points to be considered on same a2 column
 					a2distance := geometry:-distance(fastenerPointlist[k], parse(cat("a1_", beamBoundaryline, i, k)));			# check distance for points to be considered on same a1 row						

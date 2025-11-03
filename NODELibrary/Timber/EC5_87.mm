@@ -17,7 +17,7 @@
 GetCalculatedFastener := proc(WhateverYouNeed::table)
 
     description "check calculation type for metal fasteners";
-    local fastener, chosenFastener, d, calculatedFastener, warnings;
+    local fastener, chosenFastener, d, calculatedFastener, warnings, fastenervalues;
 
     fastener := WhateverYouNeed["calculations"]["structure"]["fastener"];
     chosenFastener :=  fastener["chosenFastener"];
@@ -44,6 +44,10 @@ GetCalculatedFastener := proc(WhateverYouNeed::table)
         
     end if;
 
-    WhateverYouNeed["calculatedvalues"]["fastenervalues"]["calculatedFastener"] := calculatedFastener;
-
+    # this does NOT work!!
+    # WhateverYouNeed["calculatedvalues"]["fastenervalues"]["calculatedFastener"] := calculatedFastener;
+    
+    fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
+    fastenervalues["calculatedFastener"] := calculatedFastener;
+    
 end proc:
