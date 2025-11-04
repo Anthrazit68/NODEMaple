@@ -199,7 +199,7 @@ calculate_t := proc(WhateverYouNeed::table)
 		end if;
 		
 	elif chosenFastener = "Nail" or chosenFastener = "Screw" then
-# DEBUG();
+
 		# extending formula for inclined screws
 		if alphaScrew <> 90  * Unit('degree') then
 			comments["alphaScrew"] := cat("screw inclined ", convert(alphaScrew, 'unit_free'), " degrees")

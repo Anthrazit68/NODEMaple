@@ -15,13 +15,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 GetCalculatedFastener := proc(WhateverYouNeed::table)
-
     description "check calculation type for metal fasteners";
     local fastener, chosenFastener, d, calculatedFastener, warnings, fastenervalues;
 
     fastener := WhateverYouNeed["calculations"]["structure"]["fastener"];
     chosenFastener :=  fastener["chosenFastener"];
-    d := fastener["d"];
+    d := fastener["fastener_d"];
     warnings := WhateverYouNeed["warnings"];
 
     # check how we should design fastener

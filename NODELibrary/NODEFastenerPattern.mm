@@ -163,7 +163,7 @@ PlotResults := proc(WhateverYouNeed::table)
 		sectiondataAll, h, beamBoundarylines, annotations_a, annotations, x, y, lengthleft, lengthright, angleleft, angleright, beams, clr, beamPoints, minimumangle,
 		plotitems, beamnumber, displayBlockShear, cutleft, cutright, part, deltaangle,
 		opening, openingOutline, one_poly, a, hd;
-# DEBUG();
+
 	warnings := WhateverYouNeed["warnings"];
 	structure := WhateverYouNeed["calculations"]["structure"];
 	graphicsElements := table();
