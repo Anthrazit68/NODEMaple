@@ -446,8 +446,8 @@ calculate_t := proc(WhateverYouNeed::table)
 		if structure["fastener"]["chosenFastener"] = "Screw" then
 
 			if fastenervalues["l1"] < t_pen then
-				t_pen := fastenervalues["l1"];
-				comments["threadlength"] := "t,pen limited by thread length";	
+				t_pen := fastenervalues["l1"] - l_tip;
+				comments["threadlength"] := cat("t,pen limited by thread length (", round(t_pen), ")");
 			elif assigned(comments["threadlength"]) then
 				comments["threadlength"] := evaln(comments["threadlength"])	
 			end if
@@ -470,7 +470,7 @@ calculate_t := proc(WhateverYouNeed::table)
 			if fastenervalues[i] = true then
 				comments[i] := i;
 			else
-				comments[i] := cat("no ", i);	# write text that says 
+				# comments[i] := cat("no ", i);	# write text that says 
 			end if;
 		end if;
 
@@ -678,7 +678,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 		# capacity of the head
 		# R_axk_n_head
 		if connection[cat("connection", n_head)] = "Timber" then
-			local lg;				
+			local lg;			# length of threaded part in part for head	
 
 			if fastenervalues["l2"] > 0 then	# screw with splitted thread
 				comments["doublethreaded"] := "double-threaded screw";
@@ -690,7 +690,11 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 				lg := evalf(t[n_head] / sin(alphaScrew) - ls + fastenervalues["l1"]);
 			end if;				
 
-			R_axk_n_head := f_axk * d * lg * k_d / (1.2 * cos(alphaScrew)^2 + sin(alphaScrew)^2) * k_rho[n_head];	# (8.38)
+			if lg > 0 then		# shouldn't be necessary, but negative capacities don't look good in the sheet, so we set them to zero
+				R_axk_n_head := f_axk * d * lg * k_d / (1.2 * cos(alphaScrew)^2 + sin(alphaScrew)^2) * k_rho[n_head];	# (8.38)
+			else
+				R_axk_n_head := 0
+			end if;
 			
 			if screwWithWasher = true then		# 6mm screws could be with washers (just Rothoblaas HBS for the moment)
 				R_headk := washer_N_axk * k_rho[n_head];
@@ -703,7 +707,8 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 			
 		end if;
 
-		# https://www.linkedin.com/posts/andreaszieritz_timberengineering-timberscrews-eurocode5-activity-7344732846957154304-_-QB			
+		# https://www.linkedin.com/posts/andreaszieritz_timberengineering-timberscrews-eurocode5-activity-7344732846957154304-_-QB
+		# Head and thread capacity are not combined, so we take the larger of those
 		F_axRk := eval(min(R_axk, max(R_axk_n_head, R_headk), f_tensk));
 
 		k_ef := 0.9;	# reduction factor for connection

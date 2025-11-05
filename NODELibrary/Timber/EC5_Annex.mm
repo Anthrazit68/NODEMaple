@@ -455,7 +455,7 @@ end proc:
 calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	description "Timber beam with opening";
 	local opening, hd, openingResult, b, h, h_r, sigma_t90d, f_vd, f_t90d, eta, usedcode, comments, loadcase, F_vd, M_yd, F_t90d, l_t90, A, k_t90, K_corner, tau_cornerd,
-		F_t90Vd, F_t90Md, l_ad, loadside;
+		F_t90Vd, F_t90Md, l_ad, loadside, fastenervalues;
 
 	# define local variables
 	opening :=  WhateverYouNeed["calculations"]["structure"]["opening"];
@@ -475,6 +475,7 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	M_yd := WhateverYouNeed["calculations"]["loadcases"][loadcase]["M_yd"];
 	loadside := WhateverYouNeed["calculations"]["loadcases"][loadcase]["loadside"];
 	l_ad := max(entries(openingResult["l_ad"]));		# longest distance from beam edge to crack for longest screw length
+	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];	
 
 	eta := table();
 	comments := table();
@@ -510,6 +511,8 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	if openingResult["minorOpening"] = true then
 		comments["minorOpening"] := cat("minor opening, ", dummy)
 	end if;
+
+	eta["Ft90r"] := evalf(F_t90d / fastenervalues["F_axRd_fastener"]);
 
 	openingResult["F_t90Vd"] := F_t90Vd;
 	openingResult["F_t90Md"] := F_t90Md;
