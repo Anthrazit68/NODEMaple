@@ -290,7 +290,7 @@ end proc:
 
 checkOpeningGeometry := proc(WhateverYouNeed::table)
 	description "check opening geometry in beams with opening";
-	local opening, h, warnings, openingtype, a, hd, e, lv, lA, lz, r, openingValid, h_r, h_ro, h_ru, dummy, usedcode, comments, openingResult,
+	local opening, b, h, warnings, openingtype, a, hd, e, lv, lA, lz, r, openingValid, h_r, h_ro, h_ru, dummy, usedcode, comments, openingResult,
 		l_t90, k_t90, K_corner, l_ad, reinforcmentType;
 
 	warnings := WhateverYouNeed["warnings"];
@@ -300,6 +300,7 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 
 	# get predefined geometric input values
 	opening :=  WhateverYouNeed["calculations"]["structure"]["opening"];		# defined in TeamBeamWithOpening:-ReadComponentsSpecific
+	b := WhateverYouNeed["sectiondataAll"]["1"]["b"];
 	h := WhateverYouNeed["sectiondataAll"]["1"]["h"];
 	openingtype := opening["openingtype"];
 	a := opening["opening_a"];
@@ -455,7 +456,7 @@ end proc:
 calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	description "Timber beam with opening";
 	local opening, hd, openingResult, b, h, h_r, sigma_t90d, f_vd, f_t90d, eta, usedcode, comments, loadcase, F_vd, M_yd, F_t90d, l_t90, A, k_t90, K_corner, tau_cornerd,
-		F_t90Vd, F_t90Md, l_ad, loadside, fastenervalues;
+		F_t90Vd, F_t90Md, l_ad, loadside, fastenervalues, a2, a4, maxnumberOfScrews;
 
 	# define local variables
 	opening :=  WhateverYouNeed["calculations"]["structure"]["opening"];
@@ -480,6 +481,18 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	eta := table();
 	comments := table();
 	
+	# check maximum number of screws in section
+	a2 := WhateverYouNeed["calculatedvalues"]["distance"]["a2_min_max1"];
+	a4 := WhateverYouNeed["calculatedvalues"]["distance"]["a4c_min_max1"];
+	maxnumberOfScrews := (b - 2*a4) / a2;
+
+	if maxnumberOfScrews < 0 then
+		Alert("Beam to small, no reinforcement possible", warnings, 3);
+	else
+		maxnumberOfScrews := round(maxnumberOfScrews) + 1;
+		openingResult["maxnumberOfScrews"] := maxnumberOfScrews
+	end if;
+
 	# reduction factor mentioned in limtreboka for circular openings is neither used in example 18, nor in Holzbau Taschenbuch Example A.4.2
 	# if opening["openingtype"] = "circular" then
 	# 	hd_ := 0.7 * hd
