@@ -774,9 +774,8 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 	WriteValueToComponent("F_axRd", round2(F_axRd, 1), {"nocheck"});
 	# SetProperty("MathContainer_F_axRd", 'value', round2(F_axRd, 1));
 
-# temporary fix for special calculation, needs to be changed later
 	if WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" then
-		numberOfFasteners := 1
+		numberOfFasteners := fastener["numberOfFasteners"]		# defined by user
 	else
 		numberOfFasteners := numelems(WhateverYouNeed["results"]["FastenerGroup"]["Fasteners"]);
 	end if;

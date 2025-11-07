@@ -456,7 +456,7 @@ end proc:
 calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	description "Timber beam with opening";
 	local opening, hd, openingResult, b, h, h_r, sigma_t90d, f_vd, f_t90d, eta, usedcode, comments, loadcase, F_vd, M_yd, F_t90d, l_t90, A, k_t90, K_corner, tau_cornerd,
-		F_t90Vd, F_t90Md, l_ad, loadside, fastenervalues, a2, a4, maxnumberOfScrews;
+		F_t90Vd, F_t90Md, l_ad, loadside, fastenervalues, a2, a4, maxnumberOfFasteners;
 
 	# define local variables
 	opening :=  WhateverYouNeed["calculations"]["structure"]["opening"];
@@ -484,13 +484,14 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	# check maximum number of screws in section
 	a2 := WhateverYouNeed["calculatedvalues"]["distance"]["a2_min_max1"];
 	a4 := WhateverYouNeed["calculatedvalues"]["distance"]["a4c_min_max1"];
-	maxnumberOfScrews := (b - 2*a4) / a2;
+	maxnumberOfFasteners := (b - 2*a4) / a2;
 
-	if maxnumberOfScrews < 0 then
+	if maxnumberOfFasteners < 0 then
 		Alert("Beam to small, no reinforcement possible", warnings, 3);
 	else
-		maxnumberOfScrews := round(maxnumberOfScrews) + 1;
-		openingResult["maxnumberOfScrews"] := maxnumberOfScrews
+		maxnumberOfFasteners := round(maxnumberOfFasteners) + 1;
+		openingResult["maxnumberOfFasteners"] := maxnumberOfFasteners;
+		ChecknumberOfFasteners(maxnumberOfFasteners)
 	end if;
 
 	# reduction factor mentioned in limtreboka for circular openings is neither used in example 18, nor in Holzbau Taschenbuch Example A.4.2
@@ -543,5 +544,15 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	Write_eta(eta, comments);
 
 	return eta, usedcode, comments
+
+end proc:
+
+
+ChecknumberOfFasteners := proc(maxnumberOfFasteners)
+	description "check if ComboBox values are compatible with calculated values";
+	local numberOfFasteners, activenumberOfFasteners;
+
+	numberOfFasteners := GetProperty("ComboBox_numberOfFasteners", 'itemlist')
+	activenumberOfFasteners := parse(GetProperty("ComboBox_numberOfFasteners", 'value'));
 
 end proc:
