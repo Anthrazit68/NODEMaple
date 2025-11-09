@@ -158,7 +158,7 @@ SetComboBoxSection := proc(WhateverYouNeed::table, partsnumber::string)
 
 	end if;
 
-end proc;
+end proc:
 
 
 Changed_bh := proc(WhateverYouNeed::table, varname::string)

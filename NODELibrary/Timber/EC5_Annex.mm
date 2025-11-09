@@ -548,11 +548,11 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 end proc:
 
 
-ChecknumberOfFasteners := proc(maxnumberOfFasteners)
-	description "check if ComboBox values are compatible with calculated values";
-	local numberOfFasteners, activenumberOfFasteners;
+#ChecknumberOfFasteners := proc(maxnumberOfFasteners)
+#	description "check if ComboBox values are compatible with calculated values";
+#	local numberOfFasteners, activenumberOfFasteners;
 
-	numberOfFasteners := GetProperty("ComboBox_numberOfFasteners", 'itemlist')
-	activenumberOfFasteners := parse(GetProperty("ComboBox_numberOfFasteners", 'value'));
+#	numberOfFasteners := GetProperty("ComboBox_numberOfFasteners", 'itemlist');
+#	activenumberOfFasteners := parse(GetProperty("ComboBox_numberOfFasteners", 'value'));
 
-end proc:
+#end proc:

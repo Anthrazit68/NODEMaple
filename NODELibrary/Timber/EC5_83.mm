@@ -507,7 +507,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 
 	local calculatedFastener, chosenFastener, t, t_pen, n_tip, rho_k, connection, nailSurface, d, dh, f_axk, f_headk, f_tensk, washer_N_axk, screwWithWasher, alphaScrew, calculateAsNail;
 	local F_axRk, F_axRd, F_axRd_fastener, k_rho, R_axk, R_headk, k_d, n_head, R_axk_n_head, gamma_M, k_mod, ls;
-	local structure, materialdataAll, sectiondataAll, warnings, comments, fastenervalues, numberOfFasteners, k_ef;
+	local fastener, structure, materialdataAll, sectiondataAll, warnings, comments, fastenervalues, numberOfFasteners, k_ef;
 
 	# define local variables
 	gamma_M := NODETimberEN1995:-gamma_M("Connections"); 		# NS-EN 1995, NA.2.4.1
@@ -525,19 +525,20 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 	R_headk := 0;
 
 	# structure / fastener
-	chosenFastener := structure["fastener"]["chosenFastener"];
+	fastener := structure["fastener"];
+	chosenFastener := fastener["chosenFastener"];
 	calculatedFastener := fastenervalues["calculatedFastener"];
-	calculateAsNail := structure["fastener"]["calculateAsNail"];
-	nailSurface := structure["fastener"]["nailSurface"];
-	d := structure["fastener"]["fastener_d"];
-	dh := structure["fastener"]["fastener_dh"];
-	screwWithWasher := structure["fastener"]["screwWithWasher"];
+	calculateAsNail := fastener["calculateAsNail"];
+	nailSurface := fastener["nailSurface"];
+	d := fastener["fastener_d"];
+	dh := fastener["fastener_dh"];
+	screwWithWasher := fastener["screwWithWasher"];
 	f_axk := fastenervalues["f_axk"];
 	f_headk := fastenervalues["f_headk"];
 	f_tensk := fastenervalues["f_tensk"];
 	washer_N_axk := fastenervalues["washer_N_axk"];
-	alphaScrew := structure["fastener"]["alphaScrew"];
-	ls := structure["fastener"]["fastener_ls"];			# length of fastener
+	alphaScrew := fastener["alphaScrew"];
+	ls := fastener["fastener_ls"];			# length of fastener
 
 	rho_k := table();
 	rho_k["1"] := materialdataAll["1"]["rho_k"];
