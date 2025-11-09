@@ -455,10 +455,12 @@ end proc:
 
 calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	description "Timber beam with opening";
-	local opening, hd, openingResult, b, h, h_r, sigma_t90d, f_vd, f_t90d, eta, usedcode, comments, loadcase, F_vd, M_yd, F_t90d, l_t90, A, k_t90, K_corner, tau_cornerd,
-		F_t90Vd, F_t90Md, l_ad, loadside, fastenervalues, a2, a4, maxnumberOfFasteners;
+	local opening, hd, openingResult, b, h, h_r, sigma_t90d, f_vd, f_t90d, eta, eta_u, usedcode, comments, loadcase, F_vd, M_yd, F_t90d, l_t90, A, k_t90, K_corner, tau_cornerd,
+		F_t90Vd, F_t90Md, loadside, fastenervalues, a2, a4, maxnumberOfFasteners, d, fastener, gamma_M, k_mod, f_k1d, tau_ef;
 
 	# define local variables
+	gamma_M := NODETimberEN1995:-gamma_M("Connections"); 		# NS-EN 1995, NA.2.4.1
+	k_mod := WhateverYouNeed["materialdata"]["k_mod"];
 	opening :=  WhateverYouNeed["calculations"]["structure"]["opening"];
 	hd := opening["opening_hd"];
 	b := WhateverYouNeed["sectiondataAll"]["1"]["b"];
@@ -475,13 +477,17 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	F_vd := WhateverYouNeed["calculations"]["loadcases"][loadcase]["F_vd"];
 	M_yd := WhateverYouNeed["calculations"]["loadcases"][loadcase]["M_yd"];
 	loadside := WhateverYouNeed["calculations"]["loadcases"][loadcase]["loadside"];
-	l_ad := max(entries(openingResult["l_ad"]));		# longest distance from beam edge to crack for longest screw length
-	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];	
+	# l_ad := max(entries(openingResult["l_ad"]));		# longest distance from beam edge to crack for longest screw length
+	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
 
-	eta := table();
-	comments := table();
-	
-	# check maximum number of screws in section
+	fastener := WhateverYouNeed["calculations"]["structure"]["fastener"];
+	d := fastener["fastener_d"];
+
+	eta := WhateverYouNeed["results"]["eta"];	# global utilization, reinforced
+	comments :=	WhateverYouNeed["results"]["comments"];
+	eta_u := table();							# eta for uninforced section
+
+	# check maximum number of screws in section (limtreboka fig. 5-3)
 	a2 := WhateverYouNeed["calculatedvalues"]["distance"]["a2_min_max1"];
 	a4 := WhateverYouNeed["calculatedvalues"]["distance"]["a4c_min_max1"];
 	maxnumberOfFasteners := (b - 2*a4) / a2;
@@ -491,7 +497,10 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	else
 		maxnumberOfFasteners := round(maxnumberOfFasteners) + 1;
 		openingResult["maxnumberOfFasteners"] := maxnumberOfFasteners;
-		ChecknumberOfFasteners(maxnumberOfFasteners)
+		
+		if maxnumberOfFasteners < fastener["numberOfFasteners"] then
+			Alert(cat("Number of fasteners (", fastener["numberOfFasteners"], ") > max. (", maxnumberOfFasteners, ")"), warnings, 3)
+		end if;
 	end if;
 
 	# reduction factor mentioned in limtreboka for circular openings is neither used in example 18, nor in Holzbau Taschenbuch Example A.4.2
@@ -508,25 +517,50 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	A := evalf(0.5 * l_t90 * b);
 	sigma_t90d := convert(F_t90d / A, 'units', 'N'/'mm^2');					# (5-7)
 
-	# check tension perp. to grain
-	eta["Ft90"] := evalf(sigma_t90d / (k_t90 * f_t90d));
+	# check without reinforcement
+	# check tension perp. to grain, uninforced section
+	eta_u["Ft90"] := evalf(sigma_t90d / (k_t90 * f_t90d));
 	usedcode := "Beam with opening";
 	# comments["Ft90"] := "F,t90";
 
 	# check shear at opening ?
 	tau_cornerd := convert(evalf(K_corner * 3 * F_vd / (2 * b * h)), 'units', 'N'/'mm^2');	# (5-14)
-	eta["tau_corner"] := evalf(tau_cornerd / f_vd);
+	eta_u["tau_corner"] := evalf(tau_cornerd / f_vd);
 	# comments["tau_corner"] := "tau_corner";
-
 	
+	Write_eta(eta_u, comments);		# write utilization for uninforced section
+
 	# comments
 	comments["reinforcmentType"] := cat("reinforcement: ", openingResult["reinforcmentType"], ",");
 	
-	if openingResult["minorOpening"] = true then
-		comments["minorOpening"] := cat("minor opening, ", dummy)
-	end if;
+	if max(entries(eta_u)) <= 1 then									# no reinforcement necessary
 
-	eta["Ft90r"] := evalf(F_t90d / fastenervalues["F_axRd_fastener"]);
+		eta["Ft90"] := eta_u["Ft90"];
+		eta["tau_corner"] := eta_u["tau_corner"];
+
+	elif openingResult["minorOpening"] = true then			# no reinforcement necessary
+
+		eta["Ft90"] := 0;
+		eta["tau_corner"] := 0;
+		comments["minorOpening"] := cat("minor opening, ", dummy)
+	
+	else	# reinforced section
+
+		if d > 20 * Unit('mm') then
+			Alert("Boltdiameter > 20mm not allowed", warnings, 3)
+		end if;
+
+		if fastener["fastener_ls"] < 2 * max(entries(openingResult["l_ad"])) then
+			Alert(cat("Fastener too short, minimum length ", round(evalf(2 * max(entries(openingResult["l_ad"]))))), warnings, 3)
+		end if;
+
+		eta["FaxR"] := evalf(F_t90d / fastenervalues["F_axRd_fastener"]);		# all shearforce must be taken by screws
+
+		tau_ef := evalf(F_t90d / (fastener["numberOfFasteners"] * d * Pi * min(entries(openingResult["l_ad"]))));	#	(limtreboka 5-15)
+		f_k1d := f_k1k(min(entries(openingResult["l_ad"]))) * k_mod / gamma_M;
+		eta("tau_ef") := evalf( k1d / tau_ef);
+
+	end if;
 
 	openingResult["F_t90Vd"] := F_t90Vd;
 	openingResult["F_t90Md"] := F_t90Md;
@@ -541,18 +575,19 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	WriteValueToComponent("tau_cornerd", round2(tau_cornerd, 2), {"nocheck"});
 	WriteValueToComponent("l_ad", round(l_ad), {"nocheck"});
 
-	Write_eta(eta, comments);
-
-	return eta, usedcode, comments
+	return eta, usedcode, ""		# eta, usedcode, usedcodeDescription
 
 end proc:
 
 
-#ChecknumberOfFasteners := proc(maxnumberOfFasteners)
-#	description "check if ComboBox values are compatible with calculated values";
-#	local numberOfFasteners, activenumberOfFasteners;
+f_k1k := proc(l_ad)
+	description "characteristic shear capacity of glued connection";
 
-#	numberOfFasteners := GetProperty("ComboBox_numberOfFasteners", 'itemlist');
-#	activenumberOfFasteners := parse(GetProperty("ComboBox_numberOfFasteners", 'value'));
-
-#end proc:
+	if l_ad <= 250 * Unit('mm') then
+		return 4.0 * Unit('MPa')
+	elif l_ad <= 500 * Unit('mm') then
+		return evalf(5.25 * Unit('MPa') - 0.005('N/mm') * l_ad)
+	elif l_ad <= 1000 * Unit('mm') then
+		return evalf(3.5 * Unit('MPa') - 0.0015('N/mm') * l_ad)
+	end if;
+end proc:
