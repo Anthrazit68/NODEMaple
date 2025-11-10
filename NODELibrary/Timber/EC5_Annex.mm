@@ -290,7 +290,7 @@ end proc:
 
 checkOpeningGeometry := proc(WhateverYouNeed::table)
 	description "check opening geometry in beams with opening";
-	local opening, b, h, warnings, openingtype, a, hd, e, lv, lA, lz, r, openingValid, h_r, h_ro, h_ru, dummy, usedcode, comments, openingResult,
+	local opening, b, h, warnings, openingtype, a, hd, hd_, e, lv, lA, lz, r, openingValid, h_r, h_ro, h_ru, dummy, usedcode, comments, openingResult,
 		l_t90, k_t90, K_corner, l_ad, reinforcmentType;
 
 	warnings := WhateverYouNeed["warnings"];
@@ -316,19 +316,26 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 	h_ro := h / 2 - hd / 2 - e;		
 	h_ru := h / 2 - hd / 2 + e;
 
+	# reduction factor mentioned in limtreboka for circular openings is not used in Holzbau Taschenbuch Example A.4.2
+	#	if openingtype = "circular" then
+	#		hd_ := 0.7 * hd
+	#	elif openingtype = "rectangular" then
+	#		hd_ := hd
+	#	end if;
+
 	if openingtype = "rectangular" then
 		l_ad["left"] := h_ru;
 		l_ad["right"] := h_ro;
 		h_r := min(h_ru, h_ro);					# limtreboka, p 90, (5-9)
 		l_t90 := 0.5*(hd + h);					# limtreboka, p 90, (5-11)
-		K_corner := evalf(1.84 * (1+a/h)/(1-hd/h) * (hd/h)^0.2);	# (5-14)
+		K_corner := evalf(1.84 * (1+a/h) / (1-hd/h) * (hd/h)^0.2);	# (5-14)
 
 	elif openingtype = "circular" then
 		l_ad["left"] := h_ru + 0.15 * hd;
 		l_ad["right"] := h_ro + 0.15 * hd;
 		h_r := min(h_ru + 0.15 * hd, h_ro + 0.15 * hd);			# (5-10)
 		l_t90 := 0.35*hd + 0.5*h;								# (5-12)
-		K_corner := 1							# assumed value, needs to be verified
+		K_corner := evalf(1.84 * (1+a/h) / (1-(0.7*hd)/h) * ((0.7*hd)/h)^0.2);	# (5-14) with reduction factor 0,7 (limtreboka example p. 205)
 	end if;
 
 	k_t90 := evalf(min(1, (450 * Unit('mm') / h)^0.5));			# (5-13)
@@ -455,8 +462,8 @@ end proc:
 
 calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	description "Timber beam with opening";
-	local opening, hd, openingResult, b, h, h_r, sigma_t90d, f_vd, f_t90d, eta, eta_u, usedcode, comments, loadcase, F_vd, M_yd, F_t90d, l_t90, A, k_t90, K_corner, tau_cornerd,
-		F_t90Vd, F_t90Md, loadside, fastenervalues, a2, a4, maxnumberOfFasteners, d, fastener, gamma_M, k_mod, f_k1d, tau_ef;
+	local opening, hd, hd_, openingResult, b, h, h_r, sigma_t90d, f_vd, f_t90d, eta, eta_u, usedcode, comments, loadcase, F_vd, M_yd, F_t90d, l_t90, A, k_t90, K_corner, tau_cornerd,
+		F_t90Vd, F_t90Md, loadside, fastenervalues, a2, a4, maxnumberOfFasteners, d, fastener, gamma_M, k_mod, f_k1d, tau_efd;
 
 	# define local variables
 	gamma_M := NODETimberEN1995:-gamma_M("Connections"); 		# NS-EN 1995, NA.2.4.1
@@ -502,13 +509,6 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 			Alert(cat("Number of fasteners (", fastener["numberOfFasteners"], ") > max. (", maxnumberOfFasteners, ")"), warnings, 3)
 		end if;
 	end if;
-
-	# reduction factor mentioned in limtreboka for circular openings is neither used in example 18, nor in Holzbau Taschenbuch Example A.4.2
-	# if opening["openingtype"] = "circular" then
-	# 	hd_ := 0.7 * hd
-	# elif opening["openingtype"] = "rectangular" then
-	# 	hd_ := hd
-	# end if;
 
 	F_t90Vd := convert(evalf(F_vd * hd / (4*h) * (3 - hd^2 / h^2)), 'units', 'kN');
 	F_t90Md := convert(evalf(0.008 * M_yd / h_r), 'units', 'kN');
@@ -556,9 +556,9 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 
 		eta["FaxR"] := evalf(F_t90d / fastenervalues["F_axRd_fastener"]);		# all shearforce must be taken by screws
 
-		tau_ef := evalf(F_t90d / (fastener["numberOfFasteners"] * d * Pi * min(entries(openingResult["l_ad"]))));	#	(limtreboka 5-15)
-		f_k1d := f_k1k(min(entries(openingResult["l_ad"]))) * k_mod / gamma_M;
-		eta("tau_ef") := evalf( k1d / tau_ef);
+		tau_efd := convert(evalf(F_t90d / (fastener["numberOfFasteners"] * d * Pi * min(entries(openingResult["l_ad"])))), 'units', 'N/mm^2');	#	(limtreboka 5-15)
+		f_k1d := convert(f_k1k(min(entries(openingResult["l_ad"]))) * k_mod / gamma_M, 'units', 'N/mm^2');
+		eta["tau_efd"] := evalf( f_k1d / tau_efd);
 
 	end if;
 
@@ -568,12 +568,14 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	openingResult["sigma_t90d"] := sigma_t90d;
 	openingResult["tau_cornerd"] := tau_cornerd;
 
-	WriteValueToComponent("F_t90Vd", round2(F_t90Vd, 2), {"nocheck"});
-	WriteValueToComponent("F_t90Md", round2(F_t90Md, 2), {"nocheck"});
-	WriteValueToComponent("F_t90d", round2(F_t90d, 2), {"nocheck"});
-	WriteValueToComponent("sigma_t90d", round2(sigma_t90d, 2), {"nocheck"});
-	WriteValueToComponent("tau_cornerd", round2(tau_cornerd, 2), {"nocheck"});
+	WriteValueToComponent("F_t90Vd", round2(F_t90Vd, 1), {"nocheck"});
+	WriteValueToComponent("F_t90Md", round2(F_t90Md, 1), {"nocheck"});
+	WriteValueToComponent("F_t90d", round2(F_t90d, 1), {"nocheck"});
+	WriteValueToComponent("sigma_t90d", round2(sigma_t90d, 1), {"nocheck"});
+	WriteValueToComponent("tau_cornerd", round2(tau_cornerd, 1), {"nocheck"});
 	WriteValueToComponent("l_ad", round(l_ad), {"nocheck"});
+	WriteValueToComponent("tau_efd", round2(tau_efd, 1), {"nocheck"});
+	WriteValueToComponent("f_k1d", round2(f_k1d, 1), {"nocheck"});
 
 	return eta, usedcode, ""		# eta, usedcode, usedcodeDescription
 
