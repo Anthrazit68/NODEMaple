@@ -463,7 +463,7 @@ end proc:
 calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	description "Timber beam with opening";
 	local opening, hd, hd_, openingResult, b, h, h_r, sigma_t90d, f_vd, f_t90d, eta, eta_u, usedcode, comments, loadcase, F_vd, M_yd, F_t90d, l_t90, A, k_t90, K_corner, tau_cornerd,
-		F_t90Vd, F_t90Md, loadside, fastenervalues, a2, a4, maxnumberOfFasteners, d, fastener, gamma_M, k_mod, f_k1d, tau_efd;
+		F_t90Vd, F_t90Md, loadside, fastenervalues, a2, a4, maxnumberOfFasteners, d, fastener, gamma_M, k_mod, f_k1d, tau_efd, l_ad;
 
 	# define local variables
 	gamma_M := NODETimberEN1995:-gamma_M("Connections"); 		# NS-EN 1995, NA.2.4.1
@@ -484,7 +484,7 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	F_vd := WhateverYouNeed["calculations"]["loadcases"][loadcase]["F_vd"];
 	M_yd := WhateverYouNeed["calculations"]["loadcases"][loadcase]["M_yd"];
 	loadside := WhateverYouNeed["calculations"]["loadcases"][loadcase]["loadside"];
-	# l_ad := max(entries(openingResult["l_ad"]));		# longest distance from beam edge to crack for longest screw length
+	l_ad := openingResult["l_ad"];
 	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
 
 	fastener := WhateverYouNeed["calculations"]["structure"]["fastener"];
@@ -550,14 +550,14 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 			Alert("Boltdiameter > 20mm not allowed", warnings, 3)
 		end if;
 
-		if fastener["fastener_ls"] < 2 * max(entries(openingResult["l_ad"])) then
-			Alert(cat("Fastener too short, minimum length ", round(evalf(2 * max(entries(openingResult["l_ad"]))))), warnings, 3)
+		if fastener["fastener_ls"] < 2 * max(entries(l_ad)) then
+			Alert(cat("Fastener too short, minimum length ", round(evalf(2 * max(entries(l_ad))))), warnings, 3)
 		end if;
 
 		eta["FaxR"] := evalf(F_t90d / fastenervalues["F_axRd_fastener"]);		# all shearforce must be taken by screws
 
-		tau_efd := convert(evalf(F_t90d / (fastener["numberOfFasteners"] * d * Pi * min(entries(openingResult["l_ad"])))), 'units', 'N/mm^2');	#	(limtreboka 5-15)
-		f_k1d := convert(f_k1k(min(entries(openingResult["l_ad"]))) * k_mod / gamma_M, 'units', 'N/mm^2');
+		tau_efd := convert(evalf(F_t90d / (fastener["numberOfFasteners"] * d * Pi * min(entries(l_ad)))), 'units', 'N/mm^2');	#	(limtreboka 5-15)
+		f_k1d := convert(f_k1k(min(entries(l_ad))) * k_mod / gamma_M, 'units', 'N/mm^2');
 		eta["tau_efd"] := evalf( f_k1d / tau_efd);
 
 	end if;
@@ -572,11 +572,11 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	WriteValueToComponent("F_t90Md", round2(F_t90Md, 1), {"nocheck"});
 	WriteValueToComponent("F_t90d", round2(F_t90d, 1), {"nocheck"});
 	WriteValueToComponent("sigma_t90d", round2(sigma_t90d, 1), {"nocheck"});
-	WriteValueToComponent("tau_cornerd", round2(tau_cornerd, 1), {"nocheck"});
-	WriteValueToComponent("l_ad", round(l_ad), {"nocheck"});
+	WriteValueToComponent("tau_cornerd", round2(tau_cornerd, 1), {"nocheck"});	
 	WriteValueToComponent("tau_efd", round2(tau_efd, 1), {"nocheck"});
 	WriteValueToComponent("f_k1d", round2(f_k1d, 1), {"nocheck"});
-
+	WriteValueToComponent("l_adleft", round(l_ad["left"]), {"nocheck"});
+	WriteValueToComponent("l_adright", round(l_ad["right"]), {"nocheck"});
 	return eta, usedcode, ""		# eta, usedcode, usedcodeDescription
 
 end proc:
