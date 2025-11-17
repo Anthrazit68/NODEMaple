@@ -463,7 +463,7 @@ end proc:
 calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	description "Timber beam with opening";
 	local opening, hd, hd_, openingResult, b, h, h_r, sigma_t90d, f_vd, f_t90d, eta, eta_u, usedcode, comments, loadcase, F_vd, M_yd, F_t90d, l_t90, A, k_t90, K_corner, tau_cornerd,
-		F_t90Vd, F_t90Md, loadside, fastenervalues, a2, a4, maxnumberOfFasteners, d, fastener, gamma_M, k_mod, f_k1d, tau_efd, l_ad;
+		F_t90Vd, F_t90Md, fastenervalues, a2, a4, maxnumberOfFasteners, d, fastener, gamma_M, k_mod, f_k1d, tau_efd, l_ad;
 
 	# define local variables
 	gamma_M := NODETimberEN1995:-gamma_M("Connections"); 		# NS-EN 1995, NA.2.4.1
@@ -482,8 +482,7 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	f_vd := WhateverYouNeed["materialdata"]["f_vd"];
 	loadcase := WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"];
 	F_vd := WhateverYouNeed["calculations"]["loadcases"][loadcase]["F_vd"];
-	M_yd := WhateverYouNeed["calculations"]["loadcases"][loadcase]["M_yd"];
-	loadside := WhateverYouNeed["calculations"]["loadcases"][loadcase]["loadside"];
+	M_yd := WhateverYouNeed["calculations"]["loadcases"][loadcase]["M_yd"];	
 	l_ad := openingResult["l_ad"];
 	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
 

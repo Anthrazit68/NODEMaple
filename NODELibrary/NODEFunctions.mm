@@ -1994,7 +1994,7 @@ LibInitCommon := proc(WhateverYouNeed, calculationtype)
 	# loadvariables, based on existance of Components
 	loadvariables := {};
 	var_loadvariables := {"alpha", "F_axGk", "F_axQk", "F_xGk", "F_xQk", "F_hGk", "F_hQk", "F_vGk", "F_vQk", "V_zGk", "V_zQk", "V_yGk", "V_yQk", "M_yGk", "M_yQk", "M_zGk", "M_zQk", "M_tGk", "M_tQk",
-							"F_axd", "F_xd", "F_hd", "F_vd", "V_yd", "V_zd", "M_yd", "M_zd", "M_td", "loadcenter_x", "loadcenter_y", "loadside"};
+							"F_axd", "F_xd", "F_hd", "F_vd", "V_yd", "V_zd", "M_yd", "M_zd", "M_td", "loadcenter_x", "loadcenter_y"};
 	
 	for i in var_loadvariables do
 

@@ -483,13 +483,6 @@ calculate_t := proc(WhateverYouNeed::table)
 	WriteValueToComponent("t_pen", round(t_pen), {"nocheck"});
 	WriteValueToComponent("shearplanes", fastenervalues["shearplanes"], {"nocheck"});
 
-#	SetProperty("MathContainer_t1", 'value', round(t["1"]));
-#	SetProperty("MathContainer_t2", 'value', round(t["2"]));
-#	SetProperty("MathContainer_t_eff1", 'value', round(t_eff["1"]));
-#	SetProperty("MathContainer_t_eff2", 'value', round(t_eff["2"]));
-#	SetProperty("MathContainer_t_pen", 'value', round(t_pen));
-#	SetProperty("TextArea_shearplanes", 'value', fastenervalues["shearplanes"]);
-
 	fastenervalues["t"] := eval(t);
 	fastenervalues["t_eff"] := eval(t_eff);
 	fastenervalues["t_ef_814_NA_DE"] := t_ef_814_NA_DE;
@@ -566,18 +559,14 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 	
 	if n_tip <> 0 then
 		WriteValueToComponent(cat("k_rho", n_tip), round2(k_rho[n_tip], 2), {"nocheck"});
-		# SetProperty(cat("TextArea_k_rho", n_tip), 'value', round2(k_rho[n_tip], 2));
 	else
 		WriteValueToComponent("k_rho1", 1, {"nocheck"});
-		# SetProperty("TextArea_k_rho1", 'value', 1);
 	end if;
 	
 	if n_head <> 0 then
 		WriteValueToComponent(cat("k_rho", n_head), round2(k_rho[n_head], 2), {"nocheck"});
-		# SetProperty(cat("TextArea_k_rho", n_head), 'value', round2(k_rho[n_head], 2));
 	else
 		WriteValueToComponent("k_rho2", 1, {"nocheck"});
-		# SetProperty("TextArea_k_rho2", 'value', 1);
 	end if;
 
 	# checking agains calculated fastener, might be nail, bolt, dowel or screw
@@ -734,28 +723,19 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 	WriteValueToComponent("R_headk1", 0, {"nocheck"});
 	WriteValueToComponent("R_headk2", 0, {"nocheck"});
 
-	# SetProperty("MathContainer_R_axk1", 'value', 0);
-	# SetProperty("MathContainer_R_axk2", 'value', 0);
-	# SetProperty("MathContainer_R_headk1", 'value', 0);
-	# SetProperty("MathContainer_R_headk2", 'value', 0);
-
 	if n_tip = "1" or n_tip = "2" then
 		WriteValueToComponent(cat("R_axk", n_tip), round2(R_axk, 1), {"nocheck"});
-		# SetProperty(cat("MathContainer_R_axk", n_tip), 'value', round2(R_axk, 1))
 	end if;
 	
 	if n_head = "1" or n_head = "2" then
 		WriteValueToComponent(cat("R_axk", n_head), round2(R_axk_n_head, 1), {"nocheck"});
-		# SetProperty(cat("MathContainer_R_axk", n_head), 'value', round2(R_axk_n_head, 1))
 	end if;
 	
 	if n_head = "1" or n_head = "2" then
 		WriteValueToComponent(cat("R_headk", n_head), round2(R_headk, 1), {"nocheck"});
-		# SetProperty(cat("MathContainer_R_headk", n_head), 'value', round2(R_headk, 1))
 	end if;
 	
 	WriteValueToComponent("F_axRk", round2(F_axRk, 1), {"nocheck"});
-	# SetProperty("MathContainer_F_axRk", 'value', round2(F_axRk, 1));
 
 	# calculate F_axRd	
 	k_mod := 0;
@@ -773,7 +753,6 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 	# F_axRd is for single shearplane, one fastener
 	F_axRd := eval(F_axRk * k_mod / gamma_M);
 	WriteValueToComponent("F_axRd", round2(F_axRd, 1), {"nocheck"});
-	# SetProperty("MathContainer_F_axRd", 'value', round2(F_axRd, 1));
 
 	if WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" then
 		numberOfFasteners := fastener["numberOfFasteners"]		# defined by user
@@ -783,12 +762,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 
 	F_axRd_fastener := F_axRd * (numberOfFasteners ^ k_ef / numberOfFasteners);
 	WriteValueToComponent("F_axRd_fastener", round2(F_axRd_fastener, 1), {"nocheck"});
-	# SetProperty("MathContainer_F_axRd_fastener", 'value', round2(F_axRd_fastener, 1));
-
-	# if ComponentExists("TextArea_gamma_M") then
-		WriteValueToComponent("gamma_M", round2(gamma_M, 2), {"nocheck"});
-		# SetProperty("TextArea_gamma_M", 'value', round2(gamma_M, 2))
-	# end if;
+	WriteValueToComponent("gamma_M", round2(gamma_M, 2), {"nocheck"});
 	
 	fastenervalues["R_headk"] := R_headk;
 	fastenervalues["R_axk"] := R_axk;
@@ -921,7 +895,7 @@ GetFastenervalues := proc(WhateverYouNeed::table)
 
 		fastenervalues["M_yRk"] := M_yRk;
 		comments["M_yRk"] := "M_yRk calculated";
-		SetProperty("MathContainer_M_yRk", 'value', round2(fastenervalues["M_yRk"], 2));	
+		WriteValueToComponent("M_yRk", round2(fastenervalues["M_yRk"], 2), {"nocheck"});
 			
 	elif assigned(comments["M_yRk"]) then
 			
@@ -940,7 +914,7 @@ GetFastenervalues := proc(WhateverYouNeed::table)
 
 		fastenervalues["f_tensk"] := f_tensk;
 		comments["f_tensk"] := "f_tensk calculated";
-		SetProperty("MathContainer_f_tensk", 'value', round2(fastenervalues["f_tensk"], 2));
+		WriteValueToComponent("f_tensk", round2(fastenervalues["f_tensk"], 2), {"nocheck"});
 
 	elif assigned(comments["f_tensk"]) then
 
@@ -1062,13 +1036,13 @@ calculate_n_ef := proc(WhateverYouNeed::table)
 			WhateverYouNeed["calculatedvalues"][cat("k_n_ef0", part)] := k_n_ef0;	# reduction factor for n_ef
 
 			if ComponentExists(cat("TextArea_k_ef", part)) then
-				SetProperty(cat("TextArea_k_ef", part), 'value', round2(k_ef, 2))
+				WriteValueToComponent("k_ef", round2(k_ef, 2), {"nocheck"});
 			end if;
 			if ComponentExists(cat("TextArea_n_ef0", part)) then
-				SetProperty(cat("TextArea_n_ef0", part), 'value', round2(n_ef0, 2))
+				WriteValueToComponent("n_ef0", round2(n_ef0, 2), {"nocheck"});
 			end if;
 			if ComponentExists(cat("TextArea_k_n_ef0", part)) then
-				SetProperty(cat("TextArea_k_n_ef0", part), 'value', round2(k_n_ef0, 2))
+				WriteValueToComponent("k_n_ef0", round2(k_n_ef0, 2), {"nocheck"});
 			end if;
 
 #			if part = 1 or assigned(WhateverYouNeed["calculatedvalues"]["k_n_ef"]) = false then
@@ -1142,11 +1116,15 @@ calculate_f_axk := proc(WhateverYouNeed::table)
 	end if;
 
 	if calculatedvalue then
-		SetProperty("MathContainer_f_axk", 'fillcolor', "coral");
 		WhateverYouNeed["calculatedvalues"]["fastenervalues"]["f_axk"] := eval(f_axk);
-		SetProperty("MathContainer_f_axk", 'value', round2(f_axk, 2))
+		if ComponentExists("MathContainer_f_axk") then
+			SetProperty("MathContainer_f_axk", 'fillcolor', "coral");		
+			WriteValueToComponent("f_axk", round2(f_axk, 2), {"nocheck"});
+		end if
 	else
-		SetProperty("MathContainer_f_axk", 'fillcolor', "white")
+		if ComponentExists("MathContainer_f_axk") then
+			SetProperty("MathContainer_f_axk", 'fillcolor', "white")
+		end if;
 	end if;
 	
 end proc:
@@ -1170,11 +1148,15 @@ calculate_f_headk := proc(WhateverYouNeed::table)
 	end if;
 
 	if calculatedvalue then
-		SetProperty("MathContainer_f_headk", 'fillcolor', "orange");
 		fastenervalues["f_headk"] := eval(f_headk);
-		SetProperty("MathContainer_f_headk", 'value', round2(f_headk, 2));
+		if ComponentExists("MathContainer_f_headk") then
+			SetProperty("MathContainer_f_headk", 'fillcolor', "orange");
+			WriteValueToComponent("f_headk", round2(f_headk, 2), {"nocheck"});		
+		end if;
 	else
-		SetProperty("MathContainer_f_headk", 'fillcolor', "white");
+		if ComponentExists("MathContainer_f_headk") then
+			SetProperty("MathContainer_f_headk", 'fillcolor', "white");
+		end if;
 	end if;
 	
 end proc:

@@ -69,11 +69,11 @@ ReadComponentsSpecific_fastener := proc(fastener::table, fastenervalues::table)
 		fastenervalues["washer_A_ef"] := eval(NODETimberFastenersWashers:-A_ef(convert(fastener["fastener_d"], 'unit_free'), fastener["washerProducer"], fastener["washerProduct"]));
 		fastenervalues["washer_N_axk"] := eval(NODETimberFastenersWashers:-N_axk(convert(fastener["fastener_d"], 'unit_free'), fastener["washerProducer"], fastener["washerProduct"]));
 
-		SetProperty("TextArea_washerInfo", 'value',fastenervalues["washerInfo"]);
-		SetProperty("MathContainer_washer_dint", 'value',round2(fastenervalues["washer_dint"],1));
-		SetProperty("MathContainer_washer_dext", 'value',round2(fastenervalues["washer_dext"],1));
-		SetProperty("MathContainer_washer_s", 'value',round2(fastenervalues["washer_s"],1));
-		SetProperty("MathContainer_washer_N_axk", 'value',round2(fastenervalues["washer_N_axk"],1));
+		WriteValueToComponent("washerInfo", fastenervalues["washerInfo"], {"nocheck"});
+		WriteValueToComponent("washer_dint", round2(fastenervalues["washer_dint"],1), {"nocheck"});
+		WriteValueToComponent("washer_dext", round2(fastenervalues["washer_dext"],1), {"nocheck"});
+		WriteValueToComponent("washer_s", round2(fastenervalues["washer_s"],1), {"nocheck"});
+		WriteValueToComponent("washer_N_axk", round2(fastenervalues["washer_N_axk"],1), {"nocheck"});		
 	
 	else
 		fastener["washerProducer"] := "false";
@@ -117,9 +117,10 @@ ReadComponentsSpecific_fastener := proc(fastener::table, fastenervalues::table)
 			fastener["SplitRingtype"] := GetProperty("ComboBox_SplitRingtype", value);
 			fastener["SplitRingdc"] := parse(GetProperty("ComboBox_SplitRingdc", 'value')) * Unit('mm');
 			fastenervalues["SplitRingt"] := NODETimberSplitRing:-t[fastener["SplitRingtype"], round(convert(fastener["SplitRingdc"], 'unit_free'))][1];		# inner circle;
-			SetProperty("TextArea_SplitRingt", 'value',round(convert(fastenervalues["SplitRingt"], 'unit_free')));
+			
+			WriteValueToComponent("SplitRingt", round(convert(fastenervalues["SplitRingt"], 'unit_free')), {"nocheck"});		
 			fastenervalues["SplitRinghc"] := NODETimberSplitRing:-hc[fastener["SplitRingtype"], round(convert(fastener["SplitRingdc"], 'unit_free'))][1];		# inner circle;
-			SetProperty("TextArea_SplitRinghc", 'value',round(convert(fastenervalues["SplitRinghc"], 'unit_free')));			
+			WriteValueToComponent("SplitRinghc", round(convert(fastenervalues["SplitRinghc"], 'unit_free')), {"nocheck"});					
 		else
 			fastener["SplitRingtype"] := "false";
 			fastener["SplitRingdc"] := "false"
@@ -1427,22 +1428,29 @@ SetVisibilityOpening := proc(openingtype::string)
 end proc:
 
 
-SetLoadExcentricity := proc(WhateverYouNeed::table)
-	description "Setting load excentricity based on load position";
-	local side, dummy;
-
-	side := GetProperty("ComboBox_loadside", 'value');
+SetLoadExcentricity := proc(WhateverYouNeed::table, createnewloadcase::boolean)
+	description "Setting load excentricity based on load position, called when generating new load case";
+	local side, dummy, warnings;
+	
 	dummy := convert(evalf(WhateverYouNeed["calculations"]["structure"]["opening"]["opening_a"] / 2), 'unit_free');
+	warnings := WhateverYouNeed["warnings"];
 
-	if side = "left" then
+	if searchtext("left", GetProperty("TextArea_activeloadcase", 'value')) > 0 then
+		side := "left";
  		dummy := -dummy
+	elif searchtext("right", GetProperty("TextArea_activeloadcase", 'value')) > 0  then
+		side := "right"
+	else
+		side := "";
+		Alert("Error: loadcase name must include side \"left\" or \"right\" for calculation of excentricity", warnings, 4);
+		return;
 	end if;
 
-	if ComponentExists("TextArea_loadcenter_x") then
- 		SetProperty("TextArea_loadcenter_x", 'value', convert(round(dummy), 'string'))
+	WriteValueToComponent("loadcenter_x", round(dummy), {"nocheck"});
+	if createnewloadcase then		
+		MainCommon("NewLoadcase");
 	end if;
-
-	MainCommon("CalculateLoads_calculate")
+	# MainCommon("CalculateLoads_calculate")
 end proc:
 
 
@@ -1457,7 +1465,7 @@ CheckLoadExcentricity := proc(WhateverYouNeed::table)
 	warnings := WhateverYouNeed["warnings"];
 	
 	if evalf(abs(loadcenter_x) - opening_a / 2) > tolerance then
-		Alert(cat("loadcase ", activeloadcase, ": load mismatch with beam opening"), warnings, 3);
-		SetLoadExcentricity(WhateverYouNeed)
+		Alert(cat("loadcase ", activeloadcase, ": load excentricity wrong"), warnings, 3);
+		SetLoadExcentricity(WhateverYouNeed, false);
 	end if;
 end proc:
