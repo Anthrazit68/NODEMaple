@@ -291,7 +291,7 @@ end proc:
 checkOpeningGeometry := proc(WhateverYouNeed::table)
 	description "check opening geometry in beams with opening";
 	local opening, b, h, warnings, openingtype, a, hd, hd_, e, lv, lA, lz, r, openingValid, h_r, h_ro, h_ru, dummy, usedcode, comments, openingResult,
-		l_t90, k_t90, K_corner, l_ad, reinforcmentType;
+		l_t90, k_t90, K_corner, K_max, l_ad, reinforcmentType;
 
 	warnings := WhateverYouNeed["warnings"];
 	usedcode := "DIN NA";
@@ -329,6 +329,7 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 		h_r := min(h_ru, h_ro);					# limtreboka, p 90, (5-9)
 		l_t90 := 0.5*(hd + h);					# limtreboka, p 90, (5-11)
 		K_corner := evalf(1.84 * (1+a/h) / (1-hd/h) * (hd/h)^0.2);	# (5-14)
+		K_max := evalf(1.84 * (1+a/h) * (hd/h)^0.2)					# limtreboka examples, p. 205, reference [5]
 
 	elif openingtype = "circular" then
 		l_ad["left"] := h_ru + 0.15 * hd;
@@ -336,6 +337,7 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 		h_r := min(h_ru + 0.15 * hd, h_ro + 0.15 * hd);			# (5-10)
 		l_t90 := 0.35*hd + 0.5*h;								# (5-12)
 		K_corner := evalf(1.84 * (1+a/h) / (1-(0.7*hd)/h) * ((0.7*hd)/h)^0.2);	# (5-14) with reduction factor 0,7 (limtreboka example p. 205)
+		K_max := evalf(1.84 * (1+a/h) * ((0.7*hd)/h)^0.2)	# limtreboka examples, p. 205, reference [5]
 	end if;
 
 	k_t90 := evalf(min(1, (450 * Unit('mm') / h)^0.5));			# (5-13)
@@ -343,6 +345,7 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 	openingResult["l_t90"] := evalf(l_t90);
 	openingResult["k_t90"] := k_t90;
 	openingResult["K_corner"] := K_corner;
+	openingResult["K_max"] := K_max;
 	openingResult["l_ad"] := l_ad;
 	WhateverYouNeed["sectiondataAll"]["1"]["l_ad"] := l_ad;		# for calculation of F_axR
 
@@ -456,6 +459,7 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 	WriteValueToComponent("l_t90", round(l_t90), {"nocheck"});
 	WriteValueToComponent("k_t90", round2(k_t90, 2), {"nocheck"});
 	WriteValueToComponent("K_corner", round2(K_corner, 2), {"nocheck"});
+	WriteValueToComponent("K_max", round2(K_max, 2), {"nocheck"});
 
 end proc:
 
@@ -463,7 +467,7 @@ end proc:
 calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	description "Timber beam with opening";
 	local opening, hd, hd_, openingResult, b, h, h_r, sigma_t90d, f_vd, f_t90d, eta, eta_u, usedcode, comments, loadcase, F_vd, M_yd, F_t90d, l_t90, A, k_t90, K_corner, tau_cornerd,
-		F_t90Vd, F_t90Md, fastenervalues, a2, a4, maxnumberOfFasteners, d, fastener, gamma_M, k_mod, f_k1d, tau_efd, l_ad;
+		F_t90Vd, F_t90Md, fastenervalues, a2, a4, maxnumberOfFasteners, d, fastener, gamma_M, k_mod, f_k1d, tau_efd, l_ad, tau_max, K_max, kcr;
 
 	# define local variables
 	gamma_M := NODETimberEN1995:-gamma_M("Connections"); 		# NS-EN 1995, NA.2.4.1
@@ -477,6 +481,7 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	l_t90 := openingResult["l_t90"];
 	k_t90 := openingResult["k_t90"];
 	K_corner := openingResult["K_corner"];
+	K_max := openingResult["K_max"];
 	
 	f_t90d := WhateverYouNeed["materialdata"]["f_t90d"];
 	f_vd := WhateverYouNeed["materialdata"]["f_vd"];
@@ -492,6 +497,15 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	eta := WhateverYouNeed["results"]["eta"];	# global utilization, reinforced
 	comments :=	WhateverYouNeed["results"]["comments"];
 	eta_u := table();							# eta for uninforced section
+
+	# kcr
+	if WhateverYouNeed["materialdata"]["timbertype"] = "Solid timber" then
+		kcr := 0.67;		# for konstruksjonstre
+	elif WhateverYouNeed["materialdata"]["timbertype"] = "Glued laminated timber" then
+		kcr := 0.8;		# glulam
+	else
+		kcr := 1;
+	end if;
 
 	# check maximum number of screws in section (limtreboka fig. 5-3)
 	a2 := WhateverYouNeed["calculatedvalues"]["distance"]["a2_min_max1"];
@@ -523,10 +537,14 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	# comments["Ft90"] := "F,t90";
 
 	# check shear at opening ?
-	tau_cornerd := convert(evalf(K_corner * 3 * F_vd / (2 * b * h)), 'units', 'N'/'mm^2');	# (5-14)
+	tau_cornerd := convert(evalf(K_corner * 3 * F_vd / (2 * b * h)), 'units', 'N'/'mm^2');			# (5-14), shear at corner without reinforcement
 	eta_u["tau_corner"] := evalf(tau_cornerd / f_vd);
 	# comments["tau_corner"] := "tau_corner";
-	
+
+	# shear at opening with inner reinforcement
+	tau_max :=  convert(evalf(K_max * 1.5 * F_vd / (kcr * b * (h - hd))), 'units', 'N'/'mm^2');
+	eta_u["tau_max"] := evalf(tau_max / f_vd);
+
 	Write_eta(eta_u, comments);		# write utilization for uninforced section
 
 	# comments
@@ -566,12 +584,14 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	openingResult["F_t90d"] := F_t90d;
 	openingResult["sigma_t90d"] := sigma_t90d;
 	openingResult["tau_cornerd"] := tau_cornerd;
+	openingResult["tau_max"] := tau_max;
 
 	WriteValueToComponent("F_t90Vd", round2(F_t90Vd, 1), {"nocheck"});
 	WriteValueToComponent("F_t90Md", round2(F_t90Md, 1), {"nocheck"});
 	WriteValueToComponent("F_t90d", round2(F_t90d, 1), {"nocheck"});
 	WriteValueToComponent("sigma_t90d", round2(sigma_t90d, 1), {"nocheck"});
 	WriteValueToComponent("tau_cornerd", round2(tau_cornerd, 1), {"nocheck"});	
+	WriteValueToComponent("tau_max", round2(tau_max, 1), {"nocheck"});	
 	WriteValueToComponent("tau_efd", round2(tau_efd, 1), {"nocheck"});
 	WriteValueToComponent("f_k1d", round2(f_k1d, 1), {"nocheck"});
 	WriteValueToComponent("l_adleft", round(l_ad["left"]), {"nocheck"});
