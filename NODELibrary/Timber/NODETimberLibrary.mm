@@ -1424,6 +1424,8 @@ SetVisibilityOpening := proc(openingtype::string)
 		SetProperty("TextArea_opening_r", 'enabled', "true")
 		
 	end if;
+
+	SetLoadExcentricity(WhateverYouNeed, false)		# will just fix current load case, not other existing load cases
 	
 end proc:
 

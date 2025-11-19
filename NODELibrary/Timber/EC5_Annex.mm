@@ -413,7 +413,7 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 	end if;
 
 	# check if reinforcment necessary, or type of reinforcement
-	reinforcmentType := "none";
+	reinforcmentType := "-";		# no reinforcment chosen
 
 	if lz <> 0 and lz < 1.5*h then
 		reinforcmentType := "both"
@@ -434,8 +434,23 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 		reinforcmentType := "both";
 
 	end if;
-
+	
 	openingResult["reinforcmentType"] := reinforcmentType;
+
+	# check chosen reinforcement type
+	if opening["reinforcement"] = "-" and openingResult["reinforcmentType"] <> "-" then
+
+		dummy := cat("Reinforcement necessary, type: ", reinforcmentType);
+		comments["checkOpeningGeometry"] := dummy;
+		Alert(dummy, warnings, 4);
+
+	elif opening["reinforcement"] = "inside" and openingResult["reinforcmentType"] = "outside" then
+
+		dummy := cat("Reinforcement necessary, type: ", reinforcmentType);
+		comments["checkOpeningGeometry"] := dummy;
+		Alert(dummy, warnings, 4);
+
+	end if;
 
 	# check if hole is minor
 	openingResult["minorOpening"] := false;
@@ -466,10 +481,11 @@ end proc:
 
 calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	description "Timber beam with opening";
-	local opening, hd, hd_, openingResult, b, h, h_r, sigma_t90d, f_vd, f_t90d, eta, eta_u, usedcode, comments, loadcase, F_vd, M_yd, F_t90d, l_t90, A, k_t90, K_corner, tau_cornerd,
-		F_t90Vd, F_t90Md, fastenervalues, a2, a4, maxnumberOfFasteners, d, fastener, gamma_M, k_mod, f_k1d, tau_efd, l_ad, tau_max, K_max, kcr;
+	local warnings, opening, hd, hd_, openingResult, b, h, h_r, sigma_t90d, f_vd, f_t90d, eta, eta_u, usedcode, comments, loadcase, F_vd, M_yd, F_t90d, l_t90, A, 
+		k_t90, K_corner, tau_cornerd, F_t90Vd, F_t90Md, fastenervalues, a2, a4, maxnumberOfFasteners, d, fastener, gamma_M, k_mod, f_k1d, tau_efd, l_ad, tau_max, K_max, kcr, i;
 
 	# define local variables
+	warnings := WhateverYouNeed["warnings"];
 	gamma_M := NODETimberEN1995:-gamma_M("Connections"); 		# NS-EN 1995, NA.2.4.1
 	k_mod := WhateverYouNeed["materialdata"]["k_mod"];
 	opening :=  WhateverYouNeed["calculations"]["structure"]["opening"];
@@ -507,64 +523,67 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 		kcr := 1;
 	end if;
 
-	# check maximum number of screws in section (limtreboka fig. 5-3)
-	a2 := WhateverYouNeed["calculatedvalues"]["distance"]["a2_min_max1"];
-	a4 := WhateverYouNeed["calculatedvalues"]["distance"]["a4c_min_max1"];
-	maxnumberOfFasteners := (b - 2*a4) / a2;
+	if opening["reinforcement"] = "inside" then			# reinforcement with screws
 
-	if maxnumberOfFasteners < 0 then
-		Alert("Beam to small, no reinforcement possible", warnings, 3);
-	else
-		maxnumberOfFasteners := round(maxnumberOfFasteners) + 1;
-		openingResult["maxnumberOfFasteners"] := maxnumberOfFasteners;
-		
-		if maxnumberOfFasteners < fastener["numberOfFasteners"] then
-			Alert(cat("Number of fasteners (", fastener["numberOfFasteners"], ") > max. (", maxnumberOfFasteners, ")"), warnings, 3)
+		# check maximum number of screws in section (limtreboka fig. 5-3)
+		a2 := WhateverYouNeed["calculatedvalues"]["distance"]["a2_min_max1"];
+		a4 := WhateverYouNeed["calculatedvalues"]["distance"]["a4c_min_max1"];
+		maxnumberOfFasteners := (b - 2*a4) / a2;
+
+		if maxnumberOfFasteners < 0 then
+			Alert("Beam to small, no reinforcement possible", warnings, 3);
+		else
+			maxnumberOfFasteners := round(maxnumberOfFasteners) + 1;
+			openingResult["maxnumberOfFasteners"] := maxnumberOfFasteners;
+			
+			if maxnumberOfFasteners < fastener["numberOfFasteners"] then
+				Alert(cat("Number of fasteners (", fastener["numberOfFasteners"], ") > max. (", maxnumberOfFasteners, ")"), warnings, 3)
+			end if;
 		end if;
+
 	end if;
 
 	F_t90Vd := convert(evalf(F_vd * hd / (4*h) * (3 - hd^2 / h^2)), 'units', 'kN');
 	F_t90Md := convert(evalf(0.008 * M_yd / h_r), 'units', 'kN');
 	F_t90d := convert(evalf(F_t90Vd + F_t90Md), 'units', 'kN');				# (5-8)
+	openingResult["F_t90Vd"] := F_t90Vd;
+	openingResult["F_t90Md"] := F_t90Md;
+	openingResult["F_t90d"] := F_t90d;
 
 	A := evalf(0.5 * l_t90 * b);
 	sigma_t90d := convert(F_t90d / A, 'units', 'N'/'mm^2');					# (5-7)
+	openingResult["sigma_t90d"] := sigma_t90d;
 
-	# check without reinforcement
-	# check tension perp. to grain, uninforced section
-	eta_u["Ft90"] := evalf(sigma_t90d / (k_t90 * f_t90d));
-	usedcode := "Beam with opening";
-	# comments["Ft90"] := "F,t90";
+	# set default values for some variables
+	tau_cornerd := 0;
+	tau_efd := 0;
+	tau_max := 0;
+	f_k1d := 0;
 
-	# check shear at opening ?
-	tau_cornerd := convert(evalf(K_corner * 3 * F_vd / (2 * b * h)), 'units', 'N'/'mm^2');			# (5-14), shear at corner without reinforcement
-	eta_u["tau_corner"] := evalf(tau_cornerd / f_vd);
-	# comments["tau_corner"] := "tau_corner";
+	# reset eta values
+	for i in {"Ft90", "tau_corner", "FaxR", "tau_efd", "tau_max"} do
+		eta[i] := 0;
+	end do;
 
-	# shear at opening with inner reinforcement
-	tau_max :=  convert(evalf(K_max * 1.5 * F_vd / (kcr * b * (h - hd))), 'units', 'N'/'mm^2');
-	eta_u["tau_max"] := evalf(tau_max / f_vd);
+	if openingResult["minorOpening"] = true then			# no tension or shear checks or reinforcement necessary
 
-	Write_eta(eta_u, comments);		# write utilization for uninforced section
+		comments["minorOpening"] := "minor opening"
 
-	# comments
-	comments["reinforcmentType"] := cat("reinforcement: ", openingResult["reinforcmentType"], ",");
-	
-	if max(entries(eta_u)) <= 1 then									# no reinforcement necessary
+	elif opening["reinforcement"] = "-" then			# check without reinforcement	
 
-		eta["Ft90"] := eta_u["Ft90"];
-		eta["tau_corner"] := eta_u["tau_corner"];
+		# check tension perp. to grain, uninforced section
+		eta["Ft90"] := evalf(sigma_t90d / (k_t90 * f_t90d));
+		usedcode := "Beam with opening";
 
-	elif openingResult["minorOpening"] = true then			# no reinforcement necessary
+		# check shear at opening
+		tau_cornerd := convert(evalf(K_corner * 3 * F_vd / (2 * b * h)), 'units', 'N'/'mm^2');			# (5-14), shear at corner without reinforcement
+		eta["tau_corner"] := evalf(tau_cornerd / f_vd);
+		openingResult["tau_cornerd"] := tau_cornerd;		
 
-		eta["Ft90"] := 0;
-		eta["tau_corner"] := 0;
-		comments["minorOpening"] := cat("minor opening, ", dummy)
-	
-	else	# reinforced section
+	elif opening["reinforcement"] = "inside" then			# reinforcement with screws
 
 		if d > 20 * Unit('mm') then
-			Alert("Boltdiameter > 20mm not allowed", warnings, 3)
+			Alert("Boltdiameter > 20mm not allowed", warnings, 4)
 		end if;
 
 		if fastener["fastener_ls"] < 2 * max(entries(l_ad)) then
@@ -576,16 +595,19 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 		tau_efd := convert(evalf(F_t90d / (fastener["numberOfFasteners"] * d * Pi * min(entries(l_ad)))), 'units', 'N/mm^2');	#	(limtreboka 5-15)
 		f_k1d := convert(f_k1k(min(entries(l_ad))) * k_mod / gamma_M, 'units', 'N/mm^2');
 		eta["tau_efd"] := evalf( f_k1d / tau_efd);
+		openingResult["tau_efd"] := tau_efd;
+
+		# shear at opening with inner reinforcement
+		tau_max :=  convert(evalf(K_max * 1.5 * F_vd / (kcr * b * (h - hd))), 'units', 'N'/'mm^2');
+		eta["tau_max"] := evalf(tau_max / f_vd);
+		openingResult["tau_max"] := tau_max;
+
+	else
+
+		Alert(cat("Beam opening reinforcement type ", opening["reinforcement"], " not implementet yet"), warnings, 2)
 
 	end if;
-
-	openingResult["F_t90Vd"] := F_t90Vd;
-	openingResult["F_t90Md"] := F_t90Md;
-	openingResult["F_t90d"] := F_t90d;
-	openingResult["sigma_t90d"] := sigma_t90d;
-	openingResult["tau_cornerd"] := tau_cornerd;
-	openingResult["tau_max"] := tau_max;
-
+	
 	WriteValueToComponent("F_t90Vd", round2(F_t90Vd, 1), {"nocheck"});
 	WriteValueToComponent("F_t90Md", round2(F_t90Md, 1), {"nocheck"});
 	WriteValueToComponent("F_t90d", round2(F_t90d, 1), {"nocheck"});
@@ -596,7 +618,6 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	WriteValueToComponent("f_k1d", round2(f_k1d, 1), {"nocheck"});
 	WriteValueToComponent("l_adleft", round(l_ad["left"]), {"nocheck"});
 	WriteValueToComponent("l_adright", round(l_ad["right"]), {"nocheck"});
-	return eta, usedcode, ""		# eta, usedcode, usedcodeDescription
 
 end proc:
 
