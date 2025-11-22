@@ -482,7 +482,8 @@ end proc:
 calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	description "Timber beam with opening";
 	local warnings, opening, hd, hd_, openingResult, b, h, h_r, sigma_t90d, f_vd, f_t90d, eta, eta_u, usedcode, comments, loadcase, F_vd, M_yd, F_t90d, l_t90, A, 
-		k_t90, K_corner, tau_cornerd, F_t90Vd, F_t90Md, fastenervalues, a2, a4, maxnumberOfFasteners, d, fastener, gamma_M, k_mod, f_k1d, tau_efd, l_ad, tau_max, K_max, kcr, i;
+		k_t90, K_corner, tau_cornerd, F_t90Vd, F_t90Md, fastenervalues, a2, a2_min_max, a3, a3c_min_max, a4, a4c_min_max, maxnumberOfFasteners, d, fastener, gamma_M, k_mod, f_k1d,
+		tau_efd, l_ad, tau_max, K_max, kcr, i;
 
 	# define local variables
 	warnings := WhateverYouNeed["warnings"];
@@ -526,9 +527,10 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	if opening["reinforcement"] = "inside" then			# reinforcement with screws
 
 		# check maximum number of screws in section (limtreboka fig. 5-3)
-		a2 := WhateverYouNeed["calculatedvalues"]["distance"]["a2_min_max1"];
-		a4 := WhateverYouNeed["calculatedvalues"]["distance"]["a4c_min_max1"];
-		maxnumberOfFasteners := (b - 2*a4) / a2;
+		a2_min_max := WhateverYouNeed["calculatedvalues"]["distance"]["a2_min_max1"];
+		a3c_min_max := WhateverYouNeed["calculatedvalues"]["distance"]["a3c_min_max1"];
+		a4c_min_max := WhateverYouNeed["calculatedvalues"]["distance"]["a4c_min_max1"];
+		maxnumberOfFasteners := (b - 2 * a4c_min_max) / a2_min_max;
 
 		if maxnumberOfFasteners < 0 then
 			Alert("Beam to small, no reinforcement possible", warnings, 3);
@@ -541,6 +543,23 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 			end if;
 		end if;
 
+		# calculate proposal for distances
+		a2 := a2_min_max;
+		a4 := (b - (a2 * (fastener["numberOfFasteners"] - 1))) / 2;
+
+		WriteValueToComponent("a2_min_max1", round(a2_min_max), {"nocheck"});
+		WriteValueToComponent("a3c_min_max1", round(a3c_min_max), {"nocheck"});
+		WriteValueToComponent("a4c_min_max1", round(a4c_min_max), {"nocheck"});
+		WriteValueToComponent("a21", round(a2), {"nocheck"});
+		WriteValueToComponent("a41", round(a4), {"nocheck"});
+
+	else
+
+		# reset values in component, alternative disable values
+		for i in {"a21", "a31", "a41", "a2_min_max1", "a3c_min_max1", "a4c_min_max1"} do
+			WriteValueToComponent(i, 0, {"nocheck"});
+		end do;
+		
 	end if;
 
 	F_t90Vd := convert(evalf(F_vd * hd / (4*h) * (3 - hd^2 / h^2)), 'units', 'kN');
