@@ -524,7 +524,8 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 		kcr := 1;
 	end if;
 
-	if opening["reinforcement"] = "inside" then			# reinforcement with screws
+	# reinforcement with screws, check minimum distances
+	if opening["reinforcement"] = "inside" then			
 
 		# check maximum number of screws in section (limtreboka fig. 5-3)
 		a2_min_max := WhateverYouNeed["calculatedvalues"]["distance"]["a2_min_max1"];
@@ -583,6 +584,15 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	for i in {"Ft90", "tau_corner", "FaxR", "tau_efd", "tau_max"} do
 		eta[i] := 0;
 	end do;
+
+	# check if cracked section
+	if evalf(sigma_t90d / (k_t90 * f_t90d)) > 1 then
+		comments["cracked"] := "Cracked section";
+		openingResult["cracked"] := true
+	else
+		comments["cracked"] := evaln(comments["cracked"]);
+		openingResult["cracked"] := false
+	end if;
 
 	if openingResult["minorOpening"] = true then			# no tension or shear checks or reinforcement necessary
 

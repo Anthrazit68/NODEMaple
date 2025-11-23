@@ -161,8 +161,7 @@ PlotResults := proc(WhateverYouNeed::table)
 	description "Plot results of calculation";
 	local structure, i, displayForceVectors, fastener, fasteners, fastenervalues, fastenerPointlist, results, scalefactor, r, len, alpha, geometryList, graphicsElements, warnings,
 		sectiondataAll, h, beamBoundarylines, annotations_a, annotations, x, y, lengthleft, lengthright, angleleft, angleright, beams, clr, beamPoints, minimumangle,
-		plotitems, beamnumber, displayBlockShear, cutleft, cutright, part, deltaangle,
-		opening, openingOutline, one_poly, a, hd;
+		plotitems, beamnumber, displayBlockShear, cutleft, cutright, part, deltaangle, openingOutline;
 
 	warnings := WhateverYouNeed["warnings"];
 	structure := WhateverYouNeed["calculations"]["structure"];
@@ -318,7 +317,7 @@ PlotResults := proc(WhateverYouNeed::table)
 				# 2.) create left and right beam sides
 				# 2a.)BOL...Beam Origo Left, BOR...Beam Origo Right
 				geometry:-point(parse(cat("BOL", i)), [geometry:-coordinates(O)[1] - h / 2 * sin(alpha[i]), geometry:-coordinates(O)[2] + h / 2 * cos(alpha[i])]);		# point on left side of beam grid line
-				geometry:-point(parse(cat("BOR", i)), [geometry:-coordinates(O)[1] + h / 2 * sin(alpha[i]), geometry:-coordinates(O)[1] - h / 2 * cos(alpha[i])]);		# point on right side of beam grid line
+				geometry:-point(parse(cat("BOR", i)), [geometry:-coordinates(O)[1] + h / 2 * sin(alpha[i]), geometry:-coordinates(O)[2] - h / 2 * cos(alpha[i])]);		# point on right side of beam grid line
 				beamPoints := [op(beamPoints), parse(cat("BOL", i)), parse(cat("BOR", i))];
 
 				# 2b.) BLL...beam line left, BLR...beam line right
@@ -549,26 +548,65 @@ PlotResults := proc(WhateverYouNeed::table)
 			end do;
 
 			# opening
-			if assigned(WhateverYouNeed["calculations"]["structure"]["opening"]) then				
-				opening := WhateverYouNeed["calculations"]["structure"]["opening"];				
-				a := opening["opening_a"];
+			if assigned(WhateverYouNeed["calculations"]["structure"]["opening"]) then
+				local opening, openingResult, cracklength, CrackLeft, CrackRight, l_ad, a, hd;
+
+				opening := WhateverYouNeed["calculations"]["structure"]["opening"];
+				openingResult := WhateverYouNeed["results"]["opening"];
+				a := convert(opening["opening_a"], 'unit_free');
 #				e := opening["opening_e"];
 #				lv := opening["opening_lv"];
 #				lA := opening["opening_lA"];
 #				lz := opening["opening_lz"];
 
 				if opening["openingtype"] = "circular" then
-					# geometry:-circle(OPENING, [geometry:-point(O, 0, 0), convert(opening["opening_a"], 'unit_free')]);
-					openingOutline := disk([0, 0], convert(a/2, 'unit_free'), 'color' = "black");
-					
+					geometry:-circle(OPENING, [geometry:-point(O, 0, 0), a/2]);
+					openingOutline := disk([0, 0], a/2, 'color' = "black");
+
 					# openingOutline := [op(openingOutline), OPENING];
 					# graphicsElements["opening"] := openingOutline;
 					# geometryList := [op(geometryList), OPENING('color' = "black")];
+					if openingResult["cracked"] then
+						l_ad := convert~(openingResult["l_ad"], 'unit_free');		# distance from edge to crack
+
+						# point on crack line left and right side of opening
+						geometry:-point(POCL, [geometry:-coordinates(O)[1] + (h / 2 - l_ad["left"]) * sin(alpha["1"]), geometry:-coordinates(O)[2] - (h / 2 - l_ad["left"]) * cos(alpha["1"])]);
+						geometry:-point(POCR, [geometry:-coordinates(O)[1] - (h / 2 - l_ad["right"]) * sin(alpha["1"]), geometry:-coordinates(O)[2] + (h / 2 - l_ad["right"]) * cos(alpha["1"])]);
+
+						# line through crack point
+						geometry:-ParallelLine(LCL, POCL, BC1);
+						geometry:-ParallelLine(LCR, POCR, BC1);
+
+						# intersection between crack line and circle
+						geometry:-intersection(PCL, LCL, OPENING);		# 2 intersections, left one is interesting
+						geometry:-intersection(PCR, LCR, OPENING);		# 2 intersections, right one interesting
+
+						# end points of crack
+						cracklength := a/2;				# for visualization, let's start with that
+						
+						x := geometry:-coordinates(PCL[2])[1] - cracklength * cos(alpha["1"]);
+						y := geometry:-coordinates(PCL[2])[2] - cracklength * sin(alpha["1"]);
+						geometry:-point(PCLE, [x, y]);
+
+						x := geometry:-coordinates(PCR[1])[1] + cracklength * cos(alpha["1"]);
+						y := geometry:-coordinates(PCR[1])[2] + cracklength * sin(alpha["1"]);
+						geometry:-point(PCRE, [x, y]);
+
+						# draw crackline						
+						geometry:-segment(CrackLeft, PCL[2], PCLE);
+						geometry:-segment(CrackRight, PCR[1], PCRE);
+
+						# plot items
+						# geometryList := [op(geometryList), openingOutline];
+						geometryList := [op(geometryList), CrackLeft('color' = "coral", 'linestyle' = 'longdash')];
+						geometryList := [op(geometryList), CrackRight('color' = "coral", 'linestyle' = 'longdash')];
+
+					end if;
 
 				elif opening["openingtype"] = "rectangular" then
 
-					r := opening["opening_r"];
-					hd := opening["opening_hd"];
+					r := convert(opening["opening_r"], 'unit_free');
+					hd := convert(opening["opening_hd"], 'unit_free');
 
 					if r = 0 then
 						openingOutline := polygonplot(Matrix([[-a/2, -hd/2], [-a/2, hd/2], [a/2, hd/2], [a/2, -hd/2]], datatype = float), 'color' = "black")
