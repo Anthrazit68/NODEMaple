@@ -214,6 +214,9 @@ calculate_t := proc(WhateverYouNeed::table)
 
 		if WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" then
 
+			# we have 2 conditions, one where tip is in part 1, other where tip is in part 2
+			# calculating situation where both tip and head parts are minimum (worst of both)
+
 			t_eff["1"] := min(t["1"], evalf(ls * sin(alphaScrew)));			
 			t_eff["2"] := evalf(min(t["2"], ls * sin(alphaScrew) - max(entries(WhateverYouNeed["sectiondataAll"]["1"]["l_ad"]))));
 			t_pen := t_eff["2"] - l_tip;

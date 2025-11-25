@@ -178,6 +178,8 @@ PlotResults := proc(WhateverYouNeed::table)
 		r := 20
 	end if;
 
+	# https://www.mapleprimes.com/questions/242031-Redefinition-Of-Geometry-Object-Throws-Error
+
 	if MASTERALARM(warnings) = false then
 
 		results := WhateverYouNeed["results"]["FastenerGroup"]["ForcesInConnection"];			
@@ -205,8 +207,8 @@ PlotResults := proc(WhateverYouNeed::table)
 		if WhateverYouNeed["calculations"]["calculationtype"] = "NS-EN 1995-1-1, Section 8: Fasteners" or 
 			WhateverYouNeed["calculations"]["calculationtype"] = "Loads on Fastener Group" then
 
-			geometry:-point(CenterOfFasteners, convert~(convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfFasteners"], list), 'unit_free'));
-			geometry:-point(CenterOfForce, convert~(convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfForce"], list), 'unit_free'));
+			geometry:-point('CenterOfFasteners', convert~(convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfFasteners"], list), 'unit_free'));
+			geometry:-point('CenterOfForce', convert~(convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfForce"], list), 'unit_free'));
 			geometryList := [op(geometryList), CenterOfFasteners('symbol' = 'cross', 'color' = "SteelBlue", 'symbolsize' = 30)];
 			geometryList := [op(geometryList), CenterOfForce('symbol' = 'diagonalcross', 'color' = "Red", 'symbolsize' = 30)];
 					
@@ -549,19 +551,19 @@ PlotResults := proc(WhateverYouNeed::table)
 
 			# opening
 			if assigned(WhateverYouNeed["calculations"]["structure"]["opening"]) then
-				local opening, openingResult, cracklength, CrackLeft, CrackRight, l_ad, a, hd;
+				local opening, openingResult, cracklength, CrackLeft, CrackRight, l_ad, a, hd, e;
 
 				opening := WhateverYouNeed["calculations"]["structure"]["opening"];
 				openingResult := WhateverYouNeed["results"]["opening"];
 				a := convert(opening["opening_a"], 'unit_free');
-#				e := opening["opening_e"];
+				e := convert(opening["opening_e"], 'unit_free');
 #				lv := opening["opening_lv"];
 #				lA := opening["opening_lA"];
 #				lz := opening["opening_lz"];
 
 				if opening["openingtype"] = "circular" then
-					geometry:-circle(OPENING, [geometry:-point(O, 0, 0), a/2]);
-					openingOutline := disk([0, 0], a/2, 'color' = "black");
+					geometry:-circle('OPENING', [geometry:-point(O, 0, e), a/2]);
+					openingOutline := disk([0, e], a/2, 'color' = "black");
 
 					# openingOutline := [op(openingOutline), OPENING];
 					# graphicsElements["opening"] := openingOutline;
@@ -570,31 +572,31 @@ PlotResults := proc(WhateverYouNeed::table)
 						l_ad := convert~(openingResult["l_ad"], 'unit_free');		# distance from edge to crack
 
 						# point on crack line left and right side of opening
-						geometry:-point(POCL, [geometry:-coordinates(O)[1] + (h / 2 - l_ad["left"]) * sin(alpha["1"]), geometry:-coordinates(O)[2] - (h / 2 - l_ad["left"]) * cos(alpha["1"])]);
-						geometry:-point(POCR, [geometry:-coordinates(O)[1] - (h / 2 - l_ad["right"]) * sin(alpha["1"]), geometry:-coordinates(O)[2] + (h / 2 - l_ad["right"]) * cos(alpha["1"])]);
+						geometry:-point('POCL', [geometry:-coordinates(O)[1] + (h / 2 - l_ad["left"]) * sin(alpha["1"]), geometry:-coordinates(O)[2] - (h / 2 - l_ad["left"]) * cos(alpha["1"])]);
+						geometry:-point('POCR', [geometry:-coordinates(O)[1] - (h / 2 - l_ad["right"]) * sin(alpha["1"]), geometry:-coordinates(O)[2] + (h / 2 - l_ad["right"]) * cos(alpha["1"])]);
 
 						# line through crack point
-						geometry:-ParallelLine(LCL, POCL, BC1);
-						geometry:-ParallelLine(LCR, POCR, BC1);
+						geometry:-ParallelLine('LCL', POCL, BC1);
+						geometry:-ParallelLine('LCR', POCR, BC1);
 
 						# intersection between crack line and circle
-						geometry:-intersection(PCL, LCL, OPENING);		# 2 intersections, left one is interesting
-						geometry:-intersection(PCR, LCR, OPENING);		# 2 intersections, right one interesting
+						geometry:-intersection('PCL', LCL, OPENING);		# 2 intersections, left one is interesting
+						geometry:-intersection('PCR', LCR, OPENING);		# 2 intersections, right one interesting
 
 						# end points of crack
 						cracklength := a/2;				# for visualization, let's start with that
 						
 						x := geometry:-coordinates(PCL[2])[1] - cracklength * cos(alpha["1"]);
 						y := geometry:-coordinates(PCL[2])[2] - cracklength * sin(alpha["1"]);
-						geometry:-point(PCLE, [x, y]);
+						geometry:-point('PCLE', [x, y]);
 
 						x := geometry:-coordinates(PCR[1])[1] + cracklength * cos(alpha["1"]);
 						y := geometry:-coordinates(PCR[1])[2] + cracklength * sin(alpha["1"]);
-						geometry:-point(PCRE, [x, y]);
+						geometry:-point('PCRE', [x, y]);
 
 						# draw crackline						
-						geometry:-segment(CrackLeft, PCL[2], PCLE);
-						geometry:-segment(CrackRight, PCR[1], PCRE);
+						geometry:-segment('CrackLeft', PCL[2], PCLE);
+						geometry:-segment('CrackRight', PCR[1], PCRE);
 
 						# plot items
 						# geometryList := [op(geometryList), openingOutline];

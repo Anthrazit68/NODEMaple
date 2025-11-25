@@ -616,7 +616,7 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 		end if;
 
 		if fastener["fastener_ls"] < 2 * max(entries(l_ad)) then
-			Alert(cat("Fastener too short, minimum length ", round(evalf(2 * max(entries(l_ad))))), warnings, 3)
+			Alert(cat("Beam with opening: fastener too short, minimum length ", round(evalf(2 * max(entries(l_ad))))), warnings, 3)
 		end if;
 
 		eta["FaxR"] := evalf(F_t90d / fastenervalues["F_axRd_fastener"]);		# all shearforce must be taken by screws
