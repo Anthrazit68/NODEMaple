@@ -638,7 +638,7 @@ SetComboConnectionAfterXMLImport := proc(WhateverYouNeed::table)
 		if assigned(WhateverYouNeed["calculations"]["activesettings"][cat("activematerial", i)]) then
 			activematerial := WhateverYouNeed["calculations"]["activesettings"][cat("activematerial", i)];
 			MaterialChanged(material, activematerial, WhateverYouNeed, forceSectionUpdate, i);
-		end;
+		end if;
 		if assigned(WhateverYouNeed["calculations"]["activesettings"][cat("activesection", i)]) then
 			activesection := WhateverYouNeed["calculations"]["activesettings"][cat("activesection", i)];
 			SectionChanged(material, activesection, WhateverYouNeed, i)

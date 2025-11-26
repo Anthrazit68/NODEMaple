@@ -551,18 +551,19 @@ PlotResults := proc(WhateverYouNeed::table)
 
 			# opening
 			if assigned(WhateverYouNeed["calculations"]["structure"]["opening"]) then
-				local opening, openingResult, cracklength, CrackLeft, CrackRight, l_ad, a, hd, e;
+				local opening, openingResult, cracklength, CrackLeft, CrackRight, l_ad, a, hd, e, alphaScrew, a3c_min_max, ls;
 
 				opening := WhateverYouNeed["calculations"]["structure"]["opening"];
 				openingResult := WhateverYouNeed["results"]["opening"];
 				a := convert(opening["opening_a"], 'unit_free');
 				e := convert(opening["opening_e"], 'unit_free');
+				ls := convert(WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_ls"], 'unit_free');
 #				lv := opening["opening_lv"];
 #				lA := opening["opening_lA"];
 #				lz := opening["opening_lz"];
 
 				if opening["openingtype"] = "circular" then
-					geometry:-circle('OPENING', [geometry:-point(O, 0, e), a/2]);
+					geometry:-circle('OPENING', [geometry:-point('POpening', [0, e]), a/2]);
 					openingOutline := disk([0, e], a/2, 'color' = "black");
 
 					# openingOutline := [op(openingOutline), OPENING];
@@ -572,8 +573,8 @@ PlotResults := proc(WhateverYouNeed::table)
 						l_ad := convert~(openingResult["l_ad"], 'unit_free');		# distance from edge to crack
 
 						# point on crack line left and right side of opening
-						geometry:-point('POCL', [geometry:-coordinates(O)[1] + (h / 2 - l_ad["left"]) * sin(alpha["1"]), geometry:-coordinates(O)[2] - (h / 2 - l_ad["left"]) * cos(alpha["1"])]);
-						geometry:-point('POCR', [geometry:-coordinates(O)[1] - (h / 2 - l_ad["right"]) * sin(alpha["1"]), geometry:-coordinates(O)[2] + (h / 2 - l_ad["right"]) * cos(alpha["1"])]);
+						geometry:-point('POCL', [geometry:-coordinates(POpening)[1] + (h / 2 - l_ad["left"]) * sin(alpha["1"]), geometry:-coordinates(POpening)[2] - (h / 2 - l_ad["left"]) * cos(alpha["1"])]);
+						geometry:-point('POCR', [geometry:-coordinates(POpening)[1] - (h / 2 - l_ad["right"]) * sin(alpha["1"]), geometry:-coordinates(POpening)[2] + (h / 2 - l_ad["right"]) * cos(alpha["1"])]);
 
 						# line through crack point
 						geometry:-ParallelLine('LCL', POCL, BC1);
@@ -602,6 +603,44 @@ PlotResults := proc(WhateverYouNeed::table)
 						# geometryList := [op(geometryList), openingOutline];
 						geometryList := [op(geometryList), CrackLeft('color' = "coral", 'linestyle' = 'longdash')];
 						geometryList := [op(geometryList), CrackRight('color' = "coral", 'linestyle' = 'longdash')];
+
+					end if;
+
+					if opening["reinforcement"] = "inside" then			
+
+						# plot fastener
+						alphaScrew := structure["fastener"]["alphaScrew"];	# inclination of fastener
+						a3c_min_max := convert(WhateverYouNeed["calculatedvalues"]["distance"]["a3c_min_max1"], 'unit_free');
+
+						geometry:-circle('CircleOnFastener', [geometry:-point(POpening, 0, e), a/2 + a3c_min_max]);		# circle where fastener tangent
+						geometry:-point('FastenerOnCircleLeft', [geometry:-coordinates(POpening)[1] - (a/2 + a3c_min_max) * sin(alphaScrew),
+																 geometry:-coordinates(POpening)[2] - (a/2 + a3c_min_max) * cos(alphaScrew)]);
+						geometry:-point('FastenerOnCircleRight', [geometry:-coordinates(POpening)[1] + (a/2 + a3c_min_max) * sin(alphaScrew),
+																 geometry:-coordinates(POpening)[2] + (a/2 + a3c_min_max) * cos(alphaScrew)]);
+
+						# line through both points
+						geometry:-line('LineThroughFasteners', [FastenerOnCircleLeft, FastenerOnCircleRight]);
+
+						# fasteners
+						# impossible, as all are on same line
+						geometry:-PerpendicularLine('FastenerLineLeft', FastenerOnCircleLeft, LineThroughFasteners);
+						geometry:-PerpendicularLine('FastenerLineRight', FastenerOnCircleRight, LineThroughFasteners);
+
+						# point where head is
+						geometry:-intersection('HeadLeft', FastenerLineLeft, BLR1);
+						geometry:-intersection('HeadRight', FastenerLineRight, BLL1);
+
+						# tip ends
+						geometry:-point('TipLeft', [geometry:-coordinates(HeadLeft)[1] - ls * cos(alphaScrew), geometry:-coordinates(HeadLeft)[2] + ls * sin(alphaScrew)]);
+						geometry:-point('TipRight', [geometry:-coordinates(HeadRight)[1] + ls * cos(alphaScrew), geometry:-coordinates(HeadRight)[2] - ls * sin(alphaScrew)]);
+
+						# draw segment
+						geometry:-segment('FastenerLeft', HeadLeft, TipLeft);
+						geometry:-segment('FastenerRight', HeadRight, TipRight);
+
+						# add to plot
+						geometryList := [op(geometryList), FastenerLeft('color' = "black", 'linestyle' = 'solid')];
+						geometryList := [op(geometryList), CrackRight('color' = "black", 'linestyle' = 'solid')];
 
 					end if;
 
