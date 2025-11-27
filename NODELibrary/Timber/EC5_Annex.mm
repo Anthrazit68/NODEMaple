@@ -427,7 +427,7 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 	elif hd > 0.15*h then
 		reinforcmentType := "both";
 		if hd > 0.3*h then
-			reinforcmentType := "outside";
+			reinforcmentType := "exterior";
 		end if
 
 	elif WhateverYouNeed["materialdata"]["serviceclass"] = "3" then	# Limtreboka, p. 88, bottom page
@@ -444,7 +444,7 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 		comments["checkOpeningGeometry"] := dummy;
 		Alert(dummy, warnings, 4);
 
-	elif opening["reinforcement"] = "inside" and openingResult["reinforcmentType"] = "outside" then
+	elif opening["reinforcement"] = "interior" and openingResult["reinforcmentType"] = "exterior" then
 
 		dummy := cat("Reinforcement necessary, type: ", reinforcmentType);
 		comments["checkOpeningGeometry"] := dummy;
@@ -525,7 +525,7 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	end if;
 
 	# reinforcement with screws, check minimum distances
-	if opening["reinforcement"] = "inside" then			
+	if opening["reinforcement"] = "interior" then			
 
 		# check maximum number of screws in section (limtreboka fig. 5-3), different from EC5
 		# a2_min_max := WhateverYouNeed["calculatedvalues"]["distance"]["a2_min_max1"];
@@ -551,11 +551,13 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 		# calculate proposal for distances
 		a2 := a2_min_max;
 		a4 := (b - (a2 * (fastener["numberOfFasteners"] - 1))) / 2;
+		a3 := 3 * d;		# assumed, check also plotted value in NODEFastenerPatter:-PlotResults 
 
 		WriteValueToComponent("a2_min_max1", round(a2_min_max), {"nocheck"});
 		WriteValueToComponent("a3c_min_max1", round(a3c_min_max), {"nocheck"});
 		WriteValueToComponent("a4c_min_max1", round(a4c_min_max), {"nocheck"});
 		WriteValueToComponent("a21", round(a2), {"nocheck"});
+		WriteValueToComponent("a31", round(a3), {"nocheck"});
 		WriteValueToComponent("a41", round(a4), {"nocheck"});
 
 	else
@@ -613,7 +615,7 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 		eta["tau_corner"] := evalf(tau_cornerd / f_vd);
 		openingResult["tau_cornerd"] := tau_cornerd;		
 
-	elif opening["reinforcement"] = "inside" then			# reinforcement with screws
+	elif opening["reinforcement"] = "interior" then			# reinforcement with screws
 
 		if d > 20 * Unit('mm') then
 			Alert("Boltdiameter > 20mm not allowed", warnings, 4)

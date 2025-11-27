@@ -607,7 +607,7 @@ PlotResults := proc(WhateverYouNeed::table)
 					end if;
 
 					# draw screws
-					if opening["reinforcement"] = "inside" then			
+					if opening["reinforcement"] = "interior" then			
 
 						# plot fastener
 						alphaScrew := structure["fastener"]["alphaScrew"];	# inclination of fastener
@@ -627,17 +627,46 @@ PlotResults := proc(WhateverYouNeed::table)
 						geometry:-line('LineThroughFasteners', [FastenerOnCircleLeft, FastenerOnCircleRight]);
 
 						# fasteners
-						# impossible, as all are on same line
 						geometry:-PerpendicularLine('FastenerLineLeft', FastenerOnCircleLeft, LineThroughFasteners);
 						geometry:-PerpendicularLine('FastenerLineRight', FastenerOnCircleRight, LineThroughFasteners);
 
 						# point where head is
-						geometry:-intersection('HeadLeft', FastenerLineLeft, BLR1);
-						geometry:-intersection('HeadRight', FastenerLineRight, BLL1);
+						if structure["opening"]["screwposition"] = "Top" then
+							geometry:-intersection('HeadLeft', FastenerLineLeft, BLL1);
+							geometry:-intersection('HeadRight', FastenerLineRight, BLL1);
+
+						elif structure["opening"]["screwposition"] = "Bottom" then
+							geometry:-intersection('HeadLeft', FastenerLineLeft, BLR1);
+							geometry:-intersection('HeadRight', FastenerLineRight, BLR1);
+
+						elif structure["opening"]["screwposition"] = "Bottom / Top" then
+							geometry:-intersection('HeadLeft', FastenerLineLeft, BLR1);
+							geometry:-intersection('HeadRight', FastenerLineRight, BLL1);
+
+						else
+							Alert(cat("Screw position ", structure["opening"]["screwposition"], " unknown"), warnings, 3);
+
+						end if;
 
 						# tip ends
-						geometry:-point('TipLeft', [geometry:-coordinates(HeadLeft)[1] - ls * cos(alphaScrew), geometry:-coordinates(HeadLeft)[2] + ls * sin(alphaScrew)]);
-						geometry:-point('TipRight', [geometry:-coordinates(HeadRight)[1] + ls * cos(alphaScrew), geometry:-coordinates(HeadRight)[2] - ls * sin(alphaScrew)]);
+						if structure["opening"]["screwposition"] = "Top" then
+							geometry:-point('TipLeft', [geometry:-coordinates(HeadLeft)[1] + ls * cos(alphaScrew), geometry:-coordinates(HeadLeft)[2] - ls * sin(alphaScrew)]);
+							geometry:-point('TipRight', [geometry:-coordinates(HeadRight)[1] + ls * cos(alphaScrew), geometry:-coordinates(HeadRight)[2] - ls * sin(alphaScrew)]);
+
+
+						elif structure["opening"]["screwposition"] = "Bottom" then
+							geometry:-point('TipLeft', [geometry:-coordinates(HeadLeft)[1] - ls * cos(alphaScrew), geometry:-coordinates(HeadLeft)[2] + ls * sin(alphaScrew)]);
+							geometry:-point('TipRight', [geometry:-coordinates(HeadRight)[1] - ls * cos(alphaScrew), geometry:-coordinates(HeadRight)[2] + ls * sin(alphaScrew)]);
+
+
+						elif structure["opening"]["screwposition"] = "Bottom / Top" then
+							geometry:-point('TipLeft', [geometry:-coordinates(HeadLeft)[1] - ls * cos(alphaScrew), geometry:-coordinates(HeadLeft)[2] + ls * sin(alphaScrew)]);
+							geometry:-point('TipRight', [geometry:-coordinates(HeadRight)[1] + ls * cos(alphaScrew), geometry:-coordinates(HeadRight)[2] - ls * sin(alphaScrew)]);
+
+						else
+							Alert(cat("Screw position ", structure["opening"]["screwposition"], " unknown"), warnings, 3);
+
+						end if;
 
 						# draw segment
 						geometry:-segment('FastenerLeft', HeadLeft, TipLeft);

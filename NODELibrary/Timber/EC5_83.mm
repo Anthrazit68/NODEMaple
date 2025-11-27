@@ -33,7 +33,7 @@
 calculate_t := proc(WhateverYouNeed::table)
 	description "Calculate t and t_pen / effective part thickness and penetration depth";
 	local shearplanes, t_total, t, t_eff, t_ef_814_NA_DE, t_pen, l_tip, n_tip, n_head, ls, d, chosenFastener, connection, alphaScrew,
-		checkPassed, structure, sectiondataAll, warnings, comments, fastenervalues, timberlayers, i, nailSurface, b_max, l1, lmin;
+		checkPassed, structure, sectiondataAll, warnings, comments, fastenervalues, timberlayers, i, nailSurface, b_max, l1, lmin, h, l_ad;
 
 	# define local variables
 	structure := WhateverYouNeed["calculations"]["structure"];
@@ -57,6 +57,9 @@ calculate_t := proc(WhateverYouNeed::table)
 	shearplanes := fastenervalues["shearplanes"];		# number of shearplanes due to geometry (theoretical, independent of fasteners)
 	t_total := WhateverYouNeed["calculatedvalues"]["t_total"];		# total thickness of connection
 	timberlayers := WhateverYouNeed["calculatedvalues"]["layers"];
+
+	h := WhateverYouNeed["sectiondataAll"]["1"]["h"];
+	l_ad := WhateverYouNeed["sectiondataAll"]["1"]["l_ad"];
 	
 	if chosenFastener = "Screw" then		
 		l_tip := min(l1 / 10, 10 * Unit('mm'))		# assume length of tip, reduces t_pen (see 8.24, A2)t
@@ -69,9 +72,9 @@ calculate_t := proc(WhateverYouNeed::table)
 
 	if WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" then
 
-		t_total := WhateverYouNeed["sectiondataAll"]["1"]["h"];
-		t["1"] := min(entries(WhateverYouNeed["sectiondataAll"]["1"]["l_ad"]));															# minimum thickness of part with the head
-		t["2"] := evalf(WhateverYouNeed["sectiondataAll"]["1"]["h"] - max(entries(WhateverYouNeed["sectiondataAll"]["1"]["l_ad"]))); 	# minimum thickness of part with tip
+		t_total := h;
+		t["1"] := min(entries(l_ad));															# minimum thickness of part with the head
+		t["2"] := evalf(h - max(entries(l_ad))); 	# minimum thickness of part with tip
 		t["steel"] := 0		
 
 	else
@@ -212,13 +215,30 @@ calculate_t := proc(WhateverYouNeed::table)
 			return
 		end if;
 
-		if WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" then
+		if WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" and structure["opening"]["reinforcement"] = "interior" then
 
 			# we have 2 conditions, one where tip is in part 1, other where tip is in part 2
 			# calculating situation where both tip and head parts are minimum (worst of both)
 
-			t_eff["1"] := min(t["1"], evalf(ls * sin(alphaScrew)));			
-			t_eff["2"] := evalf(min(t["2"], ls * sin(alphaScrew) - max(entries(WhateverYouNeed["sectiondataAll"]["1"]["l_ad"]))));
+			if structure["opening"]["screwposition"] = "Top" then
+				t_eff["1"] := min(l_ad["right"], evalf(ls * sin(alphaScrew)));							# part with screw head, l_ad right side is minimum
+				t_eff["2"] := evalf(min(l_ad["left"], ls * sin(alphaScrew) - (h - l_ad["left"])));		# part with tip, l_ad left side is maximum
+
+				evalf(h - max(entries(l_ad)))
+
+			elif structure["opening"]["screwposition"] = "Bottom" then
+				t_eff["1"] := min(l_ad["left"], evalf(ls * sin(alphaScrew)));							# part with screw head, l_ad left side is minimum
+				t_eff["2"] := evalf(min(l_ad["right"], ls * sin(alphaScrew) - (h - l_ad["right"])));	# part with tip, l_ad right side is maximum
+
+			elif structure["opening"]["screwposition"] = "Bottom / Top" then
+				t_eff["1"] := min(min(entries(l_ad)), evalf(ls * sin(alphaScrew)));
+				t_eff["2"] := evalf(min(h - max(entries(l_ad)), ls * sin(alphaScrew) - max(entries(l_ad))));
+
+			else
+				Alert(cat("Screw position ", structure["opening"]["screwposition"], " unknown"), warnings, 3);
+
+			end if;
+			
 			t_pen := t_eff["2"] - l_tip;
 			n_tip := "2";				# number of part with the tip
 			n_head := "1";
@@ -583,7 +603,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 			f_axk := fastenervalues["f_axk"]
 		end if;
 
-		R_axk := f_axk * d * t_pen * k_rho[n_tip];		# (8.23), (8.24) part with the tip of the nail, same formula for all nails
+		R_axk := evalf(f_axk * d * t_pen * k_rho[n_tip]);		# (8.23), (8.24) part with the tip of the nail, same formula for all nails
 
 		# check if t_pen is sufficient
 		# 8.3.2 (7)
@@ -604,7 +624,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 		# capacity of head
 		# R_axk_n_head
 		if connection[cat("connection", n_head)] = "Timber" then		
-			R_axk_n_head := f_axk * d * t[n_head] / sin(alphaScrew) * k_rho[n_head];
+			R_axk_n_head := evalf(f_axk * d * t[n_head] / sin(alphaScrew) * k_rho[n_head]);
 			# structure["calculatedvalues"]["R_axk_n_head"] := convert(R_axk_n_head, 'units', 'kN');
 		else
 			R_axk_n_head := 0
@@ -629,10 +649,10 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 		# F_axkRk
 		if connection[cat("connection", n_head)] = "Timber" then
 			if chosenFastener = "Nail" and nailSurface = "smooth" then
-				F_axRk := eval(min(R_axk, R_axk_n_head + R_headk));	# 8.24
+				F_axRk := evalf(min(R_axk, R_axk_n_head + R_headk));	# 8.24
 				
 			elif nailSurface = "non smooth" or chosenFastener = "Screw" then							
-				F_axRk := eval(min(R_axk, max(R_headk, R_axk_n_head)));	# 8.23 with modification for screws with thread in complete length
+				F_axRk := evalf(min(R_axk, max(R_headk, R_axk_n_head)));	# 8.23 with modification for screws with thread in complete length
 				# https://www.linkedin.com/posts/andreaszieritz_timberengineering-timberscrews-eurocode5-activity-7344732846957154304-_-QB
 			else
 				F_axRk := 0
@@ -644,7 +664,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 			
 		end if;			
 
-		F_axRk := eval(min(F_axRk, f_tensk));	# check for steel failure
+		F_axRk := evalf(min(F_axRk, f_tensk));	# check for steel failure
 
 		k_ef := 1;		# reduction factor for connection
 
@@ -666,7 +686,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 			f_axk := fastenervalues["f_axk"]
 		end if;
 
-		R_axk := f_axk * d * t_pen * k_d / (1.2 * cos(alphaScrew)^2 + sin(alphaScrew)^2) * k_rho[n_tip];	# (8.38)
+		R_axk := evalf(f_axk * d * t_pen * k_d / (1.2 * cos(alphaScrew)^2 + sin(alphaScrew)^2) * k_rho[n_tip]);	# (8.38)
 		
 		# capacity of the head
 		# R_axk_n_head
@@ -684,7 +704,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 			end if;				
 
 			if lg > 0 then		# shouldn't be necessary, but negative capacities don't look good in the sheet, so we set them to zero
-				R_axk_n_head := f_axk * d * lg * k_d / (1.2 * cos(alphaScrew)^2 + sin(alphaScrew)^2) * k_rho[n_head];	# (8.38)
+				R_axk_n_head := evalf(f_axk * d * lg * k_d / (1.2 * cos(alphaScrew)^2 + sin(alphaScrew)^2) * k_rho[n_head]);	# (8.38)
 			else
 				R_axk_n_head := 0
 			end if;
@@ -702,7 +722,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 
 		# https://www.linkedin.com/posts/andreaszieritz_timberengineering-timberscrews-eurocode5-activity-7344732846957154304-_-QB
 		# Head and thread capacity are not combined, so we take the larger of those
-		F_axRk := eval(min(R_axk, max(R_axk_n_head, R_headk), f_tensk));
+		F_axRk := evalf(min(R_axk, max(R_axk_n_head, R_headk), f_tensk));
 
 		k_ef := 0.9;	# reduction factor for connection
 
@@ -712,7 +732,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 		k_ef := 1;		# reduction factor for connection
 
 		R_headk := washer_N_axk * k_rho[n_head];
-		F_axRk := eval(min(f_tensk, R_headk))
+		F_axRk := evalf(min(f_tensk, R_headk))
 		
 	end if;
 	
@@ -754,7 +774,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 	end if;
 	
 	# F_axRd is for single shearplane, one fastener
-	F_axRd := eval(F_axRk * k_mod / gamma_M);
+	F_axRd := evalf(F_axRk * k_mod / gamma_M);
 	WriteValueToComponent("F_axRd", round2(F_axRd, 1), {"nocheck"});
 
 	if WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" then
