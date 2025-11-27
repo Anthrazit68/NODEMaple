@@ -527,10 +527,14 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	# reinforcement with screws, check minimum distances
 	if opening["reinforcement"] = "inside" then			
 
-		# check maximum number of screws in section (limtreboka fig. 5-3)
-		a2_min_max := WhateverYouNeed["calculatedvalues"]["distance"]["a2_min_max1"];
-		a3c_min_max := WhateverYouNeed["calculatedvalues"]["distance"]["a3c_min_max1"];
-		a4c_min_max := WhateverYouNeed["calculatedvalues"]["distance"]["a4c_min_max1"];
+		# check maximum number of screws in section (limtreboka fig. 5-3), different from EC5
+		# a2_min_max := WhateverYouNeed["calculatedvalues"]["distance"]["a2_min_max1"];
+		# a3c_min_max := WhateverYouNeed["calculatedvalues"]["distance"]["a3c_min_max1"];
+		# a4c_min_max := WhateverYouNeed["calculatedvalues"]["distance"]["a4c_min_max1"];
+		a2_min_max := 3 * d;
+		a3c_min_max := 2.5 * d; # 2.5d <= a3c <= 4*d, plotted with 3*d
+		a4c_min_max := 2.5 * d;
+
 		maxnumberOfFasteners := (b - 2 * a4c_min_max) / a2_min_max;
 
 		if maxnumberOfFasteners < 0 then

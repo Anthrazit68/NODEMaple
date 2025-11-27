@@ -606,11 +606,16 @@ PlotResults := proc(WhateverYouNeed::table)
 
 					end if;
 
+					# draw screws
 					if opening["reinforcement"] = "inside" then			
 
 						# plot fastener
 						alphaScrew := structure["fastener"]["alphaScrew"];	# inclination of fastener
-						a3c_min_max := convert(WhateverYouNeed["calculatedvalues"]["distance"]["a3c_min_max1"], 'unit_free');
+
+						# a3c values different from usual formula from EC5 (usually 7*d)
+						# a3c_min_max := convert(WhateverYouNeed["calculatedvalues"]["distance"]["a3c_min_max1"], 'unit_free');
+						# 2.5d <= a3c <= 4*d
+						a3c_min_max := 3 * convert(structure["fastener"]["fastener_d"], 'unit_free');
 
 						geometry:-circle('CircleOnFastener', [geometry:-point(POpening, 0, e), a/2 + a3c_min_max]);		# circle where fastener tangent
 						geometry:-point('FastenerOnCircleLeft', [geometry:-coordinates(POpening)[1] - (a/2 + a3c_min_max) * sin(alphaScrew),
@@ -640,7 +645,7 @@ PlotResults := proc(WhateverYouNeed::table)
 
 						# add to plot
 						geometryList := [op(geometryList), FastenerLeft('color' = "black", 'linestyle' = 'solid')];
-						geometryList := [op(geometryList), CrackRight('color' = "black", 'linestyle' = 'solid')];
+						geometryList := [op(geometryList), FastenerRight('color' = "black", 'linestyle' = 'solid')];
 
 					end if;
 
