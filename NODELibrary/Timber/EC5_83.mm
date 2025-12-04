@@ -33,7 +33,7 @@
 calculate_t := proc(WhateverYouNeed::table)
 	description "Calculate t and t_pen / effective part thickness and penetration depth";
 	local shearplanes, t_total, t, t_eff, t_ef_814_NA_DE, t_pen, l_tip, n_tip, n_head, ls, d, chosenFastener, connection, alphaScrew,
-		checkPassed, structure, sectiondataAll, warnings, comments, fastenervalues, timberlayers, i, nailSurface, b_max, l1, lmin, h, l_ad;
+		checkPassed, structure, sectiondataAll, warnings, comments, fastenervalues, timberlayers, i, nailSurface, b_max, l1, lmin, h, l_ad, l_ad_screw;
 
 	# define local variables
 	structure := WhateverYouNeed["calculations"]["structure"];
@@ -59,7 +59,7 @@ calculate_t := proc(WhateverYouNeed::table)
 	timberlayers := WhateverYouNeed["calculatedvalues"]["layers"];
 
 	h := WhateverYouNeed["sectiondataAll"]["1"]["h"];
-	l_ad := WhateverYouNeed["sectiondataAll"]["1"]["l_ad"];
+	l_ad := WhateverYouNeed["sectiondataAll"]["1"]["l_ad"];		# distance from edge to crack, left & right side of opening
 	
 	if chosenFastener = "Screw" then		
 		l_tip := min(l1 / 10, 10 * Unit('mm'))		# assume length of tip, reduces t_pen (see 8.24, A2)t
@@ -73,11 +73,11 @@ calculate_t := proc(WhateverYouNeed::table)
 	if WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" then
 
 		t_total := h;
-		t["1"] := min(entries(l_ad));															# minimum thickness of part with the head
-		t["2"] := evalf(h - max(entries(l_ad))); 	# minimum thickness of part with tip
+		t["1"] := evalf(min(entries(l_ad)) / sin(alphaScrew));			# minimum thickness of part with the head, but along screw (see EC5 fig. 8.8, limtreboka p. 206)
+		t["2"] := evalf((h - max(entries(l_ad))) / sin(alphaScrew));	# minimum thickness of part with tip, but along screw
 		t["steel"] := 0		
 
-	else
+	else	# no influence of screw angle implemented yet
 
 		if assigned(sectiondataAll["1"]["b"]) then
 			t["1"] := sectiondataAll["1"]["b"];
@@ -123,7 +123,7 @@ calculate_t := proc(WhateverYouNeed::table)
 
 		else
 
-			if evalf(ls * sin(alphaScrew)) < t_total then		# needs to go through the whole section
+			if evalf(ls * sin(alphaScrew)) < t_total then		# needs to go through the whole section, screw angle implementation not verified yet
 				# check if dowel of type 
 				if WhateverYouNeed["calculatedvalues"]["fastenervalues"]["detailinformation"] = "Self-drilling dowel" then
 					if b_max < t_total then
@@ -221,25 +221,23 @@ calculate_t := proc(WhateverYouNeed::table)
 			# calculating situation where both tip and head parts are minimum (worst of both)
 
 			if structure["opening"]["screwposition"] = "Top" then
-				t_eff["1"] := min(l_ad["right"], evalf(ls * sin(alphaScrew)));							# part with screw head, l_ad right side is minimum
-				t_eff["2"] := evalf(min(l_ad["left"], ls * sin(alphaScrew) - (h - l_ad["left"])));		# part with tip, l_ad left side is maximum
-
-				evalf(h - max(entries(l_ad)))
+				t_eff["1"] := evalf(min(l_ad["right"] / sin(alphaScrew), ls));											# part with screw head, l_ad right side is minimum
+				t_eff["2"] := evalf(min(l_ad["left"] / sin(alphaScrew), ls - (h - l_ad["left"]) / sin(alphaScrew)));	# part with tip, l_ad left side is maximum
 
 			elif structure["opening"]["screwposition"] = "Bottom" then
-				t_eff["1"] := min(l_ad["left"], evalf(ls * sin(alphaScrew)));							# part with screw head, l_ad left side is minimum
-				t_eff["2"] := evalf(min(l_ad["right"], ls * sin(alphaScrew) - (h - l_ad["right"])));	# part with tip, l_ad right side is maximum
+				t_eff["1"] := evalf(min(l_ad["left"] / sin(alphaScrew), ls));											# part with screw head, l_ad left side is minimum
+				t_eff["2"] := evalf(min(l_ad["right"] / sin(alphaScrew), ls - (h - l_ad["right"]) / sin(alphaScrew)));	# part with tip, l_ad right side is maximum
 
 			elif structure["opening"]["screwposition"] = "Bottom / Top" then
-				t_eff["1"] := min(min(entries(l_ad)), evalf(ls * sin(alphaScrew)));
-				t_eff["2"] := evalf(min(h - max(entries(l_ad)), ls * sin(alphaScrew) - max(entries(l_ad))));
+				t_eff["1"] := evalf(min(t["1"], ls));
+				t_eff["2"] := evalf(min(t["2"], ls - max(entries(l_ad)) / sin(alphaScrew)));
 
 			else
 				Alert(cat("Screw position ", structure["opening"]["screwposition"], " unknown"), warnings, 3);
 
 			end if;
-			
-			t_pen := t_eff["2"] - l_tip;
+
+			t_pen := evalf(t_eff["2"] - l_tip);
 			n_tip := "2";				# number of part with the tip
 			n_head := "1";
 
@@ -253,6 +251,11 @@ calculate_t := proc(WhateverYouNeed::table)
 				# Alert(cat("calculate_t: ", chosenFastener, " ", round(evalf(lmin - t_pen)), " too short"), warnings, 5);		# bug in round? https://mapleprimes.com/questions/241946-Bug-In-Round-With-Units?sq=241946
 				Alert(cat("calculate_t: ", chosenFastener, " ", round2(evalf(lmin - t_pen), 0), " too short"), warnings, 5);
 				return
+
+			elif t_pen < evalf(min(entries(l_ad)) / sin(alphaScrew)) then		# limtreboka p. 92, min length screw >= 2 * l_ad
+
+				Alert(cat("calculate_t, beam with opening - screw too short, minimum length ", round(evalf(ls + min(entries(l_ad)) / sin(alphaScrew) - t_pen))), warnings, 4);
+
 			end if;
 
 		elif shearplanes = 1 then			# just 2 parts
