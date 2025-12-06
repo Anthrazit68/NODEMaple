@@ -291,7 +291,7 @@ end proc:
 checkOpeningGeometry := proc(WhateverYouNeed::table)
 	description "check opening geometry in beams with opening";
 	local opening, b, h, warnings, openingtype, a, hd, hd_, e, lv, lA, lz, r, openingValid, h_r, h_ro, h_ru, dummy, usedcode, comments, openingResult,
-		l_t90, k_t90, K_corner, K_max, l_ad, reinforcmentType;
+		l_t90, k_t90, K_corner, K_max, reinforcmentType;
 
 	warnings := WhateverYouNeed["warnings"];
 	usedcode := "DIN NA";
@@ -311,8 +311,8 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 	lz := opening["opening_lz"];
 	r := opening["opening_r"];
 	
-	# hd is defined for both rectangular and circular openings
-	l_ad := table();
+	# hd is defined for both rectangular and circular openings	
+	h_r := table();		# distance between crack to nearest beam edge, normal to grain direction	
 	h_ro := h / 2 - hd / 2 - e;		
 	h_ru := h / 2 - hd / 2 + e;
 
@@ -324,30 +324,29 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 	#	end if;
 
 	if openingtype = "rectangular" then
-		l_ad["left"] := h_ru;
-		l_ad["right"] := h_ro;
-		h_r := min(h_ru, h_ro);					# limtreboka, p 90, (5-9)
+
+		h_r["left"] := h_ru;
+		h_r["right"] := h_ro;		
 		l_t90 := 0.5*(hd + h);					# limtreboka, p 90, (5-11)
 		K_corner := evalf(1.84 * (1+a/h) / (1-hd/h) * (hd/h)^0.2);	# (5-14)
 		K_max := evalf(1.84 * (1+a/h) * (hd/h)^0.2)					# limtreboka examples, p. 205, reference [5]
 
 	elif openingtype = "circular" then
-		l_ad["left"] := h_ru + 0.15 * hd;
-		l_ad["right"] := h_ro + 0.15 * hd;
-		h_r := min(h_ru + 0.15 * hd, h_ro + 0.15 * hd);			# (5-10)
+
+		h_r["left"] := h_ru + 0.15 * hd;
+		h_r["right"] := h_ro + 0.15 * hd;		
 		l_t90 := 0.35*hd + 0.5*h;								# (5-12)
 		K_corner := evalf(1.84 * (1+a/h) / (1-(0.7*hd)/h) * ((0.7*hd)/h)^0.2);	# (5-14) with reduction factor 0,7 (limtreboka example p. 205)
 		K_max := evalf(1.84 * (1+a/h) * ((0.7*hd)/h)^0.2)	# limtreboka examples, p. 205, reference [5]
 	end if;
 
 	k_t90 := evalf(min(1, (450 * Unit('mm') / h)^0.5));			# (5-13)
-	openingResult["h_r"] := evalf(h_r);
+
+	openingResult["h_r"] := h_r;			# minimum distance between beam edge and crack line, table
 	openingResult["l_t90"] := evalf(l_t90);
 	openingResult["k_t90"] := k_t90;
 	openingResult["K_corner"] := K_corner;
-	openingResult["K_max"] := K_max;
-	openingResult["l_ad"] := l_ad;
-	WhateverYouNeed["sectiondataAll"]["1"]["l_ad"] := l_ad;		# for calculation of F_axR
+	openingResult["K_max"] := K_max;		
 
 	# check if opening outside beam
 	if  h_ro <= 0 then
@@ -470,7 +469,8 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 	end if;
 	
 	# write results
-	WriteValueToComponent("h_r", round(h_r), {"nocheck"});
+	WriteValueToComponent("h_rleft", round(h_r["left"]), {"nocheck"});
+	WriteValueToComponent("h_rright", round(h_r["right"]), {"nocheck"});
 	WriteValueToComponent("l_t90", round(l_t90), {"nocheck"});
 	WriteValueToComponent("k_t90", round2(k_t90, 2), {"nocheck"});
 	WriteValueToComponent("K_corner", round2(K_corner, 2), {"nocheck"});
@@ -483,13 +483,14 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	description "Timber beam with opening";
 	local warnings, opening, hd, hd_, openingResult, b, h, h_r, sigma_t90d, f_vd, f_t90d, eta, eta_u, usedcode, comments, loadcase, F_vd, M_yd, F_t90d, l_t90, A, 
 		k_t90, K_corner, tau_cornerd, F_t90Vd, F_t90Md, fastenervalues, a2, a2_min_max, a3, a3c_min_max, a4, a4c_min_max, maxnumberOfFasteners, d, fastener, gamma_M, k_mod, f_k1d,
-		tau_efd, l_ad, tau_max, K_max, kcr, i;
+		tau_efd, tau_max, K_max, kcr, i, h_r, l_ad, structure, ls;
 
 	# define local variables
+	structure := WhateverYouNeed["calculations"]["structure"];
 	warnings := WhateverYouNeed["warnings"];
 	gamma_M := NODETimberEN1995:-gamma_M("Connections"); 		# NS-EN 1995, NA.2.4.1
 	k_mod := WhateverYouNeed["materialdata"]["k_mod"];
-	opening :=  WhateverYouNeed["calculations"]["structure"]["opening"];
+	opening :=  structure["opening"];
 	hd := opening["opening_hd"];
 	b := WhateverYouNeed["sectiondataAll"]["1"]["b"];
 	h := WhateverYouNeed["sectiondataAll"]["1"]["h"];	
@@ -505,15 +506,19 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	loadcase := WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"];
 	F_vd := WhateverYouNeed["calculations"]["loadcases"][loadcase]["F_vd"];
 	M_yd := WhateverYouNeed["calculations"]["loadcases"][loadcase]["M_yd"];	
-	l_ad := openingResult["l_ad"];
 	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
+	ls := structure["fastener"]["fastener_ls"];									# length of fastener
 
-	fastener := WhateverYouNeed["calculations"]["structure"]["fastener"];
+	h_r := openingResult["h_r"];
+
+	fastener := structure["fastener"];
 	d := fastener["fastener_d"];
 
 	eta := WhateverYouNeed["results"]["eta"];	# global utilization, reinforced
 	comments :=	WhateverYouNeed["results"]["comments"];
 	eta_u := table();							# eta for uninforced section
+	l_ad := table();
+	openingResult["l_ad"] := l_ad;
 
 	# kcr
 	if WhateverYouNeed["materialdata"]["timbertype"] = "Solid timber" then
@@ -621,6 +626,28 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 			Alert("Boltdiameter > 20mm not allowed", warnings, 4)
 		end if;
 
+		# calculate l_ad
+		if structure["opening"]["screwposition"] = "Top" then
+
+			l_ad["left"] := evalf(min(ls - (h - h_r["left"]) / sin(alphaScrew), h_r["left"] / sin(alphaScrew)));
+			l_ad["right"] := evalf(min(h_r["right"] / sin(alphaScrew), ls));			
+
+		elif structure["opening"]["screwposition"] = "Bottom" then
+
+			l_ad["left"] := evalf(min(h_r["left"] / sin(alphaScrew), ls));			
+			l_ad["right"] := evalf(min(ls - (h - h_r["right"]) / sin(alphaScrew), h_r["right"] / sin(alphaScrew)));
+
+		elif structure["opening"]["screwposition"] = "Bottom / Top" then
+
+			l_ad["left"] := evalf(min(ls - (h - h_r["left"]) / sin(alphaScrew), h_r["left"] / sin(alphaScrew)));
+			l_ad["right"] := evalf(min(ls - (h - h_r["right"]) / sin(alphaScrew), h_r["right"] / sin(alphaScrew)));
+
+		else
+
+			Alert(cat("Screw position ", structure["opening"]["screwposition"], " unknown"), warnings, 3);
+
+		end if;
+		
 		# check for screw length > 2 * l_ad see calculate_t
 
 		eta["FaxR"] := evalf(F_t90d / fastenervalues["F_axRd_fastener"]);		# all shearforce must be taken by screws

@@ -33,7 +33,7 @@
 calculate_t := proc(WhateverYouNeed::table)
 	description "Calculate t and t_pen / effective part thickness and penetration depth";
 	local shearplanes, t_total, t, t_eff, t_ef_814_NA_DE, t_pen, l_tip, n_tip, n_head, ls, d, chosenFastener, connection, alphaScrew,
-		checkPassed, structure, sectiondataAll, warnings, comments, fastenervalues, timberlayers, i, nailSurface, b_max, l1, lmin, h, l_ad, l_ad_screw;
+		checkPassed, structure, sectiondataAll, warnings, comments, fastenervalues, timberlayers, i, nailSurface, b_max, l1, lmin, h, l_ad, h_r;
 
 	# define local variables
 	structure := WhateverYouNeed["calculations"]["structure"];
@@ -59,7 +59,8 @@ calculate_t := proc(WhateverYouNeed::table)
 	timberlayers := WhateverYouNeed["calculatedvalues"]["layers"];
 
 	h := WhateverYouNeed["sectiondataAll"]["1"]["h"];
-	l_ad := WhateverYouNeed["sectiondataAll"]["1"]["l_ad"];		# distance from edge to crack, left & right side of opening
+	h_r := WhateverYouNeed["results"]["opening"]["h_r"];		# minimum distance between beam edge and crack line, normal to grain direction
+	l_ad := WhateverYouNeed["results"]["opening"]["l_ad"];		# distance from edge to crack, left & right side of opening
 	
 	if chosenFastener = "Screw" then		
 		l_tip := min(l1 / 10, 10 * Unit('mm'))		# assume length of tip, reduces t_pen (see 8.24, A2)t
@@ -73,8 +74,24 @@ calculate_t := proc(WhateverYouNeed::table)
 	if WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" then
 
 		t_total := h;
-		t["1"] := evalf(min(entries(l_ad)) / sin(alphaScrew));			# minimum thickness of part with the head, but along screw (see EC5 fig. 8.8, limtreboka p. 206)
-		t["2"] := evalf((h - max(entries(l_ad))) / sin(alphaScrew));	# minimum thickness of part with tip, but along screw
+
+		if structure["opening"]["screwposition"] = "Top" then
+
+			t["1"] := l_ad["right"];
+			t["2"] := l_ad["left"]
+
+		elif structure["opening"]["screwposition"] = "Bottom" then
+
+			t["1"] := l_ad["left"];
+			t["2"] := l_ad["right"]
+
+		elif structure["opening"]["screwposition"] = "Bottom / Top" then
+
+			t["1"] := min(entries(l_ad));
+			t["2"] := evalf((h - max(entries(l_ad))) / sin(alphaScrew));	# minimum thickness of part with tip, but along screw
+
+		end if;
+		
 		t["steel"] := 0		
 
 	else	# no influence of screw angle implemented yet
@@ -217,11 +234,12 @@ calculate_t := proc(WhateverYouNeed::table)
 
 		if WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" and structure["opening"]["reinforcement"] = "interior" then
 
-			# we have 2 conditions, one where tip is in part 1, other where tip is in part 2
-			# calculating situation where both tip and head parts are minimum (worst of both)
+			t_eff["1"] := t["1"];
+			t_eff["2"] := t["2"];
 
 			if structure["opening"]["screwposition"] = "Top" then
-				t_eff["1"] := evalf(min(l_ad["right"] / sin(alphaScrew), ls));											# part with screw head, l_ad right side is minimum
+				t["1"] := evalf(h_r["right"] / sin(alphaScrew));			# minimum thickness of part with the head, but along screw (see EC5 fig. 8.8, limtreboka p. 206)
+				t_eff["1"] := evalf(min(h_r["right"] / sin(alphaScrew), ls));											# part with screw head, l_ad right side is minimum
 				t_eff["2"] := evalf(min(l_ad["left"] / sin(alphaScrew), ls - (h - l_ad["left"]) / sin(alphaScrew)));	# part with tip, l_ad left side is maximum
 
 			elif structure["opening"]["screwposition"] = "Bottom" then
