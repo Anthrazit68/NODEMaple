@@ -551,13 +551,14 @@ PlotResults := proc(WhateverYouNeed::table)
 
 			# opening
 			if assigned(WhateverYouNeed["calculations"]["structure"]["opening"]) then
-				local opening, openingResult, cracklength, CrackLeft, CrackRight, l_ad, a, hd, e, alphaScrew, a3c_min_max, ls;
+				local opening, openingResult, cracklength, CrackLeft, CrackRight, a, hd, e, alphaScrew, a3c_min_max, ls, h_r;
 
 				opening := WhateverYouNeed["calculations"]["structure"]["opening"];
 				openingResult := WhateverYouNeed["results"]["opening"];
 				a := convert(opening["opening_a"], 'unit_free');
 				e := convert(opening["opening_e"], 'unit_free');
 				ls := convert(WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_ls"], 'unit_free');
+				h_r := convert~(openingResult["h_r"], 'unit_free');		# distance from edge to crack
 #				lv := opening["opening_lv"];
 #				lA := opening["opening_lA"];
 #				lz := opening["opening_lz"];
@@ -570,11 +571,11 @@ PlotResults := proc(WhateverYouNeed::table)
 					# graphicsElements["opening"] := openingOutline;
 					# geometryList := [op(geometryList), OPENING('color' = "black")];
 					if openingResult["cracked"] then
-						l_ad := convert~(openingResult["l_ad"], 'unit_free');		# distance from edge to crack
+						# l_ad := convert~(openingResult["l_ad"], 'unit_free');		
 
 						# point on crack line left and right side of opening
-						geometry:-point('POCL', [geometry:-coordinates(POpening)[1] + (h / 2 - l_ad["left"]) * sin(alpha["1"]), geometry:-coordinates(POpening)[2] - (h / 2 - l_ad["left"]) * cos(alpha["1"])]);
-						geometry:-point('POCR', [geometry:-coordinates(POpening)[1] - (h / 2 - l_ad["right"]) * sin(alpha["1"]), geometry:-coordinates(POpening)[2] + (h / 2 - l_ad["right"]) * cos(alpha["1"])]);
+						geometry:-point('POCL', [geometry:-coordinates(POpening)[1] + (h / 2 - h_r["left"]) * sin(alpha["1"]), geometry:-coordinates(POpening)[2] - (h / 2 - h_r["left"]) * cos(alpha["1"])]);
+						geometry:-point('POCR', [geometry:-coordinates(POpening)[1] - (h / 2 - h_r["right"]) * sin(alpha["1"]), geometry:-coordinates(POpening)[2] + (h / 2 - h_r["right"]) * cos(alpha["1"])]);
 
 						# line through crack point
 						geometry:-ParallelLine('LCL', POCL, BC1);

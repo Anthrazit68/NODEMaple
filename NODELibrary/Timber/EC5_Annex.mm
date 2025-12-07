@@ -291,15 +291,16 @@ end proc:
 checkOpeningGeometry := proc(WhateverYouNeed::table)
 	description "check opening geometry in beams with opening";
 	local opening, b, h, warnings, openingtype, a, hd, hd_, e, lv, lA, lz, r, openingValid, h_r, h_ro, h_ru, dummy, usedcode, comments, openingResult,
-		l_t90, k_t90, K_corner, K_max, reinforcmentType;
+		l_t90, k_t90, K_corner, K_max, reinforcmentType, l_ad, structure, alphaScrew, ls;
 
+	structure := WhateverYouNeed["calculations"]["structure"];
 	warnings := WhateverYouNeed["warnings"];
 	usedcode := "DIN NA";
 	comments :=  WhateverYouNeed["results"]["comments"];
 	openingResult := WhateverYouNeed["results"]["opening"];		# calculated values
 
 	# get predefined geometric input values
-	opening :=  WhateverYouNeed["calculations"]["structure"]["opening"];		# defined in TeamBeamWithOpening:-ReadComponentsSpecific
+	opening :=  structure["opening"];		# defined in TeamBeamWithOpening:-ReadComponentsSpecific
 	b := WhateverYouNeed["sectiondataAll"]["1"]["b"];
 	h := WhateverYouNeed["sectiondataAll"]["1"]["h"];
 	openingtype := opening["openingtype"];
@@ -310,6 +311,9 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 	lA := opening["opening_lA"];
 	lz := opening["opening_lz"];
 	r := opening["opening_r"];
+
+	alphaScrew := structure["fastener"]["alphaScrew"];	# inclination of fastener
+	ls := structure["fastener"]["fastener_ls"];			# length of fastener
 	
 	# hd is defined for both rectangular and circular openings	
 	h_r := table();		# distance between crack to nearest beam edge, normal to grain direction	
@@ -467,10 +471,40 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 		end if;
 
 	end if;
+
+	# calculate l_ad
+	if opening["reinforcement"] = "interior" then
+
+		l_ad := table();
+		openingResult["l_ad"] := l_ad;
+
+		if structure["opening"]["screwposition"] = "Top" then
+
+			l_ad["left"] := evalf(min(ls - (h - h_r["left"]) / sin(alphaScrew), h_r["left"] / sin(alphaScrew)));
+			l_ad["right"] := evalf(min(h_r["right"] / sin(alphaScrew), ls));			
+
+		elif structure["opening"]["screwposition"] = "Bottom" then
+
+			l_ad["left"] := evalf(min(h_r["left"] / sin(alphaScrew), ls));			
+			l_ad["right"] := evalf(min(ls - (h - h_r["right"]) / sin(alphaScrew), h_r["right"] / sin(alphaScrew)));
+
+		elif structure["opening"]["screwposition"] = "Bottom / Top" then
+
+			l_ad["left"] := evalf(min(ls - (h - h_r["left"]) / sin(alphaScrew), h_r["left"] / sin(alphaScrew)));
+			l_ad["right"] := evalf(min(ls - (h - h_r["right"]) / sin(alphaScrew), h_r["right"] / sin(alphaScrew)));
+
+		else
+
+			Alert(cat("Screw position ", structure["opening"]["screwposition"], " unknown"), warnings, 3);
+
+		end if;
+	end if;
 	
 	# write results
 	WriteValueToComponent("h_rleft", round(h_r["left"]), {"nocheck"});
 	WriteValueToComponent("h_rright", round(h_r["right"]), {"nocheck"});
+	WriteValueToComponent("l_adleft", round(l_ad["left"]), {"nocheck"});
+	WriteValueToComponent("l_adright", round(l_ad["right"]), {"nocheck"});
 	WriteValueToComponent("l_t90", round(l_t90), {"nocheck"});
 	WriteValueToComponent("k_t90", round2(k_t90, 2), {"nocheck"});
 	WriteValueToComponent("K_corner", round2(K_corner, 2), {"nocheck"});
@@ -483,7 +517,7 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	description "Timber beam with opening";
 	local warnings, opening, hd, hd_, openingResult, b, h, h_r, sigma_t90d, f_vd, f_t90d, eta, eta_u, usedcode, comments, loadcase, F_vd, M_yd, F_t90d, l_t90, A, 
 		k_t90, K_corner, tau_cornerd, F_t90Vd, F_t90Md, fastenervalues, a2, a2_min_max, a3, a3c_min_max, a4, a4c_min_max, maxnumberOfFasteners, d, fastener, gamma_M, k_mod, f_k1d,
-		tau_efd, tau_max, K_max, kcr, i, h_r, l_ad, structure, ls;
+		tau_efd, tau_max, K_max, kcr, i, l_ad, structure, ls;
 
 	# define local variables
 	structure := WhateverYouNeed["calculations"]["structure"];
@@ -517,8 +551,8 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	eta := WhateverYouNeed["results"]["eta"];	# global utilization, reinforced
 	comments :=	WhateverYouNeed["results"]["comments"];
 	eta_u := table();							# eta for uninforced section
-	l_ad := table();
-	openingResult["l_ad"] := l_ad;
+	
+	l_ad := openingResult["l_ad"];
 
 	# kcr
 	if WhateverYouNeed["materialdata"]["timbertype"] = "Solid timber" then
@@ -575,7 +609,7 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	end if;
 
 	F_t90Vd := convert(evalf(F_vd * hd / (4*h) * (3 - hd^2 / h^2)), 'units', 'kN');
-	F_t90Md := convert(evalf(0.008 * M_yd / h_r), 'units', 'kN');
+	F_t90Md := convert(evalf(0.008 * M_yd / min(entries(h_r))), 'units', 'kN');				# min(h_r) for circular openings, check if different for rectangular
 	F_t90d := convert(evalf(F_t90Vd + F_t90Md), 'units', 'kN');				# (5-8)
 	openingResult["F_t90Vd"] := F_t90Vd;
 	openingResult["F_t90Md"] := F_t90Md;
@@ -625,28 +659,6 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 		if d > 20 * Unit('mm') then
 			Alert("Boltdiameter > 20mm not allowed", warnings, 4)
 		end if;
-
-		# calculate l_ad
-		if structure["opening"]["screwposition"] = "Top" then
-
-			l_ad["left"] := evalf(min(ls - (h - h_r["left"]) / sin(alphaScrew), h_r["left"] / sin(alphaScrew)));
-			l_ad["right"] := evalf(min(h_r["right"] / sin(alphaScrew), ls));			
-
-		elif structure["opening"]["screwposition"] = "Bottom" then
-
-			l_ad["left"] := evalf(min(h_r["left"] / sin(alphaScrew), ls));			
-			l_ad["right"] := evalf(min(ls - (h - h_r["right"]) / sin(alphaScrew), h_r["right"] / sin(alphaScrew)));
-
-		elif structure["opening"]["screwposition"] = "Bottom / Top" then
-
-			l_ad["left"] := evalf(min(ls - (h - h_r["left"]) / sin(alphaScrew), h_r["left"] / sin(alphaScrew)));
-			l_ad["right"] := evalf(min(ls - (h - h_r["right"]) / sin(alphaScrew), h_r["right"] / sin(alphaScrew)));
-
-		else
-
-			Alert(cat("Screw position ", structure["opening"]["screwposition"], " unknown"), warnings, 3);
-
-		end if;
 		
 		# check for screw length > 2 * l_ad see calculate_t
 
@@ -676,8 +688,6 @@ calculate_BeamWithOpening := proc(WhateverYouNeed::table)
 	WriteValueToComponent("tau_max", round2(tau_max, 1), {"nocheck"});	
 	WriteValueToComponent("tau_efd", round2(tau_efd, 1), {"nocheck"});
 	WriteValueToComponent("f_k1d", round2(f_k1d, 1), {"nocheck"});
-	WriteValueToComponent("l_adleft", round(l_ad["left"]), {"nocheck"});
-	WriteValueToComponent("l_adright", round(l_ad["right"]), {"nocheck"});
 
 end proc:
 
