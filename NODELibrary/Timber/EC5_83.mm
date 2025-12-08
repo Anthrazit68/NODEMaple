@@ -266,12 +266,12 @@ calculate_t := proc(WhateverYouNeed::table)
 
 			if t_pen < lmin then		# 8.3.1.2				
 				# Alert(cat("calculate_t: ", chosenFastener, " ", round(evalf(lmin - t_pen)), " too short"), warnings, 5);		# bug in round? https://mapleprimes.com/questions/241946-Bug-In-Round-With-Units?sq=241946
-				Alert(cat("calculate_t: ", chosenFastener, " ", round2(evalf(lmin - t_pen), 0), " too short"), warnings, 5);
+				Alert(cat("calculate_t: ", chosenFastener, " tpen < lmin, ", round2(evalf(lmin - t_pen), 0), " too short"), warnings, 5);
 				return
 
 			elif t_pen < evalf(min(entries(l_ad)) / sin(alphaScrew)) then		# limtreboka p. 92, min length screw >= 2 * l_ad
 
-				Alert(cat("calculate_t, beam with opening - screw too short, minimum length ", round(evalf(ls + min(entries(l_ad)) / sin(alphaScrew) - t_pen))), warnings, 4);
+				Alert(cat("beam with opening: tpen < l_ad, reduced capacity, minimum length ", round(evalf(ls + min(entries(l_ad)) / sin(alphaScrew) - t_pen))), warnings, 3);
 
 			end if;
 

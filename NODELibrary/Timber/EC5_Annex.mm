@@ -475,23 +475,23 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 	# calculate l_ad
 	if opening["reinforcement"] = "interior" then
 
-		l_ad := table();
+		l_ad := table();			# effective anchorage length of screw, limtreboka 5-8
 		openingResult["l_ad"] := l_ad;
 
 		if structure["opening"]["screwposition"] = "Top" then
 
-			l_ad["left"] := evalf(min(ls - (h - h_r["left"]) / sin(alphaScrew), h_r["left"] / sin(alphaScrew)));
-			l_ad["right"] := evalf(min(h_r["right"] / sin(alphaScrew), ls));			
+			l_ad["left"] := evalf(min(ls - (h - h_r["left"]) / sin(alphaScrew), h_r["left"] / sin(alphaScrew), (h - h_r["left"]) / sin(alphaScrew)));
+			l_ad["right"] := evalf(min(h_r["right"] / sin(alphaScrew), (ls - h_r["right"]) / sin(alphaScrew)));
 
 		elif structure["opening"]["screwposition"] = "Bottom" then
 
-			l_ad["left"] := evalf(min(h_r["left"] / sin(alphaScrew), ls));			
-			l_ad["right"] := evalf(min(ls - (h - h_r["right"]) / sin(alphaScrew), h_r["right"] / sin(alphaScrew)));
+			l_ad["left"] := evalf(min(h_r["left"] / sin(alphaScrew), (ls - h_r["left"]) / sin(alphaScrew)));
+			l_ad["right"] := evalf(min(ls - (h - h_r["right"]) / sin(alphaScrew), h_r["right"] / sin(alphaScrew), (h - h_r["right"]) / sin(alphaScrew)));
 
 		elif structure["opening"]["screwposition"] = "Bottom / Top" then
 
-			l_ad["left"] := evalf(min(ls - (h - h_r["left"]) / sin(alphaScrew), h_r["left"] / sin(alphaScrew)));
-			l_ad["right"] := evalf(min(ls - (h - h_r["right"]) / sin(alphaScrew), h_r["right"] / sin(alphaScrew)));
+			l_ad["left"] := evalf(min((ls - h_r["left"]) / sin(alphaScrew), h_r["left"] / sin(alphaScrew)));
+			l_ad["right"] := evalf(min((ls - h_r["right"]) / sin(alphaScrew), h_r["right"] / sin(alphaScrew)));
 
 		else
 
