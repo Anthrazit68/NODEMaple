@@ -86,8 +86,8 @@ calculate_t := proc(WhateverYouNeed::table)
 			t["2"] := h_r["right"]
 
 		elif structure["opening"]["screwposition"] = "Bottom / Top" then
-			t["1"] := min(entries(h_r)) / sin(alphaScrew);
-			t["2"] := evalf((h - max(entries(h_r))) / sin(alphaScrew));	# minimum thickness of part with tip, but along screw
+			t["1"] := min(entries(h_r));
+			t["2"] := evalf((h - max(entries(h_r))));	# minimum thickness of part with tip, but along screw
 
 		end if;
 		
@@ -233,21 +233,17 @@ calculate_t := proc(WhateverYouNeed::table)
 
 		if WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" and structure["opening"]["reinforcement"] = "interior" then
 
-			t_eff["1"] := t["1"];
-			t_eff["2"] := t["2"];
+			t_eff["1"] := evalf(min(t["1"] / sin(alphaScrew), ls));
+			t_eff["2"] := evalf(t["2"] / sin(alphaScrew));
 
 			if structure["opening"]["screwposition"] = "Top" then
-				t["1"] := evalf(h_r["right"] / sin(alphaScrew));			# minimum thickness of part with the head, but along screw (see EC5 fig. 8.8, limtreboka p. 206)
-				t_eff["1"] := evalf(min(h_r["right"] / sin(alphaScrew), ls));											# part with screw head, l_ad right side is minimum
-				t_eff["2"] := evalf(min(l_ad["left"] / sin(alphaScrew), ls - (h - l_ad["left"]) / sin(alphaScrew)));	# part with tip, l_ad left side is maximum
+				t_eff["2"] := evalf(min(t_eff["2"], ls - (h - h_r["left"]) / sin(alphaScrew)));	# part with tip, l_ad left side is maximum
 
 			elif structure["opening"]["screwposition"] = "Bottom" then
-				t_eff["1"] := evalf(min(l_ad["left"] / sin(alphaScrew), ls));											# part with screw head, l_ad left side is minimum
-				t_eff["2"] := evalf(min(l_ad["right"] / sin(alphaScrew), ls - (h - l_ad["right"]) / sin(alphaScrew)));	# part with tip, l_ad right side is maximum
+				t_eff["2"] := evalf(min(t_eff["2"], ls - (h - h_r["right"]) / sin(alphaScrew)));	# part with tip, l_ad right side is maximum
 
 			elif structure["opening"]["screwposition"] = "Bottom / Top" then
-				t_eff["1"] := evalf(min(t["1"], ls));
-				t_eff["2"] := evalf(min(t["2"], ls - max(entries(l_ad)) / sin(alphaScrew)));
+				t_eff["2"] := evalf(min(t["2"], ls - max(entries(h_r)) / sin(alphaScrew)));
 
 			else
 				Alert(cat("Screw position ", structure["opening"]["screwposition"], " unknown"), warnings, 3);
