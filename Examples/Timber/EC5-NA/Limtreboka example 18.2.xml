@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<database version = '2025-01' source_software = 'https://github.com/Anthrazit68/NODEMaple' created = '2025-11-06T21:32:32 CET'>
-  <projectdata client = 'NODEMaple' projectnumber = '7204.6' projecttitle = 'Limtreboka eksempel 18'/>
+<database version = '2025-01' source_software = 'https://github.com/Anthrazit68/NODEMaple' created = '2025-12-13T19:36:16 CET'>
+  <projectdata projecttitle = 'Limtreboka eksempel 18' projectnumber = '7204.6' client = 'NODEMaple'/>
   <materials>
     <timber>
       <material material = 'timber' name = 'GL 30c / Service class 1 / Medium-term' timbertype = 'Glued laminated timber' strengthclass = 'GL 30c' serviceclass = '1' loaddurationclass = 'Medium-term' gamma_M = '1.15' k_mod = '.80'>
@@ -31,16 +31,16 @@
   </sections>
   <calculations>
     <calculation calculationtype = 'Timber beam with opening'>
-      <calculation calculationtype = 'Timber beam with opening' positionnumber = '18' positiontitle = 'Forsterkning av bjelke med hull'>
-        <activesettings activeloadcase = 'right' activematerial = 'GL 30c / Service class 1 / Medium-term' activesection = 'Rectangular / 140x585'/>
+      <calculation calculationtype = 'Timber beam with opening' positionnumber = '18.2' positiontitle = 'Forsterkning av bjelke med hull 500x220'>
+        <activesettings activeloadcase = 'left' activematerial = 'GL 30c / Service class 1 / Medium-term' activesection = 'Rectangular / 140x585'/>
         <loadcases>
-          <loadcase name = 'left' F_axGk = '0' F_axQk = '0' F_axd = '0' F_hGk = '0' F_hQk = '0' F_hd = '0' F_vGk = 'false' F_vQk = 'false' F_vd = '64.5*Units:-Unit(kN)' M_yGk = 'false' M_yQk = 'false' M_yd = '39.3*Units:-Unit(kN*m)' loadcenter_x = '-80*Units:-Unit(mm)' loadcenter_y = '0'/>
-          <loadcase name = 'right' F_axGk = '0' F_axQk = '0' F_axd = '0' F_hGk = '0' F_hQk = '0' F_hd = '0' F_vGk = 'false' F_vQk = 'false' F_vd = '61*Units:-Unit(kN)' M_yGk = 'false' M_yQk = 'false' M_yd = '50.3*Units:-Unit(kN*m)' loadcenter_x = '80*Units:-Unit(mm)' loadcenter_y = '0'/>
+          <loadcase name = 'left' F_axGk = '0' F_axQk = '0' F_axd = '0' F_hGk = '0' F_hQk = '0' F_hd = '0' F_vGk = 'false' F_vQk = 'false' F_vd = '43*Units:-Unit(kN)' M_yGk = 'false' M_yQk = 'false' M_yd = '96.5*Units:-Unit(kN*m)' loadcenter_x = '-80*Units:-Unit(mm)' loadcenter_y = '0'/>
+          <loadcase name = 'right' F_axGk = '0' F_axQk = '0' F_axd = '0' F_hGk = '0' F_hQk = '0' F_hd = '0' F_vGk = 'false' F_vQk = 'false' F_vd = '32.8*Units:-Unit(kN)' M_yGk = 'false' M_yQk = 'false' M_yd = '115*Units:-Unit(kN*m)' loadcenter_x = '80' loadcenter_y = '0'/>
         </loadcases>
         <structure>
-          <opening opening_a = '175*Units:-Unit(mm)' opening_e = '0' opening_hd = '175*Units:-Unit(mm)' opening_lA = '560*Units:-Unit(mm)' opening_lv = '673*Units:-Unit(mm)' opening_lz = '0' opening_r = '75*Units:-Unit(mm)' openingtype = 'circular'/>
+          <opening opening_a = '500*Units:-Unit(mm)' opening_e = '0' opening_hd = '220*Units:-Unit(mm)' opening_lA = '1625*Units:-Unit(mm)' opening_lv = '1738*Units:-Unit(mm)' opening_lz = '0' opening_r = '40*Units:-Unit(mm)' openingtype = 'rectangular' reinforcement = 'interior' screwposition = 'Bottom / Top'/>
           <connection angleleft1 = '90*Units:-Unit(arcdeg)' angleright1 = '90*Units:-Unit(arcdeg)' connection1 = 'Timber' connection2 = 'Timber' cutleft1 = 'cut rect.' cutright1 = 'cut rect.' graindirection1 = '0' lengthleft1 = '500*Units:-Unit(mm)' lengthright1 = '500*Units:-Unit(mm)'/>
-          <fastener alphaScrew = '90*Units:-Unit(arcdeg)' calculateAsNail = 'false' chosenFastener = 'Screw' fastenerProduct = 'T-STAR plus WIROX' fastener_d = '10.0*Units:-Unit(mm)' fastener_dh = '19*Units:-Unit(mm)' fastener_ls = '500*Units:-Unit(mm)' nailForm = 'false' nailSurface = 'false' predrilled = 'false' fastenerProducer = 'SPAX' ignoreReqPredrilled = 'true'/>
+          <fastener alphaScrew = '90*Units:-Unit(arcdeg)' calculateAsNail = 'false' chosenFastener = 'Screw' fastenerProduct = 'T-STAR plus WIROX' fastener_d = '10.0*Units:-Unit(mm)' fastener_dh = '19*Units:-Unit(mm)' fastener_ls = '500*Units:-Unit(mm)' nailForm = 'false' nailSurface = 'false' predrilled = 'false' screwWithWasher = 'false' washerProducer = 'false' washerProduct = 'false' fastenerProducer = 'SPAX' ignoreReqPredrilled = 'true' numberOfFasteners = '1'/>
         </structure>
       </calculation>
     </calculation>

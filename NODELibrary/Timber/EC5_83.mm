@@ -75,19 +75,38 @@ calculate_t := proc(WhateverYouNeed::table)
 
 		t_total := h;
 
-		if structure["opening"]["screwposition"] = "Top" then
+		if structure["opening"]["reinforcement"] = "-" then
 
-			t["1"] := h_r["right"];
-			t["2"] := h_r["left"]
-
-		elif structure["opening"]["screwposition"] = "Bottom" then
-
-			t["1"] := h_r["left"];
-			t["2"] := h_r["right"]
-
-		elif structure["opening"]["screwposition"] = "Bottom / Top" then
 			t["1"] := min(entries(h_r));
 			t["2"] := evalf((h - max(entries(h_r))));	# minimum thickness of part with tip, but along screw
+
+			WriteValueToComponent("t1", round(t["1"]), {"nocheck"});
+			WriteValueToComponent("t2", round(t["2"]), {"nocheck"});
+			WriteValueToComponent("t_eff1", 0, {"nocheck"});
+			WriteValueToComponent("t_eff2", 0, {"nocheck"});
+			WriteValueToComponent("t_pen", 0, {"nocheck"});
+
+			fastenervalues["t"] := eval(t);
+			return;
+
+		elif structure["opening"]["reinforcement"] = "interior" then
+
+			if structure["opening"]["screwposition"] = "Top" then
+
+				t["1"] := h_r["right"];
+				t["2"] := h_r["left"]
+
+			elif structure["opening"]["screwposition"] = "Bottom" then
+
+				t["1"] := h_r["left"];
+				t["2"] := h_r["right"]
+
+			elif structure["opening"]["screwposition"] = "Bottom / Top" then
+
+				t["1"] := min(entries(h_r));
+				t["2"] := evalf((h - max(entries(h_r))));	# minimum thickness of part with tip, but along screw
+
+			end if;		
 
 		end if;
 		
