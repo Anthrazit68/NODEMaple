@@ -551,6 +551,7 @@ PlotResults := proc(WhateverYouNeed::table)
 
 			# opening
 			if assigned(WhateverYouNeed["calculations"]["structure"]["opening"]) then
+
 				local opening, openingResult, cracklength, CrackLeft, CrackRight, a, hd, e, alphaScrew, a3c_min_max, ls, h_r;
 
 				opening := WhateverYouNeed["calculations"]["structure"]["opening"];
@@ -563,14 +564,57 @@ PlotResults := proc(WhateverYouNeed::table)
 #				lA := opening["opening_lA"];
 #				lz := opening["opening_lz"];
 
+				# draw opening
 				if opening["openingtype"] = "circular" then
+
 					geometry:-circle('OPENING', [geometry:-point('POpening', [0, e]), a/2]);
 					openingOutline := disk([0, e], a/2, 'color' = "black");
 
 					# openingOutline := [op(openingOutline), OPENING];
 					# graphicsElements["opening"] := openingOutline;
 					# geometryList := [op(geometryList), OPENING('color' = "black")];
-					if openingResult["cracked"] then
+
+				elif opening["openingtype"] = "rectangular" then
+
+					r := convert(opening["opening_r"], 'unit_free');
+					hd := convert(opening["opening_hd"], 'unit_free');
+
+					if r = 0 then
+						geometry:-point('P3', [-a/2, -hd/2]);
+						# geometry:-point('P2', [-a/2, hd/2]);
+						geometry:-point('P1', [a/2, hd/2]);
+						# geometry:-point('P4', [-/2, -hd/2]);
+						openingOutline := polygonplot(Matrix([[-a/2, -hd/2], [-a/2, hd/2], [a/2, hd/2], [a/2, -hd/2]], datatype = float), 'color' = "black")
+
+					else
+						geometry:-point('P3', [-a/2 + r, -hd/2]);
+						# geometry:-point('P2', [-a/2, hd/2]);
+						geometry:-point('P1', [a/2 - r, hd/2]);
+						# geometry:-point('P4', [-/2, -hd/2]);
+
+						local step_size, arc_points, t;
+						arc_points := table();
+
+						# Define a variable for the step size, ensuring it's a numeric float.
+						step_size := evalf(Pi/180):
+
+						# Define points for the arc, using the pre-calculated step_size.
+						arc_points[1] := [seq([evalf(a/2 - r + r*cos(t)), evalf(hd/2 - r + r*sin(t))], t = 0 .. evalf(Pi/2), step_size)];
+						arc_points[2] := [seq([evalf((-a/2 + r) + r*cos(t)), evalf(hd/2 - r + r*sin(t))], t = evalf(Pi/2) .. evalf(Pi), step_size)];
+						arc_points[3] := [seq([evalf((-a/2 + r) + r*cos(t)), evalf((-hd/2 + r) + r*sin(t))], t = evalf(Pi) .. evalf((3*Pi)/2), step_size)];
+						arc_points[4] := [seq([evalf(a/2 - r + r*cos(t)), evalf((-hd/2 + r) + r*sin(t))], t = evalf((3*Pi)/2) .. evalf(2*Pi), step_size)];
+
+						# Plot the shape with a yellow fill.
+						openingOutline := polygonplot([op(arc_points[1]), op(arc_points[2]), op(arc_points[3]), op(arc_points[4])], color = "white");
+					end if;
+
+				end if;
+
+				# draw crackline				
+				if openingResult["cracked"] then
+
+					if opening["openingtype"] = "circular" then
+
 						# l_ad := convert~(openingResult["l_ad"], 'unit_free');		
 
 						# point on crack line left and right side of opening
@@ -599,16 +643,37 @@ PlotResults := proc(WhateverYouNeed::table)
 						# draw crackline						
 						geometry:-segment('CrackLeft', PCL[2], PCLE);
 						geometry:-segment('CrackRight', PCR[1], PCRE);
+						
+					elif opening["openingtype"] = "rectangular" then		
 
-						# plot items
-						# geometryList := [op(geometryList), openingOutline];
-						geometryList := [op(geometryList), CrackLeft('color' = "coral", 'linestyle' = 'longdash')];
-						geometryList := [op(geometryList), CrackRight('color' = "coral", 'linestyle' = 'longdash')];
+						# end points of crack
+						cracklength := max(a/2, 100);				# for visualization, let's start with that
+
+						x := geometry:-coordinates(P3)[1] - cracklength * cos(alpha["1"]);
+						y := geometry:-coordinates(P3)[2] - cracklength * sin(alpha["1"]);
+						geometry:-point('PCLE', [x, y]);
+
+						x := geometry:-coordinates(P1)[1] + cracklength * cos(alpha["1"]);
+						y := geometry:-coordinates(P1)[2] + cracklength * sin(alpha["1"]);
+						geometry:-point('PCRE', [x, y]);
+
+						# draw crackline						
+						geometry:-segment('CrackLeft', P3, PCLE);
+						geometry:-segment('CrackRight', P1, PCRE);
 
 					end if;
 
-					# draw screws
-					if opening["reinforcement"] = "interior" then			
+					# plot items
+					# geometryList := [op(geometryList), openingOutline];
+					geometryList := [op(geometryList), CrackLeft('color' = "coral", 'linestyle' = 'longdash')];
+					geometryList := [op(geometryList), CrackRight('color' = "coral", 'linestyle' = 'longdash')];
+
+				end if;
+
+				# draw screws
+				if opening["reinforcement"] = "interior" then
+
+					if opening["openingtype"] = "circular" then
 
 						# plot fastener
 						alphaScrew := structure["fastener"]["alphaScrew"];	# inclination of fastener
@@ -620,9 +685,9 @@ PlotResults := proc(WhateverYouNeed::table)
 
 						geometry:-circle('CircleOnFastener', [geometry:-point(POpening, 0, e), a/2 + a3c_min_max]);		# circle where fastener tangent
 						geometry:-point('FastenerOnCircleLeft', [geometry:-coordinates(POpening)[1] - (a/2 + a3c_min_max) * sin(alphaScrew),
-																 geometry:-coordinates(POpening)[2] - (a/2 + a3c_min_max) * cos(alphaScrew)]);
+																	geometry:-coordinates(POpening)[2] - (a/2 + a3c_min_max) * cos(alphaScrew)]);
 						geometry:-point('FastenerOnCircleRight', [geometry:-coordinates(POpening)[1] + (a/2 + a3c_min_max) * sin(alphaScrew),
-																 geometry:-coordinates(POpening)[2] + (a/2 + a3c_min_max) * cos(alphaScrew)]);
+																	geometry:-coordinates(POpening)[2] + (a/2 + a3c_min_max) * cos(alphaScrew)]);
 
 						# line through both points
 						geometry:-line('LineThroughFasteners', [FastenerOnCircleLeft, FastenerOnCircleRight]);
@@ -631,80 +696,83 @@ PlotResults := proc(WhateverYouNeed::table)
 						geometry:-PerpendicularLine('FastenerLineLeft', FastenerOnCircleLeft, LineThroughFasteners);
 						geometry:-PerpendicularLine('FastenerLineRight', FastenerOnCircleRight, LineThroughFasteners);
 
-						# point where head is
-						if structure["opening"]["screwposition"] = "Top" then
-							geometry:-intersection('HeadLeft', FastenerLineLeft, BLL1);
-							geometry:-intersection('HeadRight', FastenerLineRight, BLL1);
+					elif opening["openingtype"] = "rectangular" then
 
-						elif structure["opening"]["screwposition"] = "Bottom" then
-							geometry:-intersection('HeadLeft', FastenerLineLeft, BLR1);
-							geometry:-intersection('HeadRight', FastenerLineRight, BLR1);
+						# plot fastener
+						alphaScrew := structure["fastener"]["alphaScrew"];	# inclination of fastener
 
-						elif structure["opening"]["screwposition"] = "Bottom / Top" then
-							geometry:-intersection('HeadLeft', FastenerLineLeft, BLR1);
-							geometry:-intersection('HeadRight', FastenerLineRight, BLL1);
+						# a3c values different from usual formula from EC5 (usually 7*d)
+						# a3c_min_max := convert(WhateverYouNeed["calculatedvalues"]["distance"]["a3c_min_max1"], 'unit_free');
+						# 2.5d <= a3c <= 4*d
+						a3c_min_max := 3 * convert(structure["fastener"]["fastener_d"], 'unit_free');
 
-						else
-							Alert(cat("Screw position ", structure["opening"]["screwposition"], " unknown"), warnings, 3);
+						geometry:-circle('CircleOnFastenerLeft', [geometry:-point('P3C', [-a/2 + r, -hd/2 + r]), r + a3c_min_max]);		# circle where fastener tangent
+						geometry:-circle('CircleOnFastenerRight', [geometry:-point('P1C', [a/2 - r, hd/2 - r]), r + a3c_min_max]);		# circle where fastener tangent
 
-						end if;
+						geometry:-point('FastenerOnCircleLeft', [geometry:-coordinates(P3C)[1] - (r + a3c_min_max) * sin(alphaScrew),
+																 geometry:-coordinates(P3C)[2] - (r + a3c_min_max) * cos(alphaScrew)]);
 
-						# tip ends
-						if structure["opening"]["screwposition"] = "Top" then
-							geometry:-point('TipLeft', [geometry:-coordinates(HeadLeft)[1] + ls * cos(alphaScrew), geometry:-coordinates(HeadLeft)[2] - ls * sin(alphaScrew)]);
-							geometry:-point('TipRight', [geometry:-coordinates(HeadRight)[1] + ls * cos(alphaScrew), geometry:-coordinates(HeadRight)[2] - ls * sin(alphaScrew)]);
+						geometry:-point('FastenerOnCircleRight', [geometry:-coordinates(P1C)[1] + (r + a3c_min_max) * sin(alphaScrew),
+																 geometry:-coordinates(P1C)[2] + (r + a3c_min_max) * cos(alphaScrew)]);
 
+						# line through both points
+						geometry:-line('LineThroughFastenerLeft', [FastenerOnCircleLeft, P3C]);
+						geometry:-line('LineThroughFastenerRight', [FastenerOnCircleRight, P1C]);
 
-						elif structure["opening"]["screwposition"] = "Bottom" then
-							geometry:-point('TipLeft', [geometry:-coordinates(HeadLeft)[1] - ls * cos(alphaScrew), geometry:-coordinates(HeadLeft)[2] + ls * sin(alphaScrew)]);
-							geometry:-point('TipRight', [geometry:-coordinates(HeadRight)[1] - ls * cos(alphaScrew), geometry:-coordinates(HeadRight)[2] + ls * sin(alphaScrew)]);
-
-
-						elif structure["opening"]["screwposition"] = "Bottom / Top" then
-							geometry:-point('TipLeft', [geometry:-coordinates(HeadLeft)[1] - ls * cos(alphaScrew), geometry:-coordinates(HeadLeft)[2] + ls * sin(alphaScrew)]);
-							geometry:-point('TipRight', [geometry:-coordinates(HeadRight)[1] + ls * cos(alphaScrew), geometry:-coordinates(HeadRight)[2] - ls * sin(alphaScrew)]);
-
-						else
-							Alert(cat("Screw position ", structure["opening"]["screwposition"], " unknown"), warnings, 3);
-
-						end if;
-
-						# draw segment
-						geometry:-segment('FastenerLeft', HeadLeft, TipLeft);
-						geometry:-segment('FastenerRight', HeadRight, TipRight);
-
-						# add to plot
-						geometryList := [op(geometryList), FastenerLeft('color' = "black", 'linestyle' = 'solid')];
-						geometryList := [op(geometryList), FastenerRight('color' = "black", 'linestyle' = 'solid')];
+						# fasteners
+						geometry:-PerpendicularLine('FastenerLineLeft', FastenerOnCircleLeft, LineThroughFastenerLeft);
+						geometry:-PerpendicularLine('FastenerLineRight', FastenerOnCircleRight, LineThroughFastenerRight);
 
 					end if;
 
-				elif opening["openingtype"] = "rectangular" then
+					# point where head is
+					if structure["opening"]["screwposition"] = "Top" then
+						geometry:-intersection('HeadLeft', FastenerLineLeft, BLL1);
+						geometry:-intersection('HeadRight', FastenerLineRight, BLL1);
 
-					r := convert(opening["opening_r"], 'unit_free');
-					hd := convert(opening["opening_hd"], 'unit_free');
+					elif structure["opening"]["screwposition"] = "Bottom" then
+						geometry:-intersection('HeadLeft', FastenerLineLeft, BLR1);
+						geometry:-intersection('HeadRight', FastenerLineRight, BLR1);
 
-					if r = 0 then
-						openingOutline := polygonplot(Matrix([[-a/2, -hd/2], [-a/2, hd/2], [a/2, hd/2], [a/2, -hd/2]], datatype = float), 'color' = "black")
+					elif structure["opening"]["screwposition"] = "Bottom / Top" then
+						geometry:-intersection('HeadLeft', FastenerLineLeft, BLR1);
+						geometry:-intersection('HeadRight', FastenerLineRight, BLL1);
 
 					else
-						local step_size, arc_points, t;
-						arc_points := table();
+						Alert(cat("Screw position ", structure["opening"]["screwposition"], " unknown"), warnings, 3);
 
-						# Define a variable for the step size, ensuring it's a numeric float.
-						step_size := evalf(Pi/180):
-
-						# Define points for the arc, using the pre-calculated step_size.
-						arc_points[1] := [seq([evalf(a/2 - r + r*cos(t)), evalf(hd/2 - r + r*sin(t))], t = 0 .. evalf(Pi/2), step_size)];
-						arc_points[2] := [seq([evalf((-a/2 + r) + r*cos(t)), evalf(hd/2 - r + r*sin(t))], t = evalf(Pi/2) .. evalf(Pi), step_size)];
-						arc_points[3] := [seq([evalf((-a/2 + r) + r*cos(t)), evalf((-hd/2 + r) + r*sin(t))], t = evalf(Pi) .. evalf((3*Pi)/2), step_size)];
-						arc_points[4] := [seq([evalf(a/2 - r + r*cos(t)), evalf((-hd/2 + r) + r*sin(t))], t = evalf((3*Pi)/2) .. evalf(2*Pi), step_size)];
-
-						# Plot the shape with a yellow fill.
-						openingOutline := polygonplot([op(arc_points[1]), op(arc_points[2]), op(arc_points[3]), op(arc_points[4])], color = "white");
 					end if;
 
+					# tip ends
+					if structure["opening"]["screwposition"] = "Top" then
+						geometry:-point('TipLeft', [geometry:-coordinates(HeadLeft)[1] + ls * cos(alphaScrew), geometry:-coordinates(HeadLeft)[2] - ls * sin(alphaScrew)]);
+						geometry:-point('TipRight', [geometry:-coordinates(HeadRight)[1] + ls * cos(alphaScrew), geometry:-coordinates(HeadRight)[2] - ls * sin(alphaScrew)]);
+
+
+					elif structure["opening"]["screwposition"] = "Bottom" then
+						geometry:-point('TipLeft', [geometry:-coordinates(HeadLeft)[1] - ls * cos(alphaScrew), geometry:-coordinates(HeadLeft)[2] + ls * sin(alphaScrew)]);
+						geometry:-point('TipRight', [geometry:-coordinates(HeadRight)[1] - ls * cos(alphaScrew), geometry:-coordinates(HeadRight)[2] + ls * sin(alphaScrew)]);
+
+
+					elif structure["opening"]["screwposition"] = "Bottom / Top" then
+						geometry:-point('TipLeft', [geometry:-coordinates(HeadLeft)[1] - ls * cos(alphaScrew), geometry:-coordinates(HeadLeft)[2] + ls * sin(alphaScrew)]);
+						geometry:-point('TipRight', [geometry:-coordinates(HeadRight)[1] + ls * cos(alphaScrew), geometry:-coordinates(HeadRight)[2] - ls * sin(alphaScrew)]);
+
+					else
+						Alert(cat("Screw position ", structure["opening"]["screwposition"], " unknown"), warnings, 3);
+
+					end if;
+
+					# draw segment
+					geometry:-segment('FastenerLeft', HeadLeft, TipLeft);
+					geometry:-segment('FastenerRight', HeadRight, TipRight);
+
+					# add to plot
+					geometryList := [op(geometryList), FastenerLeft('color' = "black", 'linestyle' = 'solid')];
+					geometryList := [op(geometryList), FastenerRight('color' = "black", 'linestyle' = 'solid')];
+	
 				end if;
+
 			end if;
 
 			if CheckPointInPolygon(WhateverYouNeed) then		# check if fasteners are inside of parts
