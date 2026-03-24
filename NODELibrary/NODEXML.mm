@@ -491,8 +491,9 @@
 		# there can be multiple items in the list
 		# [["material", "timber", "name"]]
 	
-
-		xmltree := CleanXML(ParseFile(afilename, prolog = true));	# https://www.mapleprimes.com/questions/230537-XMLTools--FirstChild
+		# https://www.mapleprimes.com/questions/230537-XMLTools--FirstChild
+		# https://mapleprimes.com/questions/242325-Bug-In-XMLToolsParseFile			prolog = true does not work anymore from Maple 2026
+		xmltree := CleanXML(ParseFile(afilename));
 
 		# .xsd file check - unsure if it is working yet
 		# https://www.mapleprimes.com/questions/239423-XMLTools--Validate--Schema-Location?sq=239423
