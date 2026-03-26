@@ -112,13 +112,13 @@ EC5_623 := proc(WhateverYouNeed::table)
 end proc:
 
 
-# 6.2.4/6.3.2 Combined bending and axial tension / compression
+# 6.2.4/6.3.2 Combined bending and axial compression
 EC5_624 := proc(WhateverYouNeed::table, k_cy, k_cz)
-	description "6.2.4/6.3.2 Combined bending and axial tension / compression";
-	local A, W_y, W_z, F_xd, M_yd, M_zd, sigma_c0d, sigma_myd, sigma_mzd, km, eta, usedcode, comments, f_c0d, f_md, loadcase;
+	description "6.2.4/6.3.2 Combined bending and axial compression";
+	local A, W_y, W_z, F_xd, M_yd, M_zd, sigma_c0d, sigma_myd, sigma_mzd, km, eta_, usedcode, comments, f_c0d, f_md, loadcase;
 
 	# define local variables
-	eta := WhateverYouNeed["results"]["eta"];
+	eta_ := table();
 	f_c0d := WhateverYouNeed["materialdata"]["f_c0d"];
 	f_md := WhateverYouNeed["materialdata"]["f_md"];
 
@@ -138,10 +138,10 @@ EC5_624 := proc(WhateverYouNeed::table, k_cy, k_cz)
 	sigma_myd := convert(M_yd / W_y, 'units', 'N'/'mm^2');
 	sigma_mzd := convert(M_zd / W_z, 'units', 'N'/'mm^2');
 
-	eta["619"] := max((sigma_c0d / f_c0d)^2 + sigma_myd / (f_md * kh("h", WhateverYouNeed)) + km * sigma_mzd / (f_md * kh("b", WhateverYouNeed)),
+	eta_["619"] := max((sigma_c0d / f_c0d)^2 + sigma_myd / (f_md * kh("h", WhateverYouNeed)) + km * sigma_mzd / (f_md * kh("b", WhateverYouNeed)),
 	               (sigma_c0d / f_c0d)^2 + km * sigma_myd / (f_md * kh("h", WhateverYouNeed)) + sigma_mzd / (f_md * kh("h", WhateverYouNeed)));	# (6.19), (6.20)
 	               
-	eta["623"] := max(sigma_c0d / (k_cy * f_c0d) + sigma_myd / (f_md * kh("h", WhateverYouNeed)) + km * sigma_mzd / (f_md * kh("b", WhateverYouNeed)),
+	eta_["623"] := max(sigma_c0d / (k_cy * f_c0d) + sigma_myd / (f_md * kh("h", WhateverYouNeed)) + km * sigma_mzd / (f_md * kh("b", WhateverYouNeed)),
 	               sigma_c0d / (k_cz * f_c0d) + km * sigma_myd / (f_md * kh("h", WhateverYouNeed)) + sigma_mzd / (f_md * kh("b", WhateverYouNeed)));	# (6.23), (6.24)
 
 	# if ComponentExists("TextArea_eta_619") and ComponentExists("TextArea_eta_623") then
@@ -162,5 +162,5 @@ EC5_624 := proc(WhateverYouNeed::table, k_cy, k_cz)
 		usedcode := "6.3.2";
 		comments := "Columns subjected to either compression or combined compression and bending";
 	end if;
-	return max(eta["619"], eta["623"]), usedcode, comments
+	return max(eta_["619"], eta_["623"]), usedcode, comments
 end proc:
