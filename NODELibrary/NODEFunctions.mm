@@ -14,6 +14,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+# 2025-10-20: adding version numbering
+version := "1.0.0";
+
 #============================================================
 # Maple mangler forel�pig funksjoner for runding
 # https://www.mapleprimes.com/questions/229309-Round-Function
@@ -212,93 +215,98 @@ WriteValueToComponent := proc(compvariable::string, b, check_calculations::set)
 
 	componentvalue := b;		# need to copy that to a local variable, as we need to strip value of units
 
-	if type(componentvalue, 'with_unit') then
-		componentvalue := convert(componentvalue, 'unit_free')
-	end if;
-
-	if ComponentExists(cat("TextArea_", compvariable)) then
-		if componentvalue = "false" or componentvalue = false then
-			SetProperty(cat("TextArea_", compvariable), 'enabled', "false");
-		else
-			SetProperty(cat("TextArea_", compvariable), 'value', componentvalue);
-			SyncSliderWithTextArea(compvariable)		# there could be a slider to be adjusted as well
+	# 2025-09-21, add MathContainer check before rest
+	if ComponentExists(cat("MathContainer_", compvariable)) then
+		SetProperty(cat("MathContainer_", compvariable), 'value', componentvalue);
+	else
+		if type(componentvalue, 'with_unit') then
+			componentvalue := convert(componentvalue, 'unit_free')
 		end if;
-		if checkvar then
-			upd_check_calculations := upd_check_calculations minus {compvariable};
-		end if;
-
-	# ComboBox with predefined values
-	elif ComponentExists(cat("ComboBox_", compvariable)) then
-		foundvalue := ListTools:-Search(convert(componentvalue, string), DocumentTools:-GetProperty(cat("ComboBox_", compvariable), 'itemList'));		# need to convert to string
-		if foundvalue > 0 then
-			SetProperty(cat("ComboBox_", compvariable), 'enabled', "true");
-			SetProperty(cat("ComboBox_", compvariable), 'selectedindex', foundvalue - 1);
+	
+		if ComponentExists(cat("TextArea_", compvariable)) then
+			if componentvalue = "false" or componentvalue = false then
+				SetProperty(cat("TextArea_", compvariable), 'enabled', "false");
+			else
+				SetProperty(cat("TextArea_", compvariable), 'value', componentvalue);
+				SyncSliderWithTextArea(compvariable)		# there could be a slider to be adjusted as well
+			end if;
 			if checkvar then
 				upd_check_calculations := upd_check_calculations minus {compvariable};
 			end if;
-		else
-			if componentvalue = "false" or componentvalue = false then
-				SetProperty(cat("ComboBox_", compvariable), 'enabled', "false");
-				if checkvar then
-					upd_check_calculations := upd_check_calculations minus {compvariable};
-				end if;
-			else
-				Alert(cat("ComboBox_", compvariable, ": no value found ", componentvalue), table(), 1)
-			end if;
-		end if;
 
-	elif ComponentExists(cat("CheckBox_", compvariable)) then
-		SetProperty(cat("CheckBox_", compvariable), 'value', componentvalue);
-		if checkvar then
-			upd_check_calculations := upd_check_calculations minus {compvariable};
-		end if;
-
-	# contrary to other fields, slider values must be numeric, not string!
-	elif ComponentExists(cat("Slider_", compvariable)) then
-		if type(componentvalue, string) then
-			SetProperty(cat("Slider_", compvariable), 'value', parse(componentvalue))
-		elif type(componentvalue, numeric) then
-			SetProperty(cat("Slider_", compvariable), 'value', componentvalue)
-		elif type(componentvalue, with_unit) then
-			SetProperty(cat("Slider_", compvariable), 'value', convert(componentvalue, 'unit_free'))
-		else
-			Alert("Can't set value to slider component", table(), 1)
-		end if;
-		if checkvar then
-			upd_check_calculations := upd_check_calculations minus {compvariable};
-		end if;
-
-	elif ComponentExists(compvariable) then			# some variables are defined with componentsettings
-		if searchtext("ComboBox", compvariable) = 1 then
-			foundvalue := ListTools:-Search(componentvalue, DocumentTools:-GetProperty(compvariable, 'itemList'));
+		# ComboBox with predefined values
+		elif ComponentExists(cat("ComboBox_", compvariable)) then
+			foundvalue := ListTools:-Search(convert(componentvalue, string), DocumentTools:-GetProperty(cat("ComboBox_", compvariable), 'itemList'));		# need to convert to string
 			if foundvalue > 0 then
-				SetProperty(compvariable, 'enabled', "true");
-				SetProperty(compvariable, 'selectedindex', foundvalue - 1);
+				SetProperty(cat("ComboBox_", compvariable), 'enabled', "true");
+				SetProperty(cat("ComboBox_", compvariable), 'selectedindex', foundvalue - 1);
 				if checkvar then
 					upd_check_calculations := upd_check_calculations minus {compvariable};
 				end if;
 			else
 				if componentvalue = "false" or componentvalue = false then
-					DocumentTools:-SetProperty(compvariable, 'enabled', "false");
+					SetProperty(cat("ComboBox_", compvariable), 'enabled', "false");
+					if checkvar then
+						upd_check_calculations := upd_check_calculations minus {compvariable};
+					end if;
+				elif checkvar then
+					Alert(cat("ComboBox_", compvariable, ": no value found ", componentvalue), table(), 1)
+				end if;
+			end if;
+
+		elif ComponentExists(cat("CheckBox_", compvariable)) then
+			SetProperty(cat("CheckBox_", compvariable), 'value', componentvalue);
+			if checkvar then
+				upd_check_calculations := upd_check_calculations minus {compvariable};
+			end if;
+
+		# contrary to other fields, slider values must be numeric, not string!
+		elif ComponentExists(cat("Slider_", compvariable)) then
+			if type(componentvalue, string) then
+				SetProperty(cat("Slider_", compvariable), 'value', parse(componentvalue))
+			elif type(componentvalue, numeric) then
+				SetProperty(cat("Slider_", compvariable), 'value', componentvalue)
+			elif type(componentvalue, with_unit) then
+				SetProperty(cat("Slider_", compvariable), 'value', convert(componentvalue, 'unit_free'))
+			else
+				Alert("Can't set value to slider component", table(), 1)
+			end if;
+			if checkvar then
+				upd_check_calculations := upd_check_calculations minus {compvariable};
+			end if;
+
+		elif ComponentExists(compvariable) then			# some variables are defined with componentsettings
+			if searchtext("ComboBox", compvariable) = 1 then
+				foundvalue := ListTools:-Search(componentvalue, DocumentTools:-GetProperty(compvariable, 'itemList'));
+				if foundvalue > 0 then
+					SetProperty(compvariable, 'enabled', "true");
+					SetProperty(compvariable, 'selectedindex', foundvalue - 1);
 					if checkvar then
 						upd_check_calculations := upd_check_calculations minus {compvariable};
 					end if;
 				else
-					Alert(cat(compvariable, ": value not found ", componentvalue), table(), 1)
+					if componentvalue = "false" or componentvalue = false then
+						DocumentTools:-SetProperty(compvariable, 'enabled', "false");
+						if checkvar then
+							upd_check_calculations := upd_check_calculations minus {compvariable};
+						end if;
+					elif checkvar then
+						Alert(cat(compvariable, ": value not found ", componentvalue), table(), 1)
+					end if;
 				end if;
-			end if;
-		elif searchtext("CheckBox", compvariable) = 1 then
-			DocumentTools:-SetProperty(compvariable, 'value', componentvalue);
-			if checkvar then
-				upd_check_calculations := upd_check_calculations minus {compvariable};
-			end if;
+			elif searchtext("CheckBox", compvariable) = 1 then
+				DocumentTools:-SetProperty(compvariable, 'value', componentvalue);
+				if checkvar then
+					upd_check_calculations := upd_check_calculations minus {compvariable};
+				end if;
+			elif checkvar then
+				Alert(cat("No component found for ", compvariable), table(), 1)
+			end if
+		
 		else
-			Alert(cat("No component found for ", compvariable), table(), 1)
-		end if
-	
-	else
-		if componentvalue <> "" then
-			Alert(cat("No component found for ", compvariable), table(), 1)
+			if componentvalue <> "" and checkvar then
+				Alert(cat("No component found for ", compvariable), table(), 1)
+			end if;
 		end if;
 	end if;
 
@@ -752,6 +760,18 @@ ReadComponentsCommon := proc(action::string, WhateverYouNeed::table)
 		end if;
 	end if;
 
+	# ShowErrorsDuringReadin
+	if action = "all" then
+		if ComponentExists("CheckBox_ShowErrorsDuringReadin") then
+			if GetProperty("CheckBox_ShowErrorsDuringReadin", 'value') = "true" then
+				calculations["ShowErrorsDuringReadin"] := true
+			else
+				calculations["ShowErrorsDuringReadin"] := false
+			end if
+		end if;
+	end if;
+
+	# loadcases
 	if action = "calculateAllLoadcases" or ComponentExists("Button_calculateAllLoadcases") = false then
 		WhateverYouNeed["calculateAllLoadcases"] := true
 	else
@@ -798,13 +818,16 @@ ReadComponentsCommon := proc(action::string, WhateverYouNeed::table)
 		loadcases := table();
 		WhateverYouNeed["calculations"]["loadcases"] := eval(loadcases);	# https://www.mapleprimes.com/questions/235292-Store-Values-Between-Sessions-Including
 		activeloadcase := "1";
+
 		if ComponentExists("ComboBox_loadcases") then
 			SetProperty("ComboBox_loadcases", 'itemList', [activeloadcase]);
 			SetProperty("ComboBox_loadcases", 'selectedindex', 0)
 		end if;
+
 		if ComponentExists("TextArea_activeloadcase") then
 			SetProperty("TextArea_activeloadcase", 'value', activeloadcase)
 		end if;
+
 		for i in loadvariables do
 			dummy := cat("TextArea_", i);
 			if ComponentExists(dummy) then
@@ -814,8 +837,13 @@ ReadComponentsCommon := proc(action::string, WhateverYouNeed::table)
 				dummy := cat("Slider_", i);
 				SetProperty(dummy, 'enabled', true);
 				SetProperty(dummy, 'value', 0);
+			elif ComponentExists(cat("ComboBox_", i)) then
+				dummy := cat("ComboBox_", i);
+				SetProperty(dummy, 'enabled', true);
+				SetProperty(dummy, 'selectedindex', 0);
 			end if;
 		end do;
+
 		CalculateLoads(activeloadcase, true, "verify", WhateverYouNeed);
 	end if;
 
@@ -912,6 +940,7 @@ ModifyLoadcases := proc(combobox::string, action::string, variables::set, loadca
 			loadcase["name"] := activeloadcase;
 			
 			for i in variables do
+
 				if ComponentExists(cat("TextArea_", i)) then
 					dummy := cat("TextArea_", i);
 					if GetProperty(dummy, 'enabled') = "true" then
@@ -953,11 +982,18 @@ ModifyLoadcases := proc(combobox::string, action::string, variables::set, loadca
 				elif ComponentExists(cat("Slider_", i)) then
 					dummy := cat("Slider_", i);
 					loadcase[i] := GetProperty(dummy, value) * Unit('degree');
+
+				elif ComponentExists(cat("ComboBox_", i)) then
+					dummy := cat("ComboBox_", i);
+					loadcase[i] := GetProperty(dummy, value);
+
 				end if;
 			end do;
 			loadcases[activeloadcase] := eval(loadcase);
+
 		else
 			Alert(cat("Missing loadname ", activeloadcase), table(), 1);
+
 		end if;
 		
 	elif action = "Delete" then
@@ -1057,8 +1093,8 @@ end proc:
 
 CalculateLoads := proc(loadcase::string, loadsaving::boolean, action::string, WhateverYouNeed::table)
 	description "Calculate loads from components";
-	local i, val, gamma_G, gamma_Q, loadvariablesShort, load_Gk, load_Qk, load_d, load_d_calculated, loadcase_Gk, loadcase_Qk, loadcase_d, definedCharacteristic, nonloads;
-	local loadcases, loadvariables, warnings;
+	local i, val, gamma_G, gamma_Q, loadvariablesShort, load_Gk, load_Qk, load_d, load_d_calculated, loadcase_Gk, loadcase_Qk, loadcase_d, definedCharacteristic,
+	 	nonloads, loadcases, loadvariables, warnings;
 
 	loadcases := WhateverYouNeed["calculations"]["loadcases"];
 	loadvariables := WhateverYouNeed["calculations"]["loadvariables"];
@@ -1405,6 +1441,7 @@ WriteLoadsToDocument := proc(loadcase, WhateverYouNeed::table)
 	SetProperty("TextArea_activeloadcase", 'value', loadcase);
 
 	for i in loadvariables do
+
 		if ComponentExists(cat("TextArea_", i)) then
 			dummy := cat("TextArea_", i);	
 			if assigned(loadcases[loadcase][i]) then
@@ -1422,8 +1459,13 @@ WriteLoadsToDocument := proc(loadcase, WhateverYouNeed::table)
 	
 		elif ComponentExists(cat("Slider_", i)) then
 			SetProperty(cat("Slider_", i), 'value', convert(loadcases[loadcase][i], 'unit_free'));		
+
+		elif ComponentExists(cat("ComboBox_", i)) then
+			WriteValueToComponent(i, loadcases[loadcase][i], {"nocheck"});
+
 		else
 			Alert(cat("Error in WriteLoadsToDocument with ", i), WhateverYouNeed["warnings"], 5)
+
 		end if;
 	end do;
 
@@ -1473,13 +1515,17 @@ ExcelFileInOut := proc(action::string, WhateverYouNeed::table) :: string;
 
 	# template
 	if action = "template" or action = "export" then
+
 		if assigned(WhateverYouNeed["calculations"]["loadvariables"]) then
+
 			loadvariables := eval(WhateverYouNeed["calculations"]["loadvariables"]);
 			cellvalue := Vector[row](numelems(loadvariables)+4);
 			cellvalue(1) := "Loadcase";
+
 			for i from 1 to numelems(loadvariables) do
 				cellvalue(i+1) := loadvariables[i]
 			end do;
+
 			if action = "export" then
 				cellvalue(numelems(loadvariables)+2) := "eta";
 				cellvalue(numelems(loadvariables)+3) := "codecheck";
@@ -1489,7 +1535,9 @@ ExcelFileInOut := proc(action::string, WhateverYouNeed::table) :: string;
 				cellvalue(numelems(loadvariables)+3) := "";
 				cellvalue(numelems(loadvariables)+4) := "";
 			end if;
+
 			ExcelTools:-Export(cellvalue, filename,	WhateverYouNeed["calculations"]["calculationtype_short"]);
+
 		end if;
 
 		# Fastener Group coordinate export
@@ -1505,7 +1553,9 @@ ExcelFileInOut := proc(action::string, WhateverYouNeed::table) :: string;
 	end if;
 
 	if action = "export" then
+
 		if assigned(WhateverYouNeed["calculations"]["loadvariables"]) and assigned(WhateverYouNeed["calculations"]["loadcases"]) then
+
 			loadvariables := eval(WhateverYouNeed["calculations"]["loadvariables"]);
 			loadcases := eval(WhateverYouNeed["calculations"]["loadcases"]);
 			cellvalue := Vector[row](numelems(loadvariables)+4);
@@ -1514,7 +1564,9 @@ ExcelFileInOut := proc(action::string, WhateverYouNeed::table) :: string;
 			loadnames := sort([seq(indices(loadcases)[i][1], i = 1 .. numelems(loadcases))]);
 	
 			for i, loadname in loadnames do
+
 				cellvalue(1) := loadname;
+
 				for j from 1 to numelems(loadvariables) do
 					cellvalue(j+1) := convert(loadcases[loadname][loadvariables[j]], 'unit_free')
 				end do;
@@ -1536,6 +1588,7 @@ ExcelFileInOut := proc(action::string, WhateverYouNeed::table) :: string;
 				end if;
 				
 				ExcelTools:-Export(cellvalue, filename, WhateverYouNeed["calculations"]["calculationtype_short"], cat("A",i+1));
+
 			end do;
 		end if;
 
@@ -1572,6 +1625,7 @@ ExcelFileInOut := proc(action::string, WhateverYouNeed::table) :: string;
 			if loadname <> "" then
 			
 				for j in loadvariables do
+
 					if not type(j, string) then
 						Alert(cat("Invalid variable type of ", j, " - type is: ", whattype(j)), WhateverYouNeed["warnings"], 3)
 					#else
@@ -1587,6 +1641,7 @@ ExcelFileInOut := proc(action::string, WhateverYouNeed::table) :: string;
 							SetProperty(cat("TextArea_", j), 'enabled', "true");
 							SetProperty(cat("TextArea_", j), 'value', cellvalue)
 						end if
+
 					elif ComponentExists(cat("Slider_", j)) then
 						if cellvalue = "false" then
 							SetProperty(cat("Slider_", j), 'enabled', "false")
@@ -1594,6 +1649,15 @@ ExcelFileInOut := proc(action::string, WhateverYouNeed::table) :: string;
 							SetProperty(cat("Slider_", j), 'enabled', "true");
 							SetProperty(cat("Slider_", j), 'value', cellvalue)
 						end if
+
+					elif ComponentExists(cat("ComboBox_", j)) then
+						if cellvalue = "false" then
+							SetProperty(cat("ComboBox_", j), 'enabled', "false")
+						else
+							SetProperty(cat("ComboBox_", j), 'enabled', "true");
+							WriteValueToComponent(i, loadcases[loadcase][i], {"nocheck"});
+						end if
+
 					end if;					
 				end do;
 				MainCommon("NewLoadcase")
@@ -1931,10 +1995,13 @@ LibInitCommon := proc(WhateverYouNeed, calculationtype)
 	loadvariables := {};
 	var_loadvariables := {"alpha", "F_axGk", "F_axQk", "F_xGk", "F_xQk", "F_hGk", "F_hQk", "F_vGk", "F_vQk", "V_zGk", "V_zQk", "V_yGk", "V_yQk", "M_yGk", "M_yQk", "M_zGk", "M_zQk", "M_tGk", "M_tQk",
 							"F_axd", "F_xd", "F_hd", "F_vd", "V_yd", "V_zd", "M_yd", "M_zd", "M_td", "loadcenter_x", "loadcenter_y"};
+	
 	for i in var_loadvariables do
-		if ComponentExists(cat("TextArea_", i)) or ComponentExists(cat("Slider_", i)) then
+
+		if ComponentExists(cat("TextArea_", i)) or ComponentExists(cat("Slider_", i)) or ComponentExists(cat("ComboBox_", i)) then
 			loadvariables := loadvariables union {i}
 		end if;
+
 	end do;
 	
 	# clear warnings Textfield
@@ -2081,9 +2148,10 @@ end proc:
 
 StoredsettingsToComponents := proc(WhateverYouNeed::table)
 	description "Write stored values to components in sheet";
-	local checkvar, dummy, j, k, storeitems, parent, child;
+	local checkvar, dummy, j, k, storeitems, parent, child, ShowErrorsDuringReadin;
 
 	storeitems := WhateverYouNeed["componentvariables"]["var_storeitems"];
+	ShowErrorsDuringReadin := calculations["ShowErrorsDuringReadin"];
 
 	for dummy in storeitems do
 		

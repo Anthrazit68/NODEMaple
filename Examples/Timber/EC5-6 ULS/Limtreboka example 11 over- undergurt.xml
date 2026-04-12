@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<database version = '2023.12' source_software = 'NODE common file format, generated via Maple'>
+<database version = '2025-01' source_software = 'https://github.com/Anthrazit68/NODEMaple' created = '2026-03-26T21:51:17 CET'>
   <projectdata projecttitle = 'Limtreboka Beregningseksempler' projectnumber = '0320.03' client = 'NODE rådgivende ingeniører AS'/>
   <materials>
     <timber>
@@ -30,7 +30,7 @@
           <loadcase name = 'Undergurt' F_xGk = 'false' F_xQk = 'false' F_xd = '1868*Units:-Unit(kN)' M_tGk = '0' M_tQk = '0' M_td = '0' M_yGk = 'false' M_yQk = 'false' M_yd = '20*Units:-Unit(kN*m)' M_zGk = '0' M_zQk = '0' M_zd = '0' V_yGk = 'false' V_yQk = 'false' V_yd = '0' V_zGk = '0' V_zQk = '0' V_zd = '0' alpha = '0.'/>
         </loadcases>
         <structure>
-          <code_64 l_curve = '5.9*Units:-Unit(m)' r_in = '18*Units:-Unit(m)' t_lam = '44*Units:-Unit(mm)' alpha_ap = '0' tapered_N = 'false' ConstructionType = 'Curved beam'/>
+          <code_64 l_curve = '0' r_in = '0' t_lam = '0' alpha_ap = '0' tapered_N = 'false' ConstructionType = '-'/>
           <buckling l_efy = '4.28*Units:-Unit(m)' l_efz = '4.28*Units:-Unit(m)' l_ky = '4.28*Units:-Unit(m)' l_kz = '4.28*Units:-Unit(m)'/>
           <code_615 a_615 = '0' l1_615 = '7500*Units:-Unit(mm)' l_615 = '360*Units:-Unit(mm)' type_615 = 'b'/>
           <code_622 h_622 = '360*Units:-Unit(mm)'/>

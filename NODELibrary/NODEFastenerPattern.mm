@@ -73,7 +73,7 @@ CalculateForcesInConnection := proc(WhateverYouNeed::table)
 	FastenerGroup["maxFindex"] := maxFindex;		
 	FastenerGroup["ForcesInCenterofFastener"] := load;
 			
-	WhateverYouNeed["results"]["FastenerGroup"] := FastenerGroup;
+	WhateverYouNeed["results"]["FastenerGroup"] := FastenerGroup;	
 		
 	# write out calculated values
 	if ComponentExists("MathContainer_Fx") and ComponentExists("MathContainer_Fy") and ComponentExists("MathContainer_F")
@@ -161,7 +161,7 @@ PlotResults := proc(WhateverYouNeed::table)
 	description "Plot results of calculation";
 	local structure, i, displayForceVectors, fastener, fasteners, fastenervalues, fastenerPointlist, results, scalefactor, r, len, alpha, geometryList, graphicsElements, warnings,
 		sectiondataAll, h, beamBoundarylines, annotations_a, annotations, x, y, lengthleft, lengthright, angleleft, angleright, beams, clr, beamPoints, minimumangle,
-		plotitems, beamnumber, displayBlockShear, cutleft, cutright, part, deltaangle;
+		plotitems, beamnumber, displayBlockShear, cutleft, cutright, part, deltaangle, openingOutline;
 
 	warnings := WhateverYouNeed["warnings"];
 	structure := WhateverYouNeed["calculations"]["structure"];
@@ -177,6 +177,8 @@ PlotResults := proc(WhateverYouNeed::table)
 	else
 		r := 20
 	end if;
+
+	# https://www.mapleprimes.com/questions/242031-Redefinition-Of-Geometry-Object-Throws-Error
 
 	if MASTERALARM(warnings) = false then
 
@@ -202,67 +204,72 @@ PlotResults := proc(WhateverYouNeed::table)
 		# CenterOfFasteners
 		# CenterOfForce			
 		# https://mapleprimes.com/questions/236156-Convert-In-Nested-Lists?reply=reply
-		geometry:-point(CenterOfFasteners, convert~(convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfFasteners"], list), 'unit_free'));
-		geometry:-point(CenterOfForce, convert~(convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfForce"], list), 'unit_free'));
-		geometryList := [op(geometryList), CenterOfFasteners('symbol' = 'cross', 'color' = "SteelBlue", 'symbolsize' = 30)];
-		geometryList := [op(geometryList), CenterOfForce('symbol' = 'diagonalcross', 'color' = "Red", 'symbolsize' = 30)];
+		if WhateverYouNeed["calculations"]["calculationtype"] = "NS-EN 1995-1-1, Section 8: Fasteners" or 
+			WhateverYouNeed["calculations"]["calculationtype"] = "Loads on Fastener Group" then
+
+			geometry:-point('CenterOfFasteners', convert~(convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfFasteners"], list), 'unit_free'));
+			geometry:-point('CenterOfForce', convert~(convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfForce"], list), 'unit_free'));
+			geometryList := [op(geometryList), CenterOfFasteners('symbol' = 'cross', 'color' = "SteelBlue", 'symbolsize' = 30)];
+			geometryList := [op(geometryList), CenterOfForce('symbol' = 'diagonalcross', 'color' = "Red", 'symbolsize' = 30)];
 					
-		# displayPoints := [pointplot(convert~(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfFasteners"], 'unit_free'), symbol = 'cross', 'color' = "SteelBlue", 'symbolsize' = 30), 
-		#	pointplot(convert~(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfForce"], 'unit_free'), symbol = 'diagonalcross', 'color' = "Red", 'symbolsize' = 30, 'scaling' = constrained)];
+			# displayPoints := [pointplot(convert~(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfFasteners"], 'unit_free'), symbol = 'cross', 'color' = "SteelBlue", 'symbolsize' = 30), 
+			#	pointplot(convert~(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfForce"], 'unit_free'), symbol = 'diagonalcross', 'color' = "Red", 'symbolsize' = 30, 'scaling' = constrained)];
 
-		# Fasteners
-		for i from 1 to numelems(fasteners) do
-			geometry:-point(parse(cat("F", i)), convert~(convert(fasteners[i], list), 'unit_free'));
-			fastenerPointlist := [op(fastenerPointlist), parse(cat("F", i))];
-			if assigned(WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_d"]) = false then										
-				geometryList := [op(geometryList), parse(cat("F", i))('symbol' = 'solidcircle', 'color' = "SteelBlue", 'symbolsize' = r)];
-			else										
-				geometry:-circle(parse(cat("fastener", i)), [parse(cat("F", i)), r], 'centername' = parse(cat("F", i)));
-				geometryList := [op(geometryList), parse(cat("fastener", i))('color' = "Black", 'filled' = true)];
-			end if;
+			# Fasteners
+			for i from 1 to numelems(fasteners) do
+				geometry:-point(parse(cat("F", i)), convert~(convert(fasteners[i], list), 'unit_free'));
+				fastenerPointlist := [op(fastenerPointlist), parse(cat("F", i))];
+				if assigned(WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_d"]) = false then										
+					geometryList := [op(geometryList), parse(cat("F", i))('symbol' = 'solidcircle', 'color' = "SteelBlue", 'symbolsize' = r)];
+				else										
+					geometry:-circle(parse(cat("fastener", i)), [parse(cat("F", i)), r], 'centername' = parse(cat("F", i)));
+					geometryList := [op(geometryList), parse(cat("fastener", i))('color' = "Black", 'filled' = true)];
+				end if;
 
-			# Shear Connectors
-			if fastener["ShearConnector"] = "Toothed-plate" then
-				# outer circle
-				geometry:-circle(parse(cat("fastener", i,"_bulldogo")), [parse(cat("F", i)), convert(fastener["ToothedPlatedc"] / 2, 'unit_free')]);
-				geometryList := [op(geometryList), parse(cat("fastener", i,"_bulldogo"))('color' = "Niagara DarkOrchid", 'linestyle' = "dash")];
-				# inner circle				
-				geometry:-circle(parse(cat("fastener", i,"_bulldogi")), [parse(cat("F", i)), convert(fastenervalues["ToothedPlated1"] / 2, 'unit_free')]);
-				geometryList := [op(geometryList), parse(cat("fastener", i,"_bulldogi"))('color' = "Niagara DarkOrchid", 'linestyle' = "dash")];
+				# Shear Connectors
+				if fastener["ShearConnector"] = "Toothed-plate" then
+					# outer circle
+					geometry:-circle(parse(cat("fastener", i,"_bulldogo")), [parse(cat("F", i)), convert(fastener["ToothedPlatedc"] / 2, 'unit_free')]);
+					geometryList := [op(geometryList), parse(cat("fastener", i,"_bulldogo"))('color' = "Niagara DarkOrchid", 'linestyle' = "dash")];
+					# inner circle				
+					geometry:-circle(parse(cat("fastener", i,"_bulldogi")), [parse(cat("F", i)), convert(fastenervalues["ToothedPlated1"] / 2, 'unit_free')]);
+					geometryList := [op(geometryList), parse(cat("fastener", i,"_bulldogi"))('color' = "Niagara DarkOrchid", 'linestyle' = "dash")];
 
-			elif fastener["ShearConnector"] = "Split ring" then
-				# outer circle
-				geometry:-circle(parse(cat("fastener", i,"_bulldogo")), [parse(cat("F", i)), convert(fastener["SplitRingdc"] / 2, 'unit_free')]);
-				geometryList := [op(geometryList), parse(cat("fastener", i,"_bulldogo"))('color' = "Niagara DarkOrchid", 'linestyle' = "dash")];
-			end if;
+				elif fastener["ShearConnector"] = "Split ring" then
+					# outer circle
+					geometry:-circle(parse(cat("fastener", i,"_bulldogo")), [parse(cat("F", i)), convert(fastener["SplitRingdc"] / 2, 'unit_free')]);
+					geometryList := [op(geometryList), parse(cat("fastener", i,"_bulldogo"))('color' = "Niagara DarkOrchid", 'linestyle' = "dash")];
+				end if;
+				
+			end do;
+			graphicsElements["fastenerPointlist"] := fastenerPointlist;
+
+			#if assigned(WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_d"]) = false then
+				# displayPoints := [op(displayPoints), pointplot((convert~)~(fasteners, 'unit_free'), symbol = 'solidcircle', 'color' = "SteelBlue", 'symbolsize' = r)]
+				
+			#else
+			#	for i from 1 to numelems(fasteners) do
+			#		fastener := disk(convert~([fasteners[i][1], fasteners[i][2]], 'unit_free'), r, 'color' = "SteelBlue");
+			#		displayPoints := [op(displayPoints), fastener]
+			#	end do
+				# displayPoints := [op(displayPoints), disk((convert~)~(fasteners, 'unit_free'), r, 'color' = "SteelBlue")]
+			# end if;
+
+			# forces
+			# https://www.mapleprimes.com/questions/232971-Copy-Values-Of-Mutable-Content
 			
-		end do;
-		graphicsElements["fastenerPointlist"] := fastenerPointlist;
-		
-		#if assigned(WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_d"]) = false then
-			# displayPoints := [op(displayPoints), pointplot((convert~)~(fasteners, 'unit_free'), symbol = 'solidcircle', 'color' = "SteelBlue", 'symbolsize' = r)]
-			
-		#else
-		#	for i from 1 to numelems(fasteners) do
-		#		fastener := disk(convert~([fasteners[i][1], fasteners[i][2]], 'unit_free'), r, 'color' = "SteelBlue");
-		#		displayPoints := [op(displayPoints), fastener]
-		#	end do
-			# displayPoints := [op(displayPoints), disk((convert~)~(fasteners, 'unit_free'), r, 'color' = "SteelBlue")]
-		# end if;
+			displayForceVectors := table();
+			for i from 1 to nops(results) do
+				displayForceVectors[i] := arrow(convert~([fasteners[i][1], fasteners[i][2]], 'unit_free'), [convert(results[i][1], 'unit_free') * scalefactor, convert(results[i][2], 'unit_free') * scalefactor], 'color'='blue');	# if results includes joint coordinates
+			end do;
+			displayForceVectors := convert(displayForceVectors, list);
 
-		# forces
-		# https://www.mapleprimes.com/questions/232971-Copy-Values-Of-Mutable-Content
-		
-		displayForceVectors := table();
-		for i from 1 to nops(results) do
-			displayForceVectors[i] := arrow(convert~([fasteners[i][1], fasteners[i][2]], 'unit_free'), [convert(results[i][1], 'unit_free') * scalefactor, convert(results[i][2], 'unit_free') * scalefactor], 'color'='blue');	# if results includes joint coordinates
-		end do;
-		displayForceVectors := convert(displayForceVectors, list);
+			# text
+			annotations := [textplot([seq([convert(fasteners[i][1], 'unit_free'), convert(fasteners[i][2], 'unit_free'), convert(i, string)], i = 1 .. nops(fasteners))], 'align'={'below', 'right'}),
+				textplot([convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfFasteners"][1], 'unit_free'), convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfFasteners"][2], 'unit_free'), "Fasteners"],'align'={'below', 'right'}), 
+				textplot([convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfForce"][1], 'unit_free'), convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfForce"][2], 'unit_free'), "Force"], 'align'={'below', 'right'})];
 
-		# text
-		annotations := [textplot([seq([convert(fasteners[i][1], 'unit_free'), convert(fasteners[i][2], 'unit_free'), convert(i, string)], i = 1 .. nops(fasteners))], 'align'={'below', 'right'}),
-			textplot([convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfFasteners"][1], 'unit_free'), convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfFasteners"][2], 'unit_free'), "Fasteners"],'align'={'below', 'right'}), 
-			textplot([convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfForce"][1], 'unit_free'), convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfForce"][2], 'unit_free'), "Force"], 'align'={'below', 'right'})];
+		end if;
 
 		# geometry of beams
 		# Beams
@@ -278,122 +285,131 @@ PlotResults := proc(WhateverYouNeed::table)
 		if assigned(structure["connection"]) then       # find item number of 2 beams, will not be run in "Loads on Fastener Group"
 			
 			for part from 1 to 2 do
+
+				# check if we have a connection calculation with 2 items, or a different calculation with just 1 part
+				if WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" and part = 1 then
+					i := "1"
+				elif WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" and part = 2 then
+					next part
+				else
+					if assigned(structure["connection"][cat("connection", part)]) then
+						if structure["connection"][cat("connection", part)] = "Timber" then
+							beamnumber[part] := convert(part, string)
+						elif structure["connection"][cat("connection", part)] = "Steel" then
+							beamnumber[part] := "steel"
+						end if
+					end if;
+					i := beamnumber[part];		# "1", "2", "steel"
+				end if;
+	
+				alpha[i] := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", i)]);
+	
+				# 1.) create center points and line
+				# 1a) BPC...Beam Point Center (point)
+				geometry:-point(parse(cat("BPC", i)), [len * cos(alpha[i]), len * sin(alpha[i])]);			
+				beamPoints := [op(beamPoints), parse(cat("BPC", i))];
+				# BC...Beam Center (line)
+				geometry:-line(parse(cat("BC", i)),  [O, parse(cat("BPC", i))]);			# centerline, from origo, letter "O" to beam endpoint B1, or B2
+
+				# 1b) centerlines[i] := line(A, B, color = red, linestyle = dash)
+				geometryList := [op(geometryList), parse(cat("BC", i))('color' = "Red", 'linestyle' = 'dashdot')];
+	
+				h := convert(sectiondataAll[i]["h"], 'unit_free');
+			
+				# 2.) create left and right beam sides
+				# 2a.)BOL...Beam Origo Left, BOR...Beam Origo Right
+				geometry:-point(parse(cat("BOL", i)), [geometry:-coordinates(O)[1] - h / 2 * sin(alpha[i]), geometry:-coordinates(O)[2] + h / 2 * cos(alpha[i])]);		# point on left side of beam grid line
+				geometry:-point(parse(cat("BOR", i)), [geometry:-coordinates(O)[1] + h / 2 * sin(alpha[i]), geometry:-coordinates(O)[2] - h / 2 * cos(alpha[i])]);		# point on right side of beam grid line
+				beamPoints := [op(beamPoints), parse(cat("BOL", i)), parse(cat("BOR", i))];
+
+				# 2b.) BLL...beam line left, BLR...beam line right
+				geometry:-ParallelLine(parse(cat("BLL", i)), parse(cat("BOL", i)), parse(cat("BC", i)));
+				geometry:-ParallelLine(parse(cat("BLR", i)), parse(cat("BOR", i)), parse(cat("BC", i)));
+
+				# 3.) create Beam Start and End Center points
+				lengthleft := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthleft", i)], 'unit_free');				# could be "false"
+				lengthright := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthright", i)], 'unit_free');
+
+				angleleft := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleleft", i)]);				# could be "false"
+				angleright := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleright", i)]);
 				
-				if assigned(structure["connection"][cat("connection", part)]) then
-					if structure["connection"][cat("connection", part)] = "Timber" then
-						beamnumber[part] := convert(part, string)
-					elif structure["connection"][cat("connection", part)] = "Steel" then
-						beamnumber[part] := "steel"
-					end if
+				cutleft := WhateverYouNeed["calculations"]["structure"]["connection"][cat("cutleft", i)];
+				cutright := WhateverYouNeed["calculations"]["structure"]["connection"][cat("cutright", i)];					
+
+				# BSC...Beam Start Center, BEC...Beam End Center (points), calculated with lengths
+				# length... = "false" should not be possible anymore, as we allow for parallel lines to other beam with values
+				x := geometry:-coordinates(O)[1] - lengthleft * cos(alpha[i]);
+				y := geometry:-coordinates(O)[2] - lengthleft * sin(alpha[i]);
+				geometry:-point(parse(cat("BSC", i)), [x, y]);
+
+				x := geometry:-coordinates(O)[1] + lengthright * cos(alpha[i]);
+				y := geometry:-coordinates(O)[2] + lengthright * sin(alpha[i]);
+				geometry:-point(parse(cat("BEC", i)), [x, y]);
+	
+				# 4.) create start and end line of beam
+				# 4a.) start (left) side beam
+				if angleleft <> "false" then
+					if angleleft < minimumangle or angleleft > 180 * Unit('degree') - minimumangle then
+						Alert("Angle left outside range", warnings, 2);
+						angleleft := 90 * Unit('degree');
+						WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleleft", i)] := angleleft;
+						SetProperty(cat("TextArea_angleleft", i), 'value', round2(convert(angleleft, 'unit_free'), 2))
+					end if;
+					deltaangle := alpha[i] + angleleft;
+				else
+					deltaangle := alpha[i] + 90 * Unit('degree');	# temporary solution, should be cut to other beam
 				end if;
 
-				i := beamnumber[part];		# "1", "2", "steel"
+				# coordinate for direction
+				x := geometry:-coordinates(parse(cat("BSC", i)))[1] + len * cos(deltaangle);
+				y := geometry:-coordinates(parse(cat("BSC", i)))[2] + len * sin(deltaangle);
+				geometry:-point(parse(cat("BSC_", i)), [x, y]);
 
-				if assigned(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", i)]) and WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", i)] <> "false" then
-		
-					alpha[i] := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", i)]);
-		
-					# 1.) create center points and line
-					# 1a) BPC...Beam Point Center (point)
-					geometry:-point(parse(cat("BPC", i)), [len * cos(alpha[i]), len * sin(alpha[i])]);			
-					beamPoints := [op(beamPoints), parse(cat("BPC", i))];
-					# BC...Beam Center (line)
-					geometry:-line(parse(cat("BC", i)),  [O, parse(cat("BPC", i))]);			# centerline, from origo, letter "O" to beam endpoint B1, or B2
+				# BLS...beam line start
+				geometry:-line(parse(cat("BLS", i)), [parse(cat("BSC", i)), parse(cat("BSC_", i))]);
 
-					# 1b) centerlines[i] := line(A, B, color = red, linestyle = dash)
-					geometryList := [op(geometryList), parse(cat("BC", i))('color' = "Red", 'linestyle' = 'dashdot')];
-		
-					h := convert(sectiondataAll[i]["h"], 'unit_free');
-				
-					# 2.) create left and right beam sides
-					# 2a.)BOL...Beam Origo Left, BOR...Beam Origo Right
-					geometry:-point(parse(cat("BOL", i)), [geometry:-coordinates(O)[1] - h / 2 * sin(alpha[i]), geometry:-coordinates(O)[2] + h / 2 * cos(alpha[i])]);		# point on left side of beam grid line
-					geometry:-point(parse(cat("BOR", i)), [geometry:-coordinates(O)[1] + h / 2 * sin(alpha[i]), geometry:-coordinates(O)[1] - h / 2 * cos(alpha[i])]);		# point on right side of beam grid line
-					beamPoints := [op(beamPoints), parse(cat("BOL", i)), parse(cat("BOR", i))];
-
-					# 2b.) BLL...beam line left, BLR...beam line right
-					geometry:-ParallelLine(parse(cat("BLL", i)), parse(cat("BOL", i)), parse(cat("BC", i)));
-					geometry:-ParallelLine(parse(cat("BLR", i)), parse(cat("BOR", i)), parse(cat("BC", i)));
-
-					# 3.) create Beam Start and End Center points
-					lengthleft := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthleft", i)], 'unit_free');				# could be "false"
-					lengthright := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthright", i)], 'unit_free');
-
-					angleleft := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleleft", i)]);				# could be "false"
-					angleright := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleright", i)]);
-					
-					cutleft := WhateverYouNeed["calculations"]["structure"]["connection"][cat("Cutleft", i)];
-					cutright := WhateverYouNeed["calculations"]["structure"]["connection"][cat("Cutright", i)];					
-
-					# BSC...Beam Start Center, BEC...Beam End Center (points), calculated with lengths
-					# length... = "false" should not be possible anymore, as we allow for parallel lines to other beam with values
-					x := geometry:-coordinates(O)[1] - lengthleft * cos(alpha[i]);
-					y := geometry:-coordinates(O)[2] - lengthleft * sin(alpha[i]);
-					geometry:-point(parse(cat("BSC", i)), [x, y]);
-
-					x := geometry:-coordinates(O)[1] + lengthright * cos(alpha[i]);
-					y := geometry:-coordinates(O)[2] + lengthright * sin(alpha[i]);
-					geometry:-point(parse(cat("BEC", i)), [x, y]);
-		
-					# 4.) create start and end line of beam
-					# 4a.) start (left) side beam
-					if angleleft <> "false" then
-						if angleleft < minimumangle or angleleft > 180 * Unit('degree') - minimumangle then
-							Alert("Angle left outside range", warnings, 2);
-							angleleft := 90 * Unit('degree');
-							WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleleft", i)] := angleleft;
-							SetProperty(cat("TextArea_angleleft", i), 'value', round2(convert(angleleft, 'unit_free'), 2))
-						end if;
-						deltaangle := alpha[i] + angleleft;
-					else
-						deltaangle := alpha[i] + 90 * Unit('degree');	# temporary solution, should be cut to other beam
+				# 4b.) end (right) side beam
+				if angleright <> "false" then
+					if angleright < minimumangle or angleright > 180 * Unit('degree') - minimumangle then
+						Alert("Angle right outside range", warnings, 2);
+						angleright := 90 * Unit('degree');
+						WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleright", i)] := angleright;
+						SetProperty(cat("TextArea_angleright", i), 'value', round2(convert(angleright, 'unit_free'), 2))
 					end if;
-
-					# coordinate for direction
-					x := geometry:-coordinates(parse(cat("BSC", i)))[1] + len * cos(deltaangle);
-					y := geometry:-coordinates(parse(cat("BSC", i)))[2] + len * sin(deltaangle);
-					geometry:-point(parse(cat("BSC_", i)), [x, y]);
-
-					# BLS...beam line start
-					geometry:-line(parse(cat("BLS", i)), [parse(cat("BSC", i)), parse(cat("BSC_", i))]);
-
-					# 4b.) end (right) side beam
-					if angleright <> "false" then
-						if angleright < minimumangle or angleright > 180 * Unit('degree') - minimumangle then
-							Alert("Angle right outside range", warnings, 2);
-							angleright := 90 * Unit('degree');
-							WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleright", i)] := angleright;
-							SetProperty(cat("TextArea_angleright", i), 'value', round2(convert(angleright, 'unit_free'), 2))
-						end if;
-						deltaangle := alpha[i] + angleright;
-					else
-						deltaangle := alpha[i] + 90 * Unit('degree');	# temporary solution, should be cut to other beam
-					end if;
-
-					# coordinate for direction
-					x := geometry:-coordinates(parse(cat("BEC", i)))[1] + len * cos(deltaangle);
-					y := geometry:-coordinates(parse(cat("BEC", i)))[2] + len * sin(deltaangle);
-					geometry:-point(parse(cat("BEC_", i)), [x, y]);
-
-					# BLE...beam line end
-					geometry:-line(parse(cat("BLE", i)), [parse(cat("BEC", i)), parse(cat("BEC_", i))]);
-
-					# 5.) corner points of beams as intersection
-					# BSL...Beam Start Left, BSR...Beam Start Right
-					# BEL...Beam End Left, BER...Beam End Right
-					geometry:-intersection(parse(cat("BSL", i)), parse(cat("BLL", i)), parse(cat("BLS", i)));
-					geometry:-intersection(parse(cat("BEL", i)), parse(cat("BLL", i)), parse(cat("BLE", i)));
-					geometry:-intersection(parse(cat("BSR", i)), parse(cat("BLR", i)), parse(cat("BLS", i)));
-					geometry:-intersection(parse(cat("BER", i)), parse(cat("BLR", i)), parse(cat("BLE", i)));
-					
+					deltaangle := alpha[i] + angleright;
+				else
+					deltaangle := alpha[i] + 90 * Unit('degree');	# temporary solution, should be cut to other beam
 				end if;
+
+				# coordinate for direction
+				x := geometry:-coordinates(parse(cat("BEC", i)))[1] + len * cos(deltaangle);
+				y := geometry:-coordinates(parse(cat("BEC", i)))[2] + len * sin(deltaangle);
+				geometry:-point(parse(cat("BEC_", i)), [x, y]);
+
+				# BLE...beam line end
+				geometry:-line(parse(cat("BLE", i)), [parse(cat("BEC", i)), parse(cat("BEC_", i))]);
+
+				# 5.) corner points of beams as intersection
+				# BSL...Beam Start Left, BSR...Beam Start Right
+				# BEL...Beam End Left, BER...Beam End Right
+				geometry:-intersection(parse(cat("BSL", i)), parse(cat("BLL", i)), parse(cat("BLS", i)));
+				geometry:-intersection(parse(cat("BEL", i)), parse(cat("BLL", i)), parse(cat("BLE", i)));
+				geometry:-intersection(parse(cat("BSR", i)), parse(cat("BLR", i)), parse(cat("BLS", i)));
+				geometry:-intersection(parse(cat("BER", i)), parse(cat("BLR", i)), parse(cat("BLE", i)));
+			
 			end do;
 
 			# need to redefine line and segment positions if lines if they are cut
 			# probably enough to just move point positions
 			for part from 1 to 2 do
 
-				i := beamnumber[part];		# "1", "2", "steel"
+				if WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" and part = 1 then
+					i := "1"
+				elif WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" and part = 2 then
+					next part		
+				else
+					i := beamnumber[part];		# "1", "2", "steel"
+				end if;
 
 				lengthleft := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthleft", i)], 'unit_free');				# could be "false"
 				lengthright := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthright", i)], 'unit_free');
@@ -401,8 +417,8 @@ PlotResults := proc(WhateverYouNeed::table)
 				angleleft := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleleft", i)]);				# could be "false"
 				angleright := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleright", i)]);
 				
-				cutleft := WhateverYouNeed["calculations"]["structure"]["connection"][cat("Cutleft", i)];
-				cutright := WhateverYouNeed["calculations"]["structure"]["connection"][cat("Cutright", i)];
+				cutleft := WhateverYouNeed["calculations"]["structure"]["connection"][cat("cutleft", i)];
+				cutright := WhateverYouNeed["calculations"]["structure"]["connection"][cat("cutright", i)];
 				
 				if cutleft = "cut profile" then		# angleleft = false
 					
@@ -499,10 +515,12 @@ PlotResults := proc(WhateverYouNeed::table)
 
 			graphicsElements["beamBoundarylines"] := beamBoundarylines;
 			graphicsElements["beamPoints"] := beamPoints;
-			
+
 			# plot polygons
 			for i in {"1", "2", "steel"} do
-				if assigned(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", i)]) and WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", i)] <> "false" then
+				if assigned(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", i)]) 
+					and WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", i)] <> "false" then
+
 					# polygonplot
 					if i = "1" then
 						clr := "Orange" 
@@ -531,43 +549,275 @@ PlotResults := proc(WhateverYouNeed::table)
 				end if;
 			end do;
 
-			if CheckPointInPolygon(WhateverYouNeed) then		# check if fasteners er inside of parts
+			# opening
+			if assigned(WhateverYouNeed["calculations"]["structure"]["opening"]) then
 
-				annotations_a := calculate_a(WhateverYouNeed);			# calculate a-values according to EC5
+				local opening, openingResult, cracklength, CrackLeft, CrackRight, a, hd, e, alphaScrew, a3c_min_max, ls, h_r;
+
+				opening := WhateverYouNeed["calculations"]["structure"]["opening"];
+				openingResult := WhateverYouNeed["results"]["opening"];
+				a := convert(opening["opening_a"], 'unit_free');
+				e := convert(opening["opening_e"], 'unit_free');
+				ls := convert(WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_ls"], 'unit_free');
+				h_r := convert~(openingResult["h_r"], 'unit_free');		# distance from edge to crack
+#				lv := opening["opening_lv"];
+#				lA := opening["opening_lA"];
+#				lz := opening["opening_lz"];
+
+				# draw opening
+				if opening["openingtype"] = "circular" then
+
+					geometry:-circle('OPENING', [geometry:-point('POpening', [0, e]), a/2]);
+					openingOutline := disk([0, e], a/2, 'color' = "black");
+
+					# openingOutline := [op(openingOutline), OPENING];
+					# graphicsElements["opening"] := openingOutline;
+					# geometryList := [op(geometryList), OPENING('color' = "black")];
+
+				elif opening["openingtype"] = "rectangular" then
+
+					r := convert(opening["opening_r"], 'unit_free');
+					hd := convert(opening["opening_hd"], 'unit_free');
+
+					if r = 0 then
+						geometry:-point('P3', [-a/2, -hd/2]);
+						# geometry:-point('P2', [-a/2, hd/2]);
+						geometry:-point('P1', [a/2, hd/2]);
+						# geometry:-point('P4', [-/2, -hd/2]);
+						openingOutline := polygonplot(Matrix([[-a/2, -hd/2], [-a/2, hd/2], [a/2, hd/2], [a/2, -hd/2]], datatype = float), 'color' = "black")
+
+					else
+						geometry:-point('P3', [-a/2 + r, -hd/2]);
+						# geometry:-point('P2', [-a/2, hd/2]);
+						geometry:-point('P1', [a/2 - r, hd/2]);
+						# geometry:-point('P4', [-/2, -hd/2]);
+
+						local step_size, arc_points, t;
+						arc_points := table();
+
+						# Define a variable for the step size, ensuring it's a numeric float.
+						step_size := evalf(Pi/180):
+
+						# Define points for the arc, using the pre-calculated step_size.
+						arc_points[1] := [seq([evalf(a/2 - r + r*cos(t)), evalf(hd/2 - r + r*sin(t))], t = 0 .. evalf(Pi/2), step_size)];
+						arc_points[2] := [seq([evalf((-a/2 + r) + r*cos(t)), evalf(hd/2 - r + r*sin(t))], t = evalf(Pi/2) .. evalf(Pi), step_size)];
+						arc_points[3] := [seq([evalf((-a/2 + r) + r*cos(t)), evalf((-hd/2 + r) + r*sin(t))], t = evalf(Pi) .. evalf((3*Pi)/2), step_size)];
+						arc_points[4] := [seq([evalf(a/2 - r + r*cos(t)), evalf((-hd/2 + r) + r*sin(t))], t = evalf((3*Pi)/2) .. evalf(2*Pi), step_size)];
+
+						# Plot the shape with a yellow fill.
+						openingOutline := polygonplot([op(arc_points[1]), op(arc_points[2]), op(arc_points[3]), op(arc_points[4])], color = "white");
+					end if;
+
+				end if;
+
+				# draw crackline				
+				if openingResult["cracked"] then
+
+					if opening["openingtype"] = "circular" then
+
+						# l_ad := convert~(openingResult["l_ad"], 'unit_free');		
+
+						# point on crack line left and right side of opening
+						geometry:-point('POCL', [geometry:-coordinates(POpening)[1] + (h / 2 - h_r["left"]) * sin(alpha["1"]), geometry:-coordinates(POpening)[2] - (h / 2 - h_r["left"]) * cos(alpha["1"])]);
+						geometry:-point('POCR', [geometry:-coordinates(POpening)[1] - (h / 2 - h_r["right"]) * sin(alpha["1"]), geometry:-coordinates(POpening)[2] + (h / 2 - h_r["right"]) * cos(alpha["1"])]);
+
+						# line through crack point
+						geometry:-ParallelLine('LCL', POCL, BC1);
+						geometry:-ParallelLine('LCR', POCR, BC1);
+
+						# intersection between crack line and circle
+						geometry:-intersection('PCL', LCL, OPENING);		# 2 intersections, left one is interesting
+						geometry:-intersection('PCR', LCR, OPENING);		# 2 intersections, right one interesting
+
+						# end points of crack
+						cracklength := a/2;				# for visualization, let's start with that
+						
+						x := geometry:-coordinates(PCL[2])[1] - cracklength * cos(alpha["1"]);
+						y := geometry:-coordinates(PCL[2])[2] - cracklength * sin(alpha["1"]);
+						geometry:-point('PCLE', [x, y]);
+
+						x := geometry:-coordinates(PCR[1])[1] + cracklength * cos(alpha["1"]);
+						y := geometry:-coordinates(PCR[1])[2] + cracklength * sin(alpha["1"]);
+						geometry:-point('PCRE', [x, y]);
+
+						# draw crackline						
+						geometry:-segment('CrackLeft', PCL[2], PCLE);
+						geometry:-segment('CrackRight', PCR[1], PCRE);
+						
+					elif opening["openingtype"] = "rectangular" then		
+
+						# end points of crack
+						cracklength := max(a/2, 100);				# for visualization, let's start with that
+
+						x := geometry:-coordinates(P3)[1] - cracklength * cos(alpha["1"]);
+						y := geometry:-coordinates(P3)[2] - cracklength * sin(alpha["1"]);
+						geometry:-point('PCLE', [x, y]);
+
+						x := geometry:-coordinates(P1)[1] + cracklength * cos(alpha["1"]);
+						y := geometry:-coordinates(P1)[2] + cracklength * sin(alpha["1"]);
+						geometry:-point('PCRE', [x, y]);
+
+						# draw crackline						
+						geometry:-segment('CrackLeft', P3, PCLE);
+						geometry:-segment('CrackRight', P1, PCRE);
+
+					end if;
+
+					# plot items
+					# geometryList := [op(geometryList), openingOutline];
+					geometryList := [op(geometryList), CrackLeft('color' = "coral", 'linestyle' = 'longdash')];
+					geometryList := [op(geometryList), CrackRight('color' = "coral", 'linestyle' = 'longdash')];
+
+				end if;
+
+				# draw screws
+				if opening["reinforcement"] = "interior" then
+
+					if opening["openingtype"] = "circular" then
+
+						# plot fastener
+						alphaScrew := structure["fastener"]["alphaScrew"];	# inclination of fastener
+
+						# a3c values different from usual formula from EC5 (usually 7*d)
+						# a3c_min_max := convert(WhateverYouNeed["calculatedvalues"]["distance"]["a3c_min_max1"], 'unit_free');
+						# 2.5d <= a3c <= 4*d
+						a3c_min_max := 3 * convert(structure["fastener"]["fastener_d"], 'unit_free');
+
+						geometry:-circle('CircleOnFastener', [geometry:-point(POpening, 0, e), a/2 + a3c_min_max]);		# circle where fastener tangent
+						geometry:-point('FastenerOnCircleLeft', [geometry:-coordinates(POpening)[1] - (a/2 + a3c_min_max) * sin(alphaScrew),
+																	geometry:-coordinates(POpening)[2] - (a/2 + a3c_min_max) * cos(alphaScrew)]);
+						geometry:-point('FastenerOnCircleRight', [geometry:-coordinates(POpening)[1] + (a/2 + a3c_min_max) * sin(alphaScrew),
+																	geometry:-coordinates(POpening)[2] + (a/2 + a3c_min_max) * cos(alphaScrew)]);
+
+						# line through both points
+						geometry:-line('LineThroughFasteners', [FastenerOnCircleLeft, FastenerOnCircleRight]);
+
+						# fasteners
+						geometry:-PerpendicularLine('FastenerLineLeft', FastenerOnCircleLeft, LineThroughFasteners);
+						geometry:-PerpendicularLine('FastenerLineRight', FastenerOnCircleRight, LineThroughFasteners);
+
+					elif opening["openingtype"] = "rectangular" then
+
+						# plot fastener
+						alphaScrew := structure["fastener"]["alphaScrew"];	# inclination of fastener
+
+						# a3c values different from usual formula from EC5 (usually 7*d)
+						# a3c_min_max := convert(WhateverYouNeed["calculatedvalues"]["distance"]["a3c_min_max1"], 'unit_free');
+						# 2.5d <= a3c <= 4*d
+						a3c_min_max := 3 * convert(structure["fastener"]["fastener_d"], 'unit_free');
+
+						geometry:-circle('CircleOnFastenerLeft', [geometry:-point('P3C', [-a/2 + r, -hd/2 + r]), r + a3c_min_max]);		# circle where fastener tangent
+						geometry:-circle('CircleOnFastenerRight', [geometry:-point('P1C', [a/2 - r, hd/2 - r]), r + a3c_min_max]);		# circle where fastener tangent
+
+						geometry:-point('FastenerOnCircleLeft', [geometry:-coordinates(P3C)[1] - (r + a3c_min_max) * sin(alphaScrew),
+																 geometry:-coordinates(P3C)[2] - (r + a3c_min_max) * cos(alphaScrew)]);
+
+						geometry:-point('FastenerOnCircleRight', [geometry:-coordinates(P1C)[1] + (r + a3c_min_max) * sin(alphaScrew),
+																 geometry:-coordinates(P1C)[2] + (r + a3c_min_max) * cos(alphaScrew)]);
+
+						# line through both points
+						geometry:-line('LineThroughFastenerLeft', [FastenerOnCircleLeft, P3C]);
+						geometry:-line('LineThroughFastenerRight', [FastenerOnCircleRight, P1C]);
+
+						# fasteners
+						geometry:-PerpendicularLine('FastenerLineLeft', FastenerOnCircleLeft, LineThroughFastenerLeft);
+						geometry:-PerpendicularLine('FastenerLineRight', FastenerOnCircleRight, LineThroughFastenerRight);
+
+					end if;
+
+					# point where head is
+					if structure["opening"]["screwposition"] = "Top" then
+						geometry:-intersection('HeadLeft', FastenerLineLeft, BLL1);
+						geometry:-intersection('HeadRight', FastenerLineRight, BLL1);
+
+					elif structure["opening"]["screwposition"] = "Bottom" then
+						geometry:-intersection('HeadLeft', FastenerLineLeft, BLR1);
+						geometry:-intersection('HeadRight', FastenerLineRight, BLR1);
+
+					elif structure["opening"]["screwposition"] = "Bottom / Top" then
+						geometry:-intersection('HeadLeft', FastenerLineLeft, BLR1);
+						geometry:-intersection('HeadRight', FastenerLineRight, BLL1);
+
+					else
+						Alert(cat("Screw position ", structure["opening"]["screwposition"], " unknown"), warnings, 3);
+
+					end if;
+
+					# tip ends
+					if structure["opening"]["screwposition"] = "Top" then
+						geometry:-point('TipLeft', [geometry:-coordinates(HeadLeft)[1] + ls * cos(alphaScrew), geometry:-coordinates(HeadLeft)[2] - ls * sin(alphaScrew)]);
+						geometry:-point('TipRight', [geometry:-coordinates(HeadRight)[1] + ls * cos(alphaScrew), geometry:-coordinates(HeadRight)[2] - ls * sin(alphaScrew)]);
+
+
+					elif structure["opening"]["screwposition"] = "Bottom" then
+						geometry:-point('TipLeft', [geometry:-coordinates(HeadLeft)[1] - ls * cos(alphaScrew), geometry:-coordinates(HeadLeft)[2] + ls * sin(alphaScrew)]);
+						geometry:-point('TipRight', [geometry:-coordinates(HeadRight)[1] - ls * cos(alphaScrew), geometry:-coordinates(HeadRight)[2] + ls * sin(alphaScrew)]);
+
+
+					elif structure["opening"]["screwposition"] = "Bottom / Top" then
+						geometry:-point('TipLeft', [geometry:-coordinates(HeadLeft)[1] - ls * cos(alphaScrew), geometry:-coordinates(HeadLeft)[2] + ls * sin(alphaScrew)]);
+						geometry:-point('TipRight', [geometry:-coordinates(HeadRight)[1] + ls * cos(alphaScrew), geometry:-coordinates(HeadRight)[2] - ls * sin(alphaScrew)]);
+
+					else
+						Alert(cat("Screw position ", structure["opening"]["screwposition"], " unknown"), warnings, 3);
+
+					end if;
+
+					# draw segment
+					geometry:-segment('FastenerLeft', HeadLeft, TipLeft);
+					geometry:-segment('FastenerRight', HeadRight, TipRight);
+
+					# add to plot
+					geometryList := [op(geometryList), FastenerLeft('color' = "black", 'linestyle' = 'solid')];
+					geometryList := [op(geometryList), FastenerRight('color' = "black", 'linestyle' = 'solid')];
+	
+				end if;
+
+			end if;
+
+			if CheckPointInPolygon(WhateverYouNeed) then		# check if fasteners are inside of parts
+
+				if WhateverYouNeed["calculations"]["calculationtype"] = "NS-EN 1995-1-1, Section 8: Fasteners" then
+					annotations_a := calculate_a(WhateverYouNeed);			# calculate a-values according to EC5
+					displayBlockShear := BlockShearPath(WhateverYouNeed);	# calculate BlockShear
+				end if;
+				# geometryList := [op(geometryList), op(segmentlist)];
+
 				if MASTERALARM(warnings) = true then
 					return
 				end if;
-
-				displayBlockShear := BlockShearPath(WhateverYouNeed);	# calculate BlockShear
-				# geometryList := [op(geometryList), op(segmentlist)];
 
 				beams := convert(beams, list);
 
 				plotitems := [op(beams)];
 
-				if GetProperty("CheckBox_GraphicsShowAnnotations", value) = "true" then
+				if assigned(annotations) and GetProperty("CheckBox_GraphicsShowAnnotations", value) = "true" then
 					if numelems(annotations) > 0 then
 						plotitems := [op(plotitems), op(annotations)]
 					end if;
 				end if;
 			
-				if GetProperty("CheckBox_GraphicsShowDistances", value) = "true" then
+				if assigned(annotations_a) and GetProperty("CheckBox_GraphicsShowDistances", value) = "true" then
 					if numelems(annotations_a) > 0 then
 						plotitems := [op(plotitems), op(annotations_a)]
 					end if;
 				end if;
 			
-				if GetProperty("CheckBox_GraphicsShowForces", value) = "true" then
+				if assigned(displayForceVectors) and GetProperty("CheckBox_GraphicsShowForces", value) = "true" then
 					if numelems(displayForceVectors) > 0 then
 						plotitems := [op(plotitems), op(displayForceVectors)]
 					end if
 				end if;
 				
-				if GetProperty("CheckBox_GraphicsShowBlockShear", value) = "true" then
+				if assigned(displayBlockShear) and GetProperty("CheckBox_GraphicsShowBlockShear", value) = "true" then
 					if numelems(displayBlockShear) > 0 then
 						plotitems := [op(plotitems), geometry:-draw(displayBlockShear)]
 					end if;
-				end if;			
+				end if;
+
+				if assigned(openingOutline) then
+					plotitems := [op(plotitems), openingOutline]
+				end if;
 
 				SetProperty("Plot_result", 'value', display(geometry:-draw(geometryList), plotitems));		# combine geometry and plots elements
 
@@ -1070,7 +1320,7 @@ calculate_a := proc(WhateverYouNeed::table)			# calculate a-values according to 
 	segmentlist := [];
 	annotations := {};
 	a1_FastenersInRow := table();		# indexed table of a1_row elements
-	a1_nFastenersInRow := table();	# number of fasteners in row
+	a1_nFastenersInRow := table();		# number of fasteners in row
 	a2_FastenersInColumn := table();	# indexed table of a2_column elements
 	a2_nFastenersInColumn := table();	# number of fasteners in column
 
@@ -1250,6 +1500,7 @@ calculate_a := proc(WhateverYouNeed::table)			# calculate a-values according to 
 #			end if;	
 
 		if searchtext("steel", beamBoundarylines[beamBoundaryline]) = 0 then
+
 			beamindex := substring(convert(beamBoundarylines[beamBoundaryline], string), -1..-1);
 			beamside := substring(convert(beamBoundarylines[beamBoundaryline], string), -2..-2);
 		else
@@ -1269,7 +1520,7 @@ calculate_a := proc(WhateverYouNeed::table)			# calculate a-values according to 
 				a2_column := {i};
 
 				for k from i+1 to numelems(fastenerPointlist) do		# check distance between fastener points i and k
-					
+
 					geometry:-projection(parse(cat("a1_", beamBoundaryline, i, k)), fastenerPointlist[k], parse(dummy));		# a1_BLL112, projection point on line through fastenerPoint k
 					a1distance := geometry:-distance(fastenerPointlist[i], parse(cat("a1_", beamBoundaryline, i, k)));			# check distance for points to be considered on same a2 column
 					a2distance := geometry:-distance(fastenerPointlist[k], parse(cat("a1_", beamBoundaryline, i, k)));			# check distance for points to be considered on same a1 row						
@@ -1932,9 +2183,9 @@ CheckPointInPolygon := proc(WhateverYouNeed::table)::boolean;
 
 		end do;
 
-	else	# no check necessary for other calculation types
-		
-		InsidePolygon := true;
+	else	
+
+		InsidePolygon := true;	# no check necessary for other calculation types
 
 	end if;
 

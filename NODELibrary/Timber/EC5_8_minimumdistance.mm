@@ -49,7 +49,7 @@ calculate_amin_alpha := proc(part::string, WhateverYouNeed::table)
 	# global variables
 	warnings := WhateverYouNeed["warnings"];
 	structure := WhateverYouNeed["calculations"]["structure"];
-	comments := WhateverYouNeed["calculations"]["comments"];
+	comments := WhateverYouNeed["results"]["comments"];
 	sectiondataAll := WhateverYouNeed["sectiondataAll"];
 	materialdataAll := WhateverYouNeed["materialdataAll"];
 	calculatedFastener := WhateverYouNeed["calculatedvalues"]["fastenervalues"]["calculatedFastener"];
@@ -439,7 +439,7 @@ calculate_amin_max := proc(WhateverYouNeed::table)
 	# global variables
 	warnings := WhateverYouNeed["warnings"];
 	structure := WhateverYouNeed["calculations"]["structure"];
-	comments := WhateverYouNeed["calculations"]["comments"];
+	comments := WhateverYouNeed["results"]["comments"];
 	sectiondataAll := WhateverYouNeed["sectiondataAll"];
 	materialdataAll := WhateverYouNeed["materialdataAll"];
 	calculatedFastener := WhateverYouNeed["calculatedvalues"]["fastenervalues"]["calculatedFastener"];

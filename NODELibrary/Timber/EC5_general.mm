@@ -14,6 +14,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+# 2025-10-20: adding version numbering
+# version := "1.0.0";
+
 SetComboBoxMaterial := proc(WhateverYouNeed::table, forceSectionUpdate::boolean, partsnumber::string)::boolean;
 	description "Set material combobox according to chosen material (complete) or timber type";
 	local ind, val, foundit, sectionchanged;
@@ -155,7 +158,7 @@ SetComboBoxSection := proc(WhateverYouNeed::table, partsnumber::string)
 
 	end if;
 
-end proc;
+end proc:
 
 
 Changed_bh := proc(WhateverYouNeed::table, varname::string)
