@@ -749,7 +749,7 @@
 
 										# adding attributes
 										for p in AttributeNames(xmldummy) do
-											if isNumeric(p, WhateverYouNeed) then
+											if isNumericVariable(p, WhateverYouNeed) then
 												returndata3[p] := parse(AttributeValue(xmldummy, p));
 											else
 												returndata3[p] := AttributeValue(xmldummy, p)
@@ -768,7 +768,7 @@
 											end if;
 
 											for p in AttributeNames(xmldummy1) do
-												if isNumeric(p, WhateverYouNeed) then
+												if isNumericVariable(p, WhateverYouNeed) then
 													returndata4[p] := eval(parse(AttributeValue(xmldummy1, p)))
 												else
 													returndata4[p] := AttributeValue(xmldummy1, p)
@@ -781,7 +781,7 @@
 												xmldummy2 := GetChild(xmldummy1, p);
 
 												for q in AttributeNames(xmldummy2) do
-													if isNumeric(q, WhateverYouNeed) then
+													if isNumericVariable(q, WhateverYouNeed) then
 														returndata5[q] := eval(parse(AttributeValue(xmldummy2, q)))
 													else
 														returndata5[q] := AttributeValue(xmldummy2, q)

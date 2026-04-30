@@ -217,9 +217,15 @@ WriteValueToComponent := proc(compvariable::string, b, check_calculations::set)
 
 	# 2025-09-21, add MathContainer check before rest
 	if ComponentExists(cat("MathContainer_", compvariable)) then
+
 		SetProperty(cat("MathContainer_", compvariable), 'value', componentvalue);
+
 	else
-		if type(componentvalue, 'with_unit') then
+
+		# might be useful to check if correct unit is stripped before removing it
+		# convert units to mm before stripping it?
+
+		if type(componentvalue, 'with_unit') then			
 			componentvalue := convert(componentvalue, 'unit_free')
 		end if;
 	
@@ -1793,9 +1799,14 @@ end proc:
 
 SyncSliderWithTextArea := proc(i::string)
 	description "synchronize sliders with text values";
-	
+
 	if ComponentExists(cat("Slider_", i)) and ComponentExists(cat("TextArea_", i)) then
-		SetProperty(cat("Slider_", i), 'value', parse(GetProperty(cat("TextArea_", i), value)))
+
+		if isNumericValue(GetProperty(cat("TextArea_", i), value)) then
+
+			SetProperty(cat("Slider_", i), 'value', parse(GetProperty(cat("TextArea_", i), value)))
+
+		end if;
 	end if;		
 end proc:
 
@@ -2042,25 +2053,47 @@ LibInitCommon := proc(WhateverYouNeed, calculationtype)
 end proc:
 
 
-isNumeric := proc(varname::string, WhateverYouNeed::table)::boolean;
+isNumericVariable := proc(varname::string, WhateverYouNeed::table)::boolean;
 	description "Check if variable is numeric or not";
-	local answer, dummy;
+# 	local answer, dummy;
 
-	answer := false;
-	for dummy in WhateverYouNeed["componentvariables"]["var_numeric"] do
-		if StringTools:-Search(dummy, varname) > 0 then
-			answer := true
-		end if;
-	end do;
+	if member(varname, WhateverYouNeed["componentvariables"]["var_numeric"]) or 
+	member(varname, WhateverYouNeed["componentvariables"]["loadvariables"]) then
 
-	for dummy in WhateverYouNeed["calculations"]["loadvariables"] do
-		if StringTools:-Search(dummy, varname) > 0 then
-			answer := true
-		end if;
-	end do;
+		return true
 
-	return answer
+	else
+
+		return false
+
+	end if;
+
+	# answer := false;
+	# for dummy in WhateverYouNeed["componentvariables"]["var_numeric"] do
+	# 	if StringTools:-Search(dummy, varname) > 0 then
+	# 		answer := true
+	# 	end if;
+	# end do;
+
+	# for dummy in WhateverYouNeed["calculations"]["loadvariables"] do
+	# 	if StringTools:-Search(dummy, varname) > 0 then
+	# 		answer := true
+	# 	end if;
+	# end do;
+
+	# return answer
 end proc:
+
+
+isNumericValue := proc(s::string)
+    local val;
+    try
+        val := parse(s);
+        return type(val, numeric);
+    catch:
+        return false;
+    end try;
+end proc;
 
 
 Storesettings := proc(WhateverYouNeed::table)
