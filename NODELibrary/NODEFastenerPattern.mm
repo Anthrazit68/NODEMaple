@@ -161,7 +161,7 @@ PlotResults := proc(WhateverYouNeed::table)
 	description "Plot results of calculation";
 	local structure, i, displayForceVectors, fastener, fasteners, fastenervalues, fastenerPointlist, results, scalefactor, r, len, alpha, geometryList, graphicsElements, warnings,
 		sectiondataAll, h, beamBoundarylines, annotations_a, annotations, x, y, lengthleft, lengthright, angleleft, angleright, beams, clr, beamPoints, minimumangle,
-		plotitems, beamnumber, displayBlockShear, cutleft, cutright, part, deltaangle, openingOutline;
+		plotitems, beamnumber, displayBlockShear, cutleft, cutright, part, deltaangle, openingOutline, angleBetweenBeams;
 
 	warnings := WhateverYouNeed["warnings"];
 	structure := WhateverYouNeed["calculations"]["structure"];
@@ -422,7 +422,9 @@ PlotResults := proc(WhateverYouNeed::table)
 				
 				if cutleft = "cut profile" then		# angleleft = false
 					
-					if abs(alpha[beamnumber[2]] - alpha[beamnumber[1]]) >= minimumangle and abs(alpha[beamnumber[2]] - alpha[beamnumber[1]]) <= 90 * Unit('degree') then							
+					angleBetweenBeams := abs(alpha[beamnumber[2]] - alpha[beamnumber[1]]) >= minimumangle and abs(alpha[beamnumber[2]] - alpha[beamnumber[1]]);
+
+					if angleBetweenBeams <= 90 * Unit('degree') then							
 						
 						if part = 1 then
 							
@@ -456,15 +458,17 @@ PlotResults := proc(WhateverYouNeed::table)
 						
 					else
 						
-						Alert("Alpha angle between beams outside range", warnings, 2);
+						Alert(cat("Alpha angle between beams outside range: ", angleBetweenBeams), warnings, 2);
 						
 					end if;
 					
 				end if;
 				
 				if cutright = "cut profile" then
+
+					angleBetweenBeams := abs(alpha[beamnumber[2]] - alpha[beamnumber[1]]) >= minimumangle and abs(alpha[beamnumber[2]] - alpha[beamnumber[1]]);
 					
-					if abs(alpha[beamnumber[2]] - alpha[beamnumber[1]]) >= minimumangle and abs(alpha[beamnumber[2]] - alpha[beamnumber[1]]) <= 90 * Unit('degree') then
+					if angleBetweenBeams <= 90 * Unit('degree') then
 					
 						if part = 1 then
 							if alpha[beamnumber[2]] - alpha[beamnumber[1]] > 0 and alpha[beamnumber[2]] - alpha[beamnumber[1]] < 180 then
@@ -496,7 +500,9 @@ PlotResults := proc(WhateverYouNeed::table)
 						geometry:-point(parse(cat("BER", i)), [x, y]);
 						
 					else
-						Alert("Alpha angle between beams outside range", warnings, 2);
+
+						Alert(cat("Alpha angle between beams outside range: ", angleBetweenBeams), warnings, 2);
+
 					end if;
 				end if;
 		
