@@ -422,9 +422,9 @@ PlotResults := proc(WhateverYouNeed::table)
 				
 				if cutleft = "cut profile" then		# angleleft = false
 					
-					angleBetweenBeams := abs(alpha[beamnumber[2]] - alpha[beamnumber[1]]) >= minimumangle and abs(alpha[beamnumber[2]] - alpha[beamnumber[1]]);
+					angleBetweenBeams := abs(alpha[beamnumber[2]] - alpha[beamnumber[1]]);
 
-					if angleBetweenBeams <= 90 * Unit('degree') then							
+					if angleBetweenBeams <= 90 * Unit('degree') and angleBetweenBeams >= minimumangle then
 						
 						if part = 1 then
 							
@@ -458,7 +458,7 @@ PlotResults := proc(WhateverYouNeed::table)
 						
 					else
 						
-						Alert(cat("Alpha angle between beams outside range: ", angleBetweenBeams), warnings, 2);
+						Alert(cat("PlotResults beam " ,i," cut profile left side: Alpha angle between beams outside range: ", angleBetweenBeams), warnings, 2);
 						
 					end if;
 					
@@ -466,9 +466,9 @@ PlotResults := proc(WhateverYouNeed::table)
 				
 				if cutright = "cut profile" then
 
-					angleBetweenBeams := abs(alpha[beamnumber[2]] - alpha[beamnumber[1]]) >= minimumangle and abs(alpha[beamnumber[2]] - alpha[beamnumber[1]]);
+					angleBetweenBeams := abs(alpha[beamnumber[2]] - alpha[beamnumber[1]]);
 					
-					if angleBetweenBeams <= 90 * Unit('degree') then
+					if angleBetweenBeams <= 90 * Unit('degree') and angleBetweenBeams >= minimumangle then
 					
 						if part = 1 then
 							if alpha[beamnumber[2]] - alpha[beamnumber[1]] > 0 and alpha[beamnumber[2]] - alpha[beamnumber[1]] < 180 then
@@ -501,7 +501,7 @@ PlotResults := proc(WhateverYouNeed::table)
 						
 					else
 
-						Alert(cat("Alpha angle between beams outside range: ", angleBetweenBeams), warnings, 2);
+						Alert(cat("PlotResults beam " ,i," cut profile right side: Alpha angle between beams outside range: ", angleBetweenBeams), warnings, 2);
 
 					end if;
 				end if;
