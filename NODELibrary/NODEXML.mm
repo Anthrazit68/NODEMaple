@@ -606,6 +606,8 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 		if requesteddata[i][1] = "projectdata" then
 			
 			if numelems(GetChildByName(xmltree, "projectdata")) > 0 then				# workaround
+
+				FileTools[Text][WriteLine](logfile, "Projectdata: ");
 				rq2 := requesteddata[i][2];			# "all"
 				returndata1 := table();
 				
@@ -615,13 +617,13 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 
 					if HasAttribute(xmlprojectdata, rq2[n]) = true then		# found requested attribute value in xml file
 						returndata1[rq2[n]] := AttributeValue(xmlprojectdata, rq2[n]);
-						FileTools[Text][WriteLine](logfile, cat(rq2[n],": ", AttributeValue(xmlprojectdata, rq2[n])));
+						FileTools[Text][WriteLine](logfile, cat(" ", rq2[n],": ", returndata1[rq2[n]]));
 
 					elif rq2[n] = "all" then
 
 						for p in AttributeNames(xmlprojectdata) do
 							returndata1[p] := AttributeValue(xmlprojectdata, p);
-							FileTools[Text][WriteLine](logfile, cat(p,": ", AttributeValue(xmlprojectdata, p)));
+							FileTools[Text][WriteLine](logfile, cat(" ", p,": ", returndata1[p]));
 						end do
 
 					end if;
@@ -638,6 +640,8 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 			
 			if numelems(GetChildByName(xmltree, "materials")) > 0 then
 
+				FileTools[Text][WriteLine](logfile, "Materials: ");
+
 				for j from 1 to numelems(GetChildByName(xmltree, "materials")) do	# det burde bare v�re 1 materials definition i filen
 						
 					xmlmaterials := GetChildByName(xmltree, "materials")[j];		# GetChildByName returns list, need to go into list
@@ -647,7 +651,7 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 						for k from 1 to numelems(GetChildByName(xmlmaterials, rq2)) do		# get material classes (concrete, timber, steel), should just return one value
 
 							xmlmaterialdefinition := GetChildByName(xmlmaterials, rq2)[k];			# get desired material class
-							FileTools[Text][WriteLine](logfile, cat("Material: ", rq2));
+							FileTools[Text][WriteLine](logfile, cat(" Material: ", rq2));
 
 							xmlmaterial := GetChildByName(xmlmaterialdefinition, "material");		# list of all data of defined material
 
@@ -659,13 +663,13 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 									if HasAttribute(xmlmaterial[m], rq3[n]) = true then		# found requested attribute value in xml file
 
 										returndata2[rq3[n]] := AttributeValue(xmlmaterial[m], rq3[n]);
-										FileTools[Text][WriteLine](logfile, cat(" ", rq3[n], ": ", AttributeValue(xmlmaterial[m], rq3[n])));
+										FileTools[Text][WriteLine](logfile, cat(" ", rq3[n], ": ", returndata2[rq3[n]]));
 										
 									elif rq3[n] = "all" then
 										
 										for p in AttributeNames(xmlmaterial[m]) do
 											returndata2[p] := AttributeValue(xmlmaterial[m], p);
-											FileTools[Text][WriteLine](logfile, cat(" ", p,": ", AttributeValue(xmlmaterial[m], p)));
+											FileTools[Text][WriteLine](logfile, cat(" ", p,": ", returndata2[p]));
 										end do
 									end if;
 								
@@ -694,6 +698,8 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 
 			if numelems(GetChildByName(xmltree, "sections")) > 0 then
 
+				FileTools[Text][WriteLine](logfile, "Sections: ");
+
 				for j from 1 to numelems(GetChildByName(xmltree, "sections")) do	
 						
 					xmlsections := GetChildByName(xmltree, "sections")[j];		# GetChildByName returns list, need to go into list
@@ -703,7 +709,7 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 						for k from 1 to numelems(GetChildByName(xmlsections, rq2)) do		# now go through all specific section definitions of that section material class
 
 							xmlsectiondefinition := GetChildByName(xmlsections, rq2)[k];
-							FileTools[Text][WriteLine](logfile, cat("Section: ", rq2));
+							FileTools[Text][WriteLine](logfile, cat(" Section: ", rq2));
 
 							xmlsection := GetChildByName(xmlsectiondefinition, "section");						# list of all data of defined material
 
@@ -714,15 +720,15 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 
 									if HasAttribute(xmlsection[m], rq3[n]) = true then		# found requested attribute value in xml file
 
-										returndata2[rq3[n]] := AttributeValue(xmlsection[m], rq3[n])			# ["C20 / serviceclass 1 / Korttidslast"]
-										FileTools[Text][WriteLine](logfile, cat(" ", rq3[n], ": ", AttributeValue(xmlsection[m], rq3[n])));
+										returndata2[rq3[n]] := AttributeValue(xmlsection[m], rq3[n]);			# ["C20 / serviceclass 1 / Korttidslast"]
+										FileTools[Text][WriteLine](logfile, cat(" ", rq3[n], ": ", returndata2[rq3[n]]));
 										
 									elif rq3[n] = "all" then
 										
 										for p in AttributeNames(xmlsection[m]) do
 
 											returndata2[p] := AttributeValue(xmlsection[m], p);
-											FileTools[Text][WriteLine](logfile, cat(" ", p,": ", AttributeValue(xmlsection[m], p)));
+											FileTools[Text][WriteLine](logfile, cat(" ", p,": ", returndata2[p]));
 
 										end do
 									end if;
@@ -751,6 +757,7 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 			if numelems(GetChildByName(xmltree, "calculations")) > 0 then
 				
 				xmlcalculations := GetChildByName(xmltree, "calculations")[1];						# GetChildByName returns list, need to go into list
+				FileTools[Text][WriteLine](logfile, "Calculations: ");
 				
 				if ContentModelCount(xmlcalculations) > 0 then									# there are some calculations already defined
 
@@ -836,13 +843,13 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 							if HasAttribute(xmlcalculation, rq3[n]) = true then		# found requested attribute value in xml file
 
 								returndata2[rq3[n]] := AttributeValue(xmlcalculation, rq3[n]);
-								FileTools[Text][WriteLine](logfile, cat(rq3[n],  AttributeValue(xmlcalculation, rq3[n])));
+								FileTools[Text][WriteLine](logfile, cat("  ", rq3[n], ": ", returndata2[rq3[n]]));
 								
 							elif rq3[n] = "all" then
 
 								for p in AttributeNames(xmlcalculation) do
 									returndata2[p] := AttributeValue(xmlcalculation, p);
-									FileTools[Text][WriteLine](logfile, cat(p,": ", AttributeValue(xmlcalculation, p)));
+									FileTools[Text][WriteLine](logfile, cat("  ", p,": ", returndata2[p]));
 								end do
 
 							end if;
@@ -860,6 +867,7 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 								if ElementName(GetChild(xmlcalculation, j)) = dummy then
 									
 									xmldummy := GetChildByName(xmlcalculation, dummy)[1];		# structure, loadcases
+									FileTools[Text][WriteLine](logfile, cat(" ", dummy));
 									returndata3 := table();
 
 									# adding attributes
@@ -868,7 +876,8 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 											returndata3[p] := parse(AttributeValue(xmldummy, p));
 										else
 											returndata3[p] := AttributeValue(xmldummy, p)
-										end if;																						
+										end if;
+										FileTools[Text][WriteLine](logfile, cat("   ", p, ": ", convert(returndata3[p], string)));
 									end do;
 
 									# adding children								
@@ -880,14 +889,15 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 											nameIndex := AttributeValue(xmldummy1, "name")		# loadcase 1
 										else
 											nameIndex := ElementTypeName(xmldummy1)				# FastenerPatterns
-										end if;
+										end if;										
 
 										for p in AttributeNames(xmldummy1) do
 											if isNumericVariable(p, WhateverYouNeed) then
 												returndata4[p] := eval(parse(AttributeValue(xmldummy1, p)))
 											else
 												returndata4[p] := AttributeValue(xmldummy1, p)
-											end if;													
+											end if;
+											FileTools[Text][WriteLine](logfile, cat("     ", p, ": ", convert(returndata4[p], string)));
 										end do;
 											
 										# adding children
@@ -901,6 +911,7 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 												else
 													returndata5[q] := AttributeValue(xmldummy2, q)
 												end if;
+												FileTools[Text][WriteLine](logfile, cat("      ", p, ": ", convert(returndata5[p], string)));
 											end do;
 
 											if HasAttribute(xmldummy2, "name") then
