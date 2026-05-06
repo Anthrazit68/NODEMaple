@@ -2337,7 +2337,7 @@ WriteValueToComponent := proc(compvariable::string, b, check_calculations::set)
 
 		# contrary to other fields, slider values must be numeric, not string!
 		elif ComponentExists(cat("Slider_", compvariable)) then
-			if type(componentvalue, string) then
+			if type(componentvalue, string) and isNumericValue(componentvalue) then
 				SetProperty(cat("Slider_", compvariable), 'value', parse(componentvalue))
 			elif type(componentvalue, numeric) then
 				SetProperty(cat("Slider_", compvariable), 'value', componentvalue)

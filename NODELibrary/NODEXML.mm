@@ -527,7 +527,7 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 	local xmltree, xmlmaterials, xmlmaterialdefinition;
 	local dummy, xmlitems, xmldummy, xmldummy1, xmldummy2;
 	local xmlcalculation, xmlcalculations, foundcalculationtype, xmlcalculationtype, posnumber, posindex, pickedvalue;
-	local i, j, k, m, n, p, q, maplet, returndata, returndata1, returndata2, returndata3, returndata4, returndata5, nameIndex, rq2, rq3, successful, warnings;
+	local i, j, k, m, n, p, q, maplet, returndata, returndata1, returndata2, returndata3, returndata4, returndata5, nameIndex, nameIndex1, rq2, rq3, successful, warnings;
 	local afilename, logfile;
 
 	warnings := WhateverYouNeed["warnings"];
@@ -834,6 +834,8 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 							end do;
 						end if;
 						
+						FileTools[Text][WriteLine](logfile, cat(" calculation:"));	
+
 						returndata2 := table();		# store values of what needs to be returned
 						# Calculation can have both attributes on top level, but also in children. Need to go through both of them
 						# top level attributes
@@ -867,7 +869,7 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 								if ElementName(GetChild(xmlcalculation, j)) = dummy then
 									
 									xmldummy := GetChildByName(xmlcalculation, dummy)[1];		# structure, loadcases
-									FileTools[Text][WriteLine](logfile, cat(" ", dummy));
+									FileTools[Text][WriteLine](logfile, cat("  ", dummy));
 									returndata3 := table();
 
 									# adding attributes
@@ -889,7 +891,8 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 											nameIndex := AttributeValue(xmldummy1, "name")		# loadcase 1
 										else
 											nameIndex := ElementTypeName(xmldummy1)				# FastenerPatterns
-										end if;										
+										end if;
+										FileTools[Text][WriteLine](logfile, cat("   ", nameIndex));
 
 										for p in AttributeNames(xmldummy1) do
 											if isNumericVariable(p, WhateverYouNeed) then
@@ -897,13 +900,20 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 											else
 												returndata4[p] := AttributeValue(xmldummy1, p)
 											end if;
-											FileTools[Text][WriteLine](logfile, cat("     ", p, ": ", convert(returndata4[p], string)));
+											FileTools[Text][WriteLine](logfile, cat("    ", p, ": ", convert(returndata4[p], string)));
 										end do;
 											
 										# adding children
 										for p from 1 to ContentModelCount(xmldummy1) do				# 1, FastenerPattern
 											returndata5 := table();
 											xmldummy2 := GetChild(xmldummy1, p);
+# 2026-05-06
+											if HasAttribute(xmldummy2, "name") then
+												nameIndex1 := AttributeValue(xmldummy2, "name")
+											else
+												nameIndex1 := ElementTypeName(xmldummy2)
+											end if;
+											FileTools[Text][WriteLine](logfile, cat("    ", nameIndex1));
 
 											for q in AttributeNames(xmldummy2) do
 												if isNumericVariable(q, WhateverYouNeed) then
@@ -911,7 +921,7 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 												else
 													returndata5[q] := AttributeValue(xmldummy2, q)
 												end if;
-												FileTools[Text][WriteLine](logfile, cat("      ", p, ": ", convert(returndata5[p], string)));
+												FileTools[Text][WriteLine](logfile, cat("     ", q, ": ", convert(returndata5[q], string)));
 											end do;
 
 											if HasAttribute(xmldummy2, "name") then
