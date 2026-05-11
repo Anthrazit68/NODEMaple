@@ -704,20 +704,25 @@ LibInitCommon := proc(WhateverYouNeed, calculationtype)
 	local componentvariables, warnings, comments, eta, usedcode, usedcodeDescription, etamax, projectdata, calculations, material, autoloadsave,
 		autocalc, materials, materialdata, materialdataAll, structure, activesettings, results;
 	local section, sections, sectiondata, sectiondataAll, loadvariables, loadcases, calculatedvalues, logs;
-	local var_projectdata, var_materials, var_sections, var_calculations, var_loadvariables, var_calculationdata, var_storeitems, var_ComboBox, i;
+	local var_projectdata, var_materials, var_sections, var_calculations, var_loadvariables, var_calculationdata, var_storeitems, var_ComboBox, i, var_units;
 
 	# variables used to check if data from XML file are complete and correct
 	var_projectdata  := {"projectnumber", "projecttitle", "client"};		# primary input variables for project
 	var_materials := {"materials"};
 	var_sections := {"sections"};
 	var_calculations := {};
-	# var_calculationdata := {"positionnumber", "positiontitle", "calculationtype", "calculationtype_short", "activeloadcase"};
 	var_calculationdata := {"positionnumber", "positiontitle", "calculationtype", "calculationtype_short"};
-	# var_storeitems := {"projectdata", "materials", "sections", "calculations/calculationtype", "calculations/positionnumber",
-	#	"calculations/positiontitle", "calculations/activeloadcase", "calculations/loadcases", "calculations/structure", "calculations/activesettings"};
 	var_storeitems := {"projectdata", "materials", "sections", "calculations/calculationtype", "calculations/positionnumber",
 		"calculations/positiontitle", "calculations/loadcases", "calculations/structure", "calculations/activesettings"};
 	var_ComboBox := {"loadcases", "materials", "sections"};
+	
+	#initialize var_units
+	var_units := table();
+	var_units["mm"] := {"loadcenter_"};
+	var_units["m"] := {};
+	var_units["kN"] := {"F_", "V_"};
+	var_units["kN*m"] := {"M_"};
+	var_units["arcdeg"] := {"alpha"};
 
 	# calculationdata
 	calculations := table();		# table of calculation data for xml export	
@@ -736,6 +741,7 @@ LibInitCommon := proc(WhateverYouNeed, calculationtype)
 	componentvariables["var_calculationdata"] := eval(var_calculationdata);
 	componentvariables["var_storeitems"] := eval(var_storeitems);
 	componentvariables["var_ComboBox"] := eval(var_ComboBox);
+	componentvariables["var_units"] := var_units;				# store default units for textfield input
 
 	# other local variables
 	autoloadsave := true;			# automatic save of load definition changes
@@ -772,7 +778,20 @@ LibInitCommon := proc(WhateverYouNeed, calculationtype)
 	for i in var_loadvariables do
 
 		if ComponentExists(cat("TextArea_", i)) or ComponentExists(cat("Slider_", i)) or ComponentExists(cat("ComboBox_", i)) then
-			loadvariables := loadvariables union {i}
+			loadvariables := loadvariables union {i};
+
+			# if SearchText("F_", i) = 1 then
+			# 	var_units["kN"] := var_units["kN"] union {i}
+			# elif SearchText("V_", i) = 1 then
+			# 	var_units["kN"] := var_units["kN"] union {i}
+			# elif SearchText("M_", i) = 1 then
+			# 	var_units["kN*m"] := var_units["kN*m"] union {i}
+			# elif SearchText("alpha", i) = 1 then
+			# 	var_units["arcdeg"] := var_units["arcdeg"] union {i}
+			# elif SearchText("loadcenter_", i) = 1 then
+			# 	var_units["mm"] := var_units["mm"] union {i}
+			# end if;
+
 		end if;
 
 	end do;
