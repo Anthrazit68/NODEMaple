@@ -408,6 +408,31 @@ ComponentExists := proc(EC::{name,string})
 	end try;
 end proc:
 
+ConvertUnitfree := proc(varname::string, varvalue, WhateverYouNeed::table)::numeric;
+	description "Convert value to unit_free based on predefined unit";
+	local i, var_units, warnings;
+
+	var_units := WhateverYouNeed["componentvariables"]["var_units"];
+	warnings := WhateverYouNeed["warnings"];
+
+	for i in indices(var_units, 'nolist') do
+
+		if member(varname, substring~(var_units[i], 1..numelems(varname))) then			# "F_" "F_axd"
+			return convert(convert(varvalue, 'units', parse(i)), 'unit_free');
+		end if;
+
+	end do;	
+
+	# no units found or undefined unit
+	if type(varvalue, 'with_unit') then
+		Alert(cat("Undefined default unit for ", varname, ": ", varvalue), warnings, 3);
+		return convert(varvalue, 'unit_free')
+	else
+		return varvalue;
+	end if;
+	
+end proc:
+
 disableTextAreaEtaMax := proc(WhateverYouNeed::table)
 	description "Disable TextArea for etamax, showing that results are not updated";
 	local dummy;
