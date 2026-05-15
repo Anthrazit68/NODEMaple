@@ -347,19 +347,19 @@ CalculateLoads := proc(loadcase::string, loadsaving::boolean, action::string, Wh
 			if definedCharacteristic then
 				if load_d_calculated <> load_d then				
 					if action = "calculate" then
-						SetProperty(cat("TextArea_", loadcase_d), 'value', convert(load_d_calculated, 'unit_free'));
+						SetProperty(cat("TextArea_", loadcase_d), 'value', ConvertUnitfree(loadcase_d, load_d_calculated, WhateverYouNeed));
 						
 					elif action = "verify" then
 
 						# if just load_d has 'value', apparently it comes from Excel file, fix visibility of characteristic TextAreas
 						if load_Gk = 0 and load_Qk = 0 and load_d <> 0 then
-							SetProperty(cat("TextArea_", loadcase_d), 'value', convert(load_d, 'unit_free'));
+							SetProperty(cat("TextArea_", loadcase_d), 'value', ConvertUnitfree(loadcase_d, load_d, WhateverYouNeed));
 							SetProperty(cat("TextArea_", loadcase_Gk), 'enabled', "false");
 							SetProperty(cat("TextArea_", loadcase_Qk), 'enabled', "false");
 
 						# if design is 0, and characteristic not, do calculation
 						elif (load_Gk <> 0 or load_Qk <> 0) and load_d = 0 then
-							SetProperty(cat("TextArea_", loadcase_d), 'value', convert(load_d_calculated, 'unit_free'));
+							SetProperty(cat("TextArea_", loadcase_d), 'value', ConvertUnitfree(loadcase_d, load_d_calculated, WhateverYouNeed));
 						
 						else
 							Alert(cat("loadcase: ", loadcase, ", load: ", i, ": gamma_G * ", load_Gk, " + gamma_Q * ", load_Qk, " <> ", load_d), warnings, 3)
@@ -410,27 +410,28 @@ end proc:
 
 ConvertUnitfree := proc(varname::string, varvalue, WhateverYouNeed::table)::numeric;
 	description "Convert value to unit_free based on predefined unit";
-	local i, var_units, warnings;
+	local i, j, var_units, warnings;
 
 	var_units := WhateverYouNeed["componentvariables"]["var_units"];
 	warnings := WhateverYouNeed["warnings"];
 
-	for i in indices(var_units, 'nolist') do
-
-		if member(varname, substring~(var_units[i], 1..numelems(varname))) then			# "F_" "F_axd"
-			return convert(convert(varvalue, 'units', parse(i)), 'unit_free');
-		end if;
-
-	end do;	
-
-	# no units found or undefined unit
 	if type(varvalue, 'with_unit') then
-		Alert(cat("Undefined default unit for ", varname, ": ", varvalue), warnings, 3);
+
+		for i in indices(var_units, 'nolist') do
+			for j in var_units[i] do 
+				if evalb(j = substring(varname, 1..numelems(j))) then
+#				if member(varname, substring~(var_units[i], 1..numelems(varname))) then			# "F_" "F_axd"
+					return convert(convert(varvalue, 'units', parse(i)), 'unit_free');
+				end if;
+			end do;
+		end do;	
+
+		Alert(cat("Dropping units for variable with undefined default unit for ", varname, ": ", varvalue), warnings, 3);
 		return convert(varvalue, 'unit_free')
+
 	else
 		return varvalue;
-	end if;
-	
+	end if;	
 end proc:
 
 disableTextAreaEtaMax := proc(WhateverYouNeed::table)
@@ -529,7 +530,7 @@ ExcelFileInOut := proc(action::string, WhateverYouNeed::table) :: string;
 				cellvalue(1) := loadname;
 
 				for j from 1 to numelems(loadvariables) do
-					cellvalue(j+1) := convert(loadcases[loadname][loadvariables[j]], 'unit_free')
+					cellvalue(j+1) := ConvertUnitfree(loadvariables[j], loadcases[loadname][loadvariables[j]], WhateverYouNeed)
 				end do;
 				
 				if assigned(WhateverYouNeed["results"][loadname]["eta"]) then
@@ -556,6 +557,8 @@ ExcelFileInOut := proc(action::string, WhateverYouNeed::table) :: string;
 		# Fastener Group
 		if assigned(WhateverYouNeed["results"]["FastenerGroup"]["Fasteners"]) then
 			# coordinate export
+			# Excel does not store units, so values are as defined in the calculation
+			# no point in using ConvertUnitfree because no default unit in calculation
 			coordinates := ArrayTools:-Permute(convert(WhateverYouNeed["results"]["FastenerGroup"]["Fasteners"], Matrix), [2, 1]); # extract coordinates, convert to Matrix, switch rows and columns
 			coordinates := convert~(coordinates, 'unit_free');
 			f :=(i)->i;
@@ -702,14 +705,27 @@ HighlightResults := proc(var, action::string)
 
 end proc:
 
+
 isNumericVariable := proc(varname::string, WhateverYouNeed::table)::boolean;
 	description "Check if variable is numeric or not";
+	local isnumeric, i;
+	
+	isnumeric := false;
 
-	if member(varname, WhateverYouNeed["componentvariables"]["var_numeric"]) or member(varname, WhateverYouNeed["calculations"]["loadvariables"]) then
-		return true
-	else
-		return false
-	end if;
+	for i in WhateverYouNeed["componentvariables"]["var_numeric"] do
+		if evalb(i = substring(varname, 1..numelems(i))) then
+			isnumeric := true
+		end if;
+	end do;
+
+	for i in WhateverYouNeed["calculations"]["loadvariables"] do
+		if evalb(i = substring(varname, 1..numelems(i))) then
+			isnumeric := true
+		end if;
+	end do;
+
+	return isnumeric
+
 end proc:
 
 
@@ -1825,6 +1841,7 @@ SectionChanged := proc(material::string, activesection::string, WhateverYouNeed:
 		end if;
 
 		# try existing function instead
+		# no need to call ConvertUnitfree because b (bout) and h are defined through section name, not value in xml file, always [mm]
 		SetProperty(cat("TextArea_b", partsnumber), 'value', convert(convert(WhateverYouNeed["sectiondata"]["b"], 'unit_free'), string));
 		SetProperty(cat("TextArea_h", partsnumber), 'value', convert(WhateverYouNeed["sectiondata"]["h"], 'unit_free'));
 
@@ -1954,7 +1971,7 @@ StoredsettingsToComponents := proc(WhateverYouNeed::table)
 							checkvar := WriteValueToComponent(j, WhateverYouNeed[parent][child][j], checkvar)							
 
 						elif type(WhateverYouNeed[parent][child][j], 'with_unit') then
-							checkvar := WriteValueToComponent(j, convert(convert(WhateverYouNeed[parent][child][j], 'unit_free'), string), checkvar)
+							checkvar := WriteValueToComponent(j, convert(ConvertUnitfree(j, WhateverYouNeed[parent][child][j], WhateverYouNeed), string), checkvar)
 
 						elif member(cat("-",j), WhateverYouNeed["componentvariables"]["var_ComboBox"]) then
 							# "-variable" will be ignored
@@ -1978,7 +1995,7 @@ StoredsettingsToComponents := proc(WhateverYouNeed::table)
 									checkvar := WriteValueToComponent(k, WhateverYouNeed[parent][child][j][k], checkvar)
 
 								elif type(WhateverYouNeed[parent][child][j][k], 'with_unit') then
-									checkvar := WriteValueToComponent(k, convert(convert(WhateverYouNeed[parent][child][j][k], 'unit_free'), string), checkvar)
+									checkvar := WriteValueToComponent(k, convert(ConvertUnitfree(k, WhateverYouNeed[parent][child][j][k], WhateverYouNeed), string), checkvar)
 
 								elif member(cat("-",k), WhateverYouNeed["componentvariables"]["var_ComboBox"]) then
 									# "-variable" will be ignored
@@ -2020,7 +2037,7 @@ StoredsettingsToComponents := proc(WhateverYouNeed::table)
 					checkvar := WriteValueToComponent(dummy, WhateverYouNeed[dummy], checkvar)	
 
 				elif type(WhateverYouNeed[dummy], 'with_unit') then
-					checkvar := WriteValueToComponent(dummy, convert(convert(WhateverYouNeed[dummy], 'unit_free'), string), checkvar)	
+					checkvar := WriteValueToComponent(dummy, convert(ConvertUnitfree(dummy, WhateverYouNeed[dummy], WhateverYouNeed), string), checkvar)
 
 				elif member(cat("-",dummy), WhateverYouNeed["componentvariables"]["var_ComboBox"]) then
 					# "-variable" will be ignored
@@ -2038,7 +2055,7 @@ StoredsettingsToComponents := proc(WhateverYouNeed::table)
 							checkvar := WriteValueToComponent(j, WhateverYouNeed[dummy][j], checkvar)
 
 						elif type(WhateverYouNeed[dummy][j], 'with_unit') then
-							checkvar := WriteValueToComponent(j, convert(convert(WhateverYouNeed[dummy][j], 'unit_free'), string), checkvar)							
+							checkvar := WriteValueToComponent(j, convert(ConvertUnitfree(j, WhateverYouNeed[dummy][j], WhateverYouNeed), string), checkvar)
 
 						elif member(j, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
 							ModifyComboVariables(cat("ComboBox_", j), "Write", WhateverYouNeed[dummy][j], table());	# write new values to combobox
@@ -2051,7 +2068,7 @@ StoredsettingsToComponents := proc(WhateverYouNeed::table)
 									checkvar := WriteValueToComponent(k, WhateverYouNeed[dummy][j][k], checkvar)
 
 								elif type(WhateverYouNeed[dummy][j][k], 'with_unit') then
-									checkvar := WriteValueToComponent(k, convert(convert(WhateverYouNeed[dummy][j][k], 'unit_free'), string), checkvar)
+									checkvar := WriteValueToComponent(k, convert(ConvertUnitfree(k, WhateverYouNeed[dummy][j][k], WhateverYouNeed), string), checkvar)
 
 								elif member(k, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
 									ModifyComboVariables(cat("ComboBox_", k), "Write", WhateverYouNeed[dummy][j][k], table());	# write new values to combobox
@@ -2161,7 +2178,7 @@ updateResults := proc(data::table)
 				SetProperty(cat("TextArea_", i), 'value', data[i])
 				
 			elif SearchText("*Units:-Unit", convert(data[i], string)) > 0 then		# check if data has units, then remove unit from value
-				SetProperty(cat("TextArea_", i), 'value', convert(data[i], 'unit_free'))
+				SetProperty(cat("TextArea_", i), 'value', ConvertUnitfree(i, data[i], WhateverYouNeed))
 
 			else
 				#
@@ -2285,7 +2302,7 @@ WriteLoadsToDocument := proc(loadcase, WhateverYouNeed::table)
 					SetProperty(dummy, 'enabled', false);
 				else									# loadcases do also store 'enabled' property now
 					SetProperty(dummy, 'enabled', true);
-					SetProperty(dummy, 'value', convert(loadcases[loadcase][i], 'unit_free'));						
+					SetProperty(dummy, 'value', ConvertUnitfree(i, loadcases[loadcase][i], WhateverYouNeed));
 				end if;
 			else 
 				SetProperty(dummy, 'value', "0");
@@ -2293,7 +2310,7 @@ WriteLoadsToDocument := proc(loadcase, WhateverYouNeed::table)
 			end if;
 	
 		elif ComponentExists(cat("Slider_", i)) then
-			SetProperty(cat("Slider_", i), 'value', convert(loadcases[loadcase][i], 'unit_free'));		
+			SetProperty(cat("Slider_", i), 'value', ConvertUnitfree(i, loadcases[loadcase][i], WhateverYouNeed));
 
 		elif ComponentExists(cat("ComboBox_", i)) then
 			WriteValueToComponent(i, loadcases[loadcase][i], {"nocheck"});
@@ -2313,6 +2330,10 @@ WriteValueToComponent := proc(compvariable::string, b, check_calculations::set)
 	description "Find component we could write our value to";
 	uses ListTools;
 	local foundvalue, upd_check_calculations, componentvalue, checkvar;
+
+# if compvariable = "graindirection1" then
+# 	DEBUG()
+# end if;
 
 	if member("nocheck", check_calculations) then
 		checkvar := false
@@ -2335,11 +2356,8 @@ WriteValueToComponent := proc(compvariable::string, b, check_calculations::set)
 
 	else
 
-		# might be useful to check if correct unit is stripped before removing it
-		# convert units to mm before stripping it?
-
-		if type(componentvalue, 'with_unit') then			
-			componentvalue := convert(componentvalue, 'unit_free')
+		if type(componentvalue, 'with_unit') then
+			componentvalue := ConvertUnitfree(compvariable, componentvalue, WhateverYouNeed)
 		end if;
 	
 		if ComponentExists(cat("TextArea_", compvariable)) then
@@ -2386,7 +2404,7 @@ WriteValueToComponent := proc(compvariable::string, b, check_calculations::set)
 			elif type(componentvalue, numeric) then
 				SetProperty(cat("Slider_", compvariable), 'value', componentvalue)
 			elif type(componentvalue, with_unit) then
-				SetProperty(cat("Slider_", compvariable), 'value', convert(componentvalue, 'unit_free'))
+				SetProperty(cat("Slider_", compvariable), 'value', ConvertUnitfree(compvariable, componentvalue, WhateverYouNeed))
 			else
 				Alert("Can't set value to slider component", table(), 1)
 			end if;

@@ -60,6 +60,7 @@ calculate_t_total := proc(WhateverYouNeed::table)
 	numberOfLayers := table();
 	eqnumberOfLayers := table();
 	
+	# all units in [mm], as sectiondata are in [mm]
 	layer1 := cat(convert(t["1"], 'unit_free'),"mm timber");	
 	layer1out := cat(convert(t["1out"], 'unit_free'),"mm timber");
 	cat(round(convert(t["1"], 'unit_free') / 2),"mm timber");

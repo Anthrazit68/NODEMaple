@@ -194,7 +194,7 @@ AnnexA := proc(WhateverYouNeed::table)
 	if F_hd = 0 and F_vd = 0 then		# special case where either everything is zero, or we just have moments on the connection
 		alphaForce := 0;
 	else
-		alphaForce := arctan(convert(F_vd, 'unit_free'), convert(F_hd, 'unit_free')) * Unit('radians');
+		alphaForce := arctan(ConvertUnitfree("F_vd", F_vd, WhateverYouNeed), ConvertUnitfree("F_hd", F_hd, WhateverYouNeed)) * Unit('radians');
 	end if;
 
 	alpha := alphaForce - alphaBeam;

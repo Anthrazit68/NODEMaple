@@ -399,11 +399,13 @@ end proc:
 # 6.1.7 Shear / 6.5.2 Beams with a notch at the support
 EC5_617 := proc(WhateverYouNeed::table)
 	description "6.1.7 Shear";
-	local kcr, tau_yd, tau_zd, h_ef, l_incl, endnotched, endnotchedType, k_v, k_v1, k_v2, i_652, alpha_652, kn, x_652, eta, usedcode, comments, V_yd, V_zd, b, h, timbertype, f_vd, A, loadcase;
+	local kcr, tau_yd, tau_zd, h_ef, l_incl, endnotched, endnotchedType, k_v, k_v1, k_v2, i_652, alpha_652, kn, x_652, eta, usedcode,
+			 comments, V_yd, V_zd, b, h, h_, timbertype, f_vd, A, loadcase;
 
 	# define local variables
 	b := WhateverYouNeed["sectiondata"]["b"];
 	h := WhateverYouNeed["sectiondata"]["h"];
+	h_ := convert(h, 'unit_free');
 	A := WhateverYouNeed["sectiondata"]["A"];
 		
 	endnotched := WhateverYouNeed["calculations"]["structure"]["code_652"]["endnotched"];
@@ -443,8 +445,8 @@ EC5_617 := proc(WhateverYouNeed::table)
 				if endnotchedType = "6.11(a)" then
 					i_652 := evalf(l_incl / (h - h_ef));
 					alpha_652 := evalf(h_ef / h);
-					k_v1 := evalf(kn * (1 + 1.1 * i_652^1.5 / sqrt(convert(h, 'unit_free'))));
-					k_v2 := evalf(sqrt(convert(h, 'unit_free')) * (sqrt(alpha_652 * (1 - alpha_652)) + 0.8 * x_652 / h * sqrt(1 / alpha_652 - alpha_652^2)));
+					k_v1 := evalf(kn * (1 + 1.1 * i_652^1.5 / sqrt(h_)));
+					k_v2 := evalf(sqrt(h_) * (sqrt(alpha_652 * (1 - alpha_652)) + 0.8 * x_652 / h * sqrt(1 / alpha_652 - alpha_652^2)));
 					k_v := min(1, evalf(k_v1 / k_v2));
 				else
 					k_v := 1

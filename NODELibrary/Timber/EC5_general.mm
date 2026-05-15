@@ -134,6 +134,7 @@ SetComboBoxSection := proc(WhateverYouNeed::table, partsnumber::string)
 
 	if partsnumber = "" then
 
+		# no need to check unit conversion of b and h, as the always are in [mm] - defined by section name, not values
 		b_ := convert(WhateverYouNeed["sectiondata"]["b"], 'unit_free');
 		if member(convert(b_, string), GetProperty("ComboBox_b", 'itemlist'), 'pos') then
 			SetProperty("ComboBox_b", 'selectedIndex', pos-1);

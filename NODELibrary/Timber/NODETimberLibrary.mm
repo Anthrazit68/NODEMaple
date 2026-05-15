@@ -19,6 +19,10 @@
 
 ReadComponentsSpecific_fastener := proc(fastener::table, fastenervalues::table)
 	description "Subroutine for ReadeComponentsSpecific, EC5_8, fasteners";
+	local d_, ls_;
+	# no unit check possible, as we do not have access to WhateverYouNeed, assumed ok (checked everywhere else)
+	d_ := convert(fastener["fastener_d"], 'unit_free');		# [mm]
+	ls_ := convert(fastener["fastener_ls"], 'unit_free');	# [mm]
 
 	if ComponentExists("TextArea_numberOfFasteners") then
 		fastener["numberOfFasteners"] := parse(GetProperty("TextArea_numberOfFasteners", 'value'))
@@ -48,26 +52,26 @@ ReadComponentsSpecific_fastener := proc(fastener::table, fastenervalues::table)
 		fastener["boltgrade"] := evaln(fastener["boltgrade"])
 	end if;
 
-	fastenervalues["M_yRk"] := eval(NODETimberFasteners:-M_yRk[fastener["fastenerProducer"], fastener["fastenerProduct"], convert(fastener["fastener_d"], 'unit_free')][1]);
-	fastenervalues["f_axk"] := eval(NODETimberFasteners:-f_axk[fastener["fastenerProducer"], fastener["fastenerProduct"], convert(fastener["fastener_d"], 'unit_free')][1]);
-	fastenervalues["f_headk"] := eval(NODETimberFasteners:-f_headk[fastener["fastenerProducer"], fastener["fastenerProduct"], convert(fastener["fastener_d"], 'unit_free')][1]);
-	fastenervalues["f_tensk"] := eval(NODETimberFasteners:-f_tensk[fastener["fastenerProducer"], fastener["fastenerProduct"], convert(fastener["fastener_d"], 'unit_free')][1]);
-	fastenervalues["l1"] := eval(NODETimberFasteners:-l1[fastener["fastenerProducer"], fastener["fastenerProduct"], convert(fastener["fastener_d"], 'unit_free'), convert(fastener["fastener_ls"], 'unit_free')][1]);
-	fastenervalues["l2"] := eval(NODETimberFasteners:-l2[fastener["fastenerProducer"], fastener["fastenerProduct"], convert(fastener["fastener_d"], 'unit_free'), convert(fastener["fastener_ls"], 'unit_free')][1]);
-	fastenervalues["f_uk"] := eval(NODETimberFasteners:-f_uk[fastener["fastenerProducer"], fastener["fastenerProduct"], convert(fastener["fastener_d"], 'unit_free'), convert(fastener["fastener_ls"], 'unit_free')][1]);
-	fastenervalues["b_max"] := eval(NODETimberFasteners:-b_max[fastener["fastenerProducer"], fastener["fastenerProduct"], convert(fastener["fastener_d"], 'unit_free'), convert(fastener["fastener_ls"], 'unit_free')][1]);
+	fastenervalues["M_yRk"] := eval(NODETimberFasteners:-M_yRk[fastener["fastenerProducer"], fastener["fastenerProduct"], d_][1]);
+	fastenervalues["f_axk"] := eval(NODETimberFasteners:-f_axk[fastener["fastenerProducer"], fastener["fastenerProduct"], d_][1]);
+	fastenervalues["f_headk"] := eval(NODETimberFasteners:-f_headk[fastener["fastenerProducer"], fastener["fastenerProduct"], d_][1]);
+	fastenervalues["f_tensk"] := eval(NODETimberFasteners:-f_tensk[fastener["fastenerProducer"], fastener["fastenerProduct"], d_][1]);
+	fastenervalues["l1"] := eval(NODETimberFasteners:-l1[fastener["fastenerProducer"], fastener["fastenerProduct"], d_, ls_][1]);
+	fastenervalues["l2"] := eval(NODETimberFasteners:-l2[fastener["fastenerProducer"], fastener["fastenerProduct"], d_, ls_][1]);
+	fastenervalues["f_uk"] := eval(NODETimberFasteners:-f_uk[fastener["fastenerProducer"], fastener["fastenerProduct"], d_, ls_][1]);
+	fastenervalues["b_max"] := eval(NODETimberFasteners:-b_max[fastener["fastenerProducer"], fastener["fastenerProduct"], d_, ls_][1]);
 
 	if GetProperty("ComboBox_washerProducer", 'enabled') = "true" then
 
 		fastener["washerProducer"] := GetProperty("ComboBox_washerProducer", 'value');
 		fastener["washerProduct"] := GetProperty("ComboBox_washerProduct", 'value');
 		
-		fastenervalues["washerInfo"] := NODETimberFastenersWashers:-detailinformation[convert(fastener["fastener_d"], 'unit_free'), fastener["washerProducer"], fastener["washerProduct"]][1];
-		fastenervalues["washer_dint"] := eval(NODETimberFastenersWashers:-dint[convert(fastener["fastener_d"], 'unit_free'), fastener["washerProducer"], fastener["washerProduct"]][1]);
-		fastenervalues["washer_dext"] := eval(NODETimberFastenersWashers:-dext[convert(fastener["fastener_d"], 'unit_free'), fastener["washerProducer"], fastener["washerProduct"]][1]);
-		fastenervalues["washer_s"] := eval(NODETimberFastenersWashers:-s[convert(fastener["fastener_d"], 'unit_free'), fastener["washerProducer"], fastener["washerProduct"]][1]);
-		fastenervalues["washer_A_ef"] := eval(NODETimberFastenersWashers:-A_ef(convert(fastener["fastener_d"], 'unit_free'), fastener["washerProducer"], fastener["washerProduct"]));
-		fastenervalues["washer_N_axk"] := eval(NODETimberFastenersWashers:-N_axk(convert(fastener["fastener_d"], 'unit_free'), fastener["washerProducer"], fastener["washerProduct"]));
+		fastenervalues["washerInfo"] := NODETimberFastenersWashers:-detailinformation[d_, fastener["washerProducer"], fastener["washerProduct"]][1];
+		fastenervalues["washer_dint"] := eval(NODETimberFastenersWashers:-dint[d_, fastener["washerProducer"], fastener["washerProduct"]][1]);
+		fastenervalues["washer_dext"] := eval(NODETimberFastenersWashers:-dext[d_, fastener["washerProducer"], fastener["washerProduct"]][1]);
+		fastenervalues["washer_s"] := eval(NODETimberFastenersWashers:-s[d_, fastener["washerProducer"], fastener["washerProduct"]][1]);
+		fastenervalues["washer_A_ef"] := eval(NODETimberFastenersWashers:-A_ef(d_, fastener["washerProducer"], fastener["washerProduct"]));
+		fastenervalues["washer_N_axk"] := eval(NODETimberFastenersWashers:-N_axk(d_, fastener["washerProducer"], fastener["washerProduct"]));
 
 		WriteValueToComponent("washerInfo", fastenervalues["washerInfo"], {"nocheck"});
 		WriteValueToComponent("washer_dint", round2(fastenervalues["washer_dint"],1), {"nocheck"});
@@ -319,7 +323,7 @@ SetComboFastenersAfterXMLImport := proc(WhateverYouNeed::table)
 	SetProperty("ComboBox_fastener_d", 'itemList', convert~(NODETimberFasteners:-fasteners_d[chosenFastener], 'unit_free'));
 	
 	d := fastener["fastener_d"];
-	d_ := convert(d, 'unit_free');
+	d_ := ConvertUnitfree("fastener_d", d, WhateverYouNeed);
 	
 	dummy := GetProperty("ComboBox_fastener_d", 'itemlist');
 

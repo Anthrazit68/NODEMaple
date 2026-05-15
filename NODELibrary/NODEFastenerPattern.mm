@@ -63,7 +63,7 @@ CalculateForcesInConnection := proc(WhateverYouNeed::table)
 	load := EccentricMoment(loadVector, centerOfFasteners, centerOfForce);			# calculate load in center of bolt group, Vector[column]
 	
 	if ComponentExists("TextArea_M_yd1") and WhateverYouNeed["calculations"]["calculatingAllLoadcases"] = false then
-		SetProperty("TextArea_M_yd1", 'value', round2(convert(load[3], 'unit_free'), 2))
+		SetProperty("TextArea_M_yd1", 'value', round2(ConvertUnitfree("M_yd1", load[3], WhateverYouNeed), 2))
 	end if;
 	
 	ForcesInConnection := ForcesInPoint(load, pointList, centerOfFasteners, warnings);	# list of forces in every fastener node / Fh, Fv, Fres, alpha
@@ -161,7 +161,7 @@ PlotResults := proc(WhateverYouNeed::table)
 	description "Plot results of calculation";
 	local structure, i, displayForceVectors, fastener, fasteners, fastenervalues, fastenerPointlist, results, scalefactor, r, len, alpha, geometryList, graphicsElements, warnings,
 		sectiondataAll, h, beamBoundarylines, annotations_a, annotations, x, y, lengthleft, lengthright, angleleft, angleright, beams, clr, beamPoints, minimumangle,
-		plotitems, beamnumber, displayBlockShear, cutleft, cutright, part, deltaangle, openingOutline, angleBetweenBeams;
+		plotitems, beamnumber, displayBlockShear, cutleft, cutright, part, deltaangle, openingOutline, angleBetweenBeams, d_;
 
 	warnings := WhateverYouNeed["warnings"];
 	structure := WhateverYouNeed["calculations"]["structure"];
@@ -171,9 +171,10 @@ PlotResults := proc(WhateverYouNeed::table)
 	geometryList := [];	# list of geometry elements to be plotted
 	# displayPoints := [];
 	fastenerPointlist := [];
+	d_ := ConvertUnitfree("fastener_d", structure["fastener"]["fastener_d"], WhateverYouNeed);			# could d_ = false?
 
 	if assigned(WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_d"]) then
-		r := round(convert(WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_d"], 'unit_free') / 2)		# need to convert to posint, diameter to radius
+		r := round(d_ / 2)		# need to convert to posint, diameter to radius
 	else
 		r := 20
 	end if;
@@ -207,6 +208,8 @@ PlotResults := proc(WhateverYouNeed::table)
 		if WhateverYouNeed["calculations"]["calculationtype"] = "NS-EN 1995-1-1, Section 8: Fasteners" or 
 			WhateverYouNeed["calculations"]["calculationtype"] = "Loads on Fastener Group" then
 
+			# Fasteners are defined with user-defined units
+			# no need to call ConvertUnitfree
 			geometry:-point('CenterOfFasteners', convert~(convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfFasteners"], list), 'unit_free'));
 			geometry:-point('CenterOfForce', convert~(convert(WhateverYouNeed["results"]["FastenerGroup"]["CenterOfForce"], list), 'unit_free'));
 			geometryList := [op(geometryList), CenterOfFasteners('symbol' = 'cross', 'color' = "SteelBlue", 'symbolsize' = 30)];
@@ -327,8 +330,10 @@ PlotResults := proc(WhateverYouNeed::table)
 				geometry:-ParallelLine(parse(cat("BLR", i)), parse(cat("BOR", i)), parse(cat("BC", i)));
 
 				# 3.) create Beam Start and End Center points
-				lengthleft := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthleft", i)], 'unit_free');				# could be "false"
-				lengthright := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthright", i)], 'unit_free');
+				# lengthleft := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthleft", i)], 'unit_free');				# could be "false"
+				# lengthright := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthright", i)], 'unit_free');
+				lengthleft := ConvertUnitfree(cat("lengthleft", i), WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthleft", i)], WhateverYouNeed);	# could be "false"
+				lengthright := ConvertUnitfree(cat("lengthright", i), WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthright", i)], WhateverYouNeed);
 
 				angleleft := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleleft", i)]);				# could be "false"
 				angleright := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleright", i)]);
@@ -353,7 +358,8 @@ PlotResults := proc(WhateverYouNeed::table)
 						Alert("Angle left outside range", warnings, 2);
 						angleleft := 90 * Unit('degree');
 						WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleleft", i)] := angleleft;
-						SetProperty(cat("TextArea_angleleft", i), 'value', round2(convert(angleleft, 'unit_free'), 2))
+						# SetProperty(cat("TextArea_angleleft", i), 'value', round2(convert(angleleft, 'unit_free'), 2))
+						SetProperty(cat("TextArea_angleleft", i), 'value', round2(ConvertUnitfree(cat("TextArea_angleleft", i), angleleft, WhateverYouNeed), 2))
 					end if;
 					deltaangle := alpha[i] + angleleft;
 				else
@@ -374,7 +380,8 @@ PlotResults := proc(WhateverYouNeed::table)
 						Alert("Angle right outside range", warnings, 2);
 						angleright := 90 * Unit('degree');
 						WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleright", i)] := angleright;
-						SetProperty(cat("TextArea_angleright", i), 'value', round2(convert(angleright, 'unit_free'), 2))
+						# SetProperty(cat("TextArea_angleright", i), 'value', round2(convert(angleright, 'unit_free'), 2))
+						SetProperty(cat("TextArea_angleright", i), 'value', round2(ConvertUnitfree(cat("TextArea_angleright", i), angleright, WhateverYouNeed), 2))
 					end if;
 					deltaangle := alpha[i] + angleright;
 				else
@@ -411,8 +418,10 @@ PlotResults := proc(WhateverYouNeed::table)
 					i := beamnumber[part];		# "1", "2", "steel"
 				end if;
 
-				lengthleft := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthleft", i)], 'unit_free');				# could be "false"
-				lengthright := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthright", i)], 'unit_free');
+				# lengthleft := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthleft", i)], 'unit_free');				# could be "false"
+				# lengthright := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthright", i)], 'unit_free');
+				lengthleft := ConvertUnitfree(cat("lengthleft", i), WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthleft", i)], WhateverYouNeed);	# could be "false"
+				lengthright := ConvertUnitfree(cat("lengthright", i), WhateverYouNeed["calculations"]["structure"]["connection"][cat("lengthright", i)], WhateverYouNeed);
 
 				angleleft := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleleft", i)]);				# could be "false"
 				angleright := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("angleright", i)]);
@@ -561,11 +570,15 @@ PlotResults := proc(WhateverYouNeed::table)
 				local opening, openingResult, cracklength, CrackLeft, CrackRight, a, hd, e, alphaScrew, a3c_min_max, ls, h_r;
 
 				opening := WhateverYouNeed["calculations"]["structure"]["opening"];
-				openingResult := WhateverYouNeed["results"]["opening"];
-				a := convert(opening["opening_a"], 'unit_free');
-				e := convert(opening["opening_e"], 'unit_free');
-				ls := convert(WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_ls"], 'unit_free');
-				h_r := convert~(openingResult["h_r"], 'unit_free');		# distance from edge to crack
+				# openingResult := WhateverYouNeed["results"]["opening"];
+				# a := convert(opening["opening_a"], 'unit_free');
+				# e := convert(opening["opening_e"], 'unit_free');
+				# ls := convert(WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_ls"], 'unit_free');
+				# h_r := convert~(openingResult["h_r"], 'unit_free');		# distance from edge to crack
+				a := ConvertUnitfree("opening_a", opening["opening_a"], WhateverYouNeed);
+				e := ConvertUnitfree("opening_e", opening["opening_e"], WhateverYouNeed);
+				ls := ConvertUnitfree("fastener_ls", WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_ls"], WhateverYouNeed);
+				h_r := ConvertUnitfree~("h_r", openingResult["h_r"], WhateverYouNeed);		# distance from edge to crack
 #				lv := opening["opening_lv"];
 #				lA := opening["opening_lA"];
 #				lz := opening["opening_lz"];
@@ -582,8 +595,10 @@ PlotResults := proc(WhateverYouNeed::table)
 
 				elif opening["openingtype"] = "rectangular" then
 
-					r := convert(opening["opening_r"], 'unit_free');
-					hd := convert(opening["opening_hd"], 'unit_free');
+					# r := convert(opening["opening_r"], 'unit_free');
+					# hd := convert(opening["opening_hd"], 'unit_free');
+					r := ConvertUnitfree("opening_r", opening["opening_r"], WhateverYouNeed);
+					hd := ConvertUnitfree("opening_hd", opening["opening_hd"], WhateverYouNeed);
 
 					if r = 0 then
 						geometry:-point('P3', [-a/2, -hd/2]);
@@ -687,7 +702,7 @@ PlotResults := proc(WhateverYouNeed::table)
 						# a3c values different from usual formula from EC5 (usually 7*d)
 						# a3c_min_max := convert(WhateverYouNeed["calculatedvalues"]["distance"]["a3c_min_max1"], 'unit_free');
 						# 2.5d <= a3c <= 4*d
-						a3c_min_max := 3 * convert(structure["fastener"]["fastener_d"], 'unit_free');
+						a3c_min_max := 3 * d_;		# could it be that d_ is not defined ? (false)
 
 						geometry:-circle('CircleOnFastener', [geometry:-point(POpening, 0, e), a/2 + a3c_min_max]);		# circle where fastener tangent
 						geometry:-point('FastenerOnCircleLeft', [geometry:-coordinates(POpening)[1] - (a/2 + a3c_min_max) * sin(alphaScrew),
@@ -710,7 +725,7 @@ PlotResults := proc(WhateverYouNeed::table)
 						# a3c values different from usual formula from EC5 (usually 7*d)
 						# a3c_min_max := convert(WhateverYouNeed["calculatedvalues"]["distance"]["a3c_min_max1"], 'unit_free');
 						# 2.5d <= a3c <= 4*d
-						a3c_min_max := 3 * convert(structure["fastener"]["fastener_d"], 'unit_free');
+						a3c_min_max := 3 * d_;		# could d_ be "false" ?
 
 						geometry:-circle('CircleOnFastenerLeft', [geometry:-point('P3C', [-a/2 + r, -hd/2 + r]), r + a3c_min_max]);		# circle where fastener tangent
 						geometry:-circle('CircleOnFastenerRight', [geometry:-point('P1C', [a/2 - r, hd/2 - r]), r + a3c_min_max]);		# circle where fastener tangent
@@ -1392,7 +1407,8 @@ calculate_a := proc(WhateverYouNeed::table)			# calculate a-values according to 
 			beamside := substring(convert(beamBoundarylines[beamBoundaryline], string), -6..-6);
 		end if;
 		
-		alpha := convert(evalf(convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", beamindex)], 'radians')), 'unit_free');
+		# alpha := convert(evalf(convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", beamindex)], 'radians')), 'unit_free');
+		alpha := ConvertUnitfree(cat("graindirection", beamindex), evalf(convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", beamindex)], 'radians')), WhateverYouNeed);
 
 		# a4: checking left and right sides
 		if beamside = "L" then			
@@ -1416,6 +1432,7 @@ calculate_a := proc(WhateverYouNeed::table)			# calculate a-values according to 
 				distance[intPointR] := evalf(dist[intPointR]);
 
 				# check if new a4 value
+				# a-values in proc do not need to be checked for correct unit
 				if assigned(distance[cat("a4", beamindex)]) = false or convert(distance[cat("a4", beamindex)], 'unit_free') > min(evalf(dist[intPointL]), evalf(dist[intPointR])) then						
 					distance[cat("a4", beamindex)] := min(evalf(dist[intPointL]), evalf(dist[intPointR])) * Unit('mm');
 					if evalf(dist[intPointL]) < evalf(dist[intPointR]) then
@@ -1514,6 +1531,7 @@ calculate_a := proc(WhateverYouNeed::table)			# calculate a-values according to 
 			beamside := substring(convert(beamBoundarylines[beamBoundaryline], string), -6..-6);
 		end if;
 		
+		# no need for check of correct unit
 		alpha := convert(evalf(convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", beamindex)], 'radians')), 'unit_free');			
 		
 		if beamside = "L" then			# run each beam just once				
@@ -1532,15 +1550,13 @@ calculate_a := proc(WhateverYouNeed::table)			# calculate a-values according to 
 					a2distance := geometry:-distance(fastenerPointlist[k], parse(cat("a1_", beamBoundaryline, i, k)));			# check distance for points to be considered on same a1 row						
 						
 					if assigned(distance[cat("a1_min_max", beamindex)]) then
-						# a1min := convert(distance[cat("a1_min_max", beamindex)], 'unit_free');		# minimum a1
-						a1min := convert(distance[cat("a1_min_min", beamindex)], 'unit_free');		# minimum a1
+						a1min := convert(distance[cat("a1_min_max", beamindex)], 'unit_free');		# minimum a1, no need to check for correct unit						
 					else
 						a1min := 0
 					end if;
 
 					if assigned(distance[cat("a2_min_max", beamindex)]) then
-						# a2min := convert(distance[cat("a2_min_max", beamindex)], 'unit_free');		# minimum a2
-						a2min := convert(distance[cat("a2_min_min", beamindex)], 'unit_free');		# minimum a2
+						a2min := convert(distance[cat("a2_min_max", beamindex)], 'unit_free');		# minimum a2, no need to check for correct unit						
 					else
 						a2min := 0
 					end if;
@@ -1952,9 +1968,11 @@ BeamsideForceDirection := proc(beamindex::string, WhateverYouNeed::table)::strin
 		Fy := force["F_vd"];	
 	end if;	
 
-	Fx_ := convert(Fx, 'unit_free');
-	Fy_ := convert(Fy, 'unit_free');
-	
+	# Fx_ := convert(Fx, 'unit_free');
+	# Fy_ := convert(Fy, 'unit_free');
+	Fx_ := ConvertUnitfree("F_", Fx, WhateverYouNeed);
+	Fy_ := ConvertUnitfree("F_", Fy, WhateverYouNeed);
+
 	if Fx = 0 and Fy = 0 then
 		alphaForce := 0
 	else
@@ -2000,8 +2018,8 @@ BlockShearPath := proc(WhateverYouNeed::table)::list;
 	fastenerPointlist := WhateverYouNeed["calculatedvalues"]["graphicsElements"]["fastenerPointlist"];
 	beamBoundarylines := WhateverYouNeed["calculatedvalues"]["graphicsElements"]["beamBoundarylines"];	# BLL1: boundary line beam 1, Left (Right, Start, End)
 	FastenersInColumn := WhateverYouNeed["calculatedvalues"]["distance"]["FastenersInColumn"];
-	distance := WhateverYouNeed["calculatedvalues"]["distance"];
-	d_ := convert(structure["fastener"]["fastener_d"], 'unit_free');
+	distance := WhateverYouNeed["calculatedvalues"]["distance"];	
+	d_ := ConvertUnitfree("fastener_d", structure["fastener"]["fastener_d"], WhateverYouNeed);	# could d_ be false?
 
 	dist := distance["dist"]; 		# calculated in NODEFastenerPattern:-calculate_a
 	segments := distance["segments"];

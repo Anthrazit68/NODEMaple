@@ -302,7 +302,7 @@ calculate_k_64 := proc(WhateverYouNeed::table)
 	k_64["k_p"] := k_p;
 	k_64["k_r"] := k_r;
 	k_64["k_vol"] := k_vol;
-	k_64["V"] := V;
+	k_64["V"] := V;		# [m3]
 
 	if ComponentExists("TextArea_k_dis") and ComponentExists("TextArea_k_m_alpha") and ComponentExists("TextArea_k_l") and ComponentExists("TextArea_k_p") and ComponentExists("TextArea_k_r")
 		and ComponentExists("TextArea_k_vol") and ComponentExists("TextArea_V") then 
