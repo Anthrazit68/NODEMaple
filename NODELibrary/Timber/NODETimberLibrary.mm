@@ -684,11 +684,11 @@ SetVisibilityComboboxConnection := proc(WhateverYouNeed::table)
 			"TextArea_etaBoltSteel_active", "MathContainer_N_plRd", "MathContainer_N_uRd", "MathContainer_F_vRd_bolt", "MathContainer_F_bRd_steel"};
 
 	components["timber"] := {"ComboBox_timbertype",
-				"ComboBox_b",
-				"ComboBox_h",
+				"ComboBox_section_b",
+				"ComboBox_section_h",
 				"Button_th",
-				"TextArea_b",
-				"TextArea_h",
+				"TextArea_section_b",
+				"TextArea_section_h",
 				"TextArea_graindirection",
 				"ComboBox_strengthclass",
 				"ComboBox_cutleft",
@@ -721,7 +721,7 @@ SetVisibilityComboboxConnection := proc(WhateverYouNeed::table)
 		for i in components["timber"] do
 			SetProperty(cat(i, "1"), 'enabled', "false");
 		end do;
-		SetProperty("TextArea_bout1", 'enabled', "false");
+		SetProperty("TextArea_section_bout1", 'enabled', "false");
 		
 		HighlightResults(cat~(components["results"], "1"), "deactivate");
 				
@@ -750,9 +750,9 @@ SetVisibilityComboboxConnection := proc(WhateverYouNeed::table)
 		end do;	
 
 		if structure["connection"]["connectionInsideLayers"] > 1 then
-			SetProperty("TextArea_bout1", 'enabled', "true");
+			SetProperty("TextArea_section_bout1", 'enabled', "true");
 		else
-			SetProperty("TextArea_bout1", 'enabled', "false");
+			SetProperty("TextArea_section_bout1", 'enabled', "false");
 		end if;
 
 		HighlightResults(cat~(components["results"], "1"), "activate");	

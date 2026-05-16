@@ -64,9 +64,9 @@ SetComboBoxMaterial := proc(WhateverYouNeed::table, forceSectionUpdate::boolean,
 			
 			sectionchanged := true;
 
-			SetProperty(cat("ComboBox_b", partsnumber), 'itemList', NODETimberSections:-b[timbertype]);
-			SetProperty(cat("ComboBox_b", partsnumber), 'selectedIndex', 0);
-			Changed_bh(WhateverYouNeed, cat("b", partsnumber));
+			SetProperty(cat("ComboBox_section_b", partsnumber), 'itemList', NODETimberSections:-section_b[timbertype]);
+			SetProperty(cat("ComboBox_section_b", partsnumber), 'selectedIndex', 0);
+			Changed_bh(WhateverYouNeed, cat("section_b", partsnumber));
 
 		else
 			Alert("Invalid timbertype", warnings, 5);
@@ -136,24 +136,24 @@ SetComboBoxSection := proc(WhateverYouNeed::table, partsnumber::string)
 
 		# no need to check unit conversion of b and h, as the always are in [mm] - defined by section name, not values
 		b_ := convert(WhateverYouNeed["sectiondata"]["b"], 'unit_free');
-		if member(convert(b_, string), GetProperty("ComboBox_b", 'itemlist'), 'pos') then
-			SetProperty("ComboBox_b", 'selectedIndex', pos-1);
-			SetProperty(cat("ComboBox_h", partsnumber), 'itemList', NODETimberSections:-h[WhateverYouNeed["materialdata"]["timbertype"], b_]);
+		if member(convert(b_, string), GetProperty("ComboBox_section_b", 'itemlist'), 'pos') then
+			SetProperty("ComboBox_section_b", 'selectedIndex', pos-1);
+			SetProperty(cat("ComboBox_section_h", partsnumber), 'itemList', NODETimberSections:-section_h[WhateverYouNeed["materialdata"]["timbertype"], b_]);
 			h_ := convert(WhateverYouNeed["sectiondata"]["h"], 'unit_free');
-			if member(convert(h_, string), GetProperty("ComboBox_h", 'itemlist'), 'pos') then
-				SetProperty("ComboBox_h", 'selectedIndex', pos-1);
+			if member(convert(h_, string), GetProperty("ComboBox_section_h", 'itemlist'), 'pos') then
+				SetProperty("ComboBox_section_h", 'selectedIndex', pos-1);
 			end if;
 		end if;
 
 	else
 
 		b_ := convert(WhateverYouNeed["sectiondataAll"][partsnumber]["b"], 'unit_free');
-		if member(convert(b_, string), GetProperty(cat("ComboBox_b", partsnumber), 'itemList'), 'pos') then		
-			SetProperty(cat("ComboBox_b", partsnumber), 'selectedIndex', pos-1);
-			SetProperty(cat("ComboBox_h", partsnumber), 'itemList', NODETimberSections:-h[WhateverYouNeed["materialdataAll"][partsnumber]["timbertype"], b_]);
+		if member(convert(b_, string), GetProperty(cat("ComboBox_section_b", partsnumber), 'itemList'), 'pos') then		
+			SetProperty(cat("ComboBox_section_b", partsnumber), 'selectedIndex', pos-1);
+			SetProperty(cat("ComboBox_section_h", partsnumber), 'itemList', NODETimberSections:-section_h[WhateverYouNeed["materialdataAll"][partsnumber]["timbertype"], b_]);
 			h_ := convert(WhateverYouNeed["sectiondataAll"][partsnumber]["h"], 'unit_free');			
-			if member(convert(h_, string), GetProperty(cat("ComboBox_h", partsnumber), 'itemlist'), 'pos') then
-				SetProperty(cat("ComboBox_h", partsnumber), 'selectedIndex', pos-1);
+			if member(convert(h_, string), GetProperty(cat("ComboBox_section_h", partsnumber), 'itemlist'), 'pos') then
+				SetProperty(cat("ComboBox_section_h", partsnumber), 'selectedIndex', pos-1);
 			end if;
 		end if;
 
@@ -180,27 +180,27 @@ Changed_bh := proc(WhateverYouNeed::table, varname::string)
 
 	# setting values defined in ComboBox, and copy them to according TextAreas
 	if dim = "b" then
-		if NODEFunctions:-ComponentExists(cat("ComboBox_b", partsnumber)) then
-			b_ := parse(GetProperty(cat("ComboBox_b", partsnumber), value));	# Combobox value is string, convert to number
-			SetProperty(cat("TextArea_b", partsnumber), 'value', b_);
-			if NODEFunctions:-ComponentExists(cat("TextArea_bout", partsnumber)) and GetProperty(cat("TextArea_bout", partsnumber), 'enabled') = "true" then
-				SetProperty(cat("TextArea_bout", partsnumber), 'value', b_);
+		if NODEFunctions:-ComponentExists(cat("ComboBox_section_b", partsnumber)) then
+			b_ := parse(GetProperty(cat("ComboBox_section_b", partsnumber), value));	# Combobox value is string, convert to number
+			SetProperty(cat("TextArea_section_b", partsnumber), 'value', b_);
+			if NODEFunctions:-ComponentExists(cat("TextArea_section_bout", partsnumber)) and GetProperty(cat("TextArea_section_bout", partsnumber), 'enabled') = "true" then
+				SetProperty(cat("TextArea_section_bout", partsnumber), 'value', b_);
 			end if;
 
 			if partsnumber = "" then
-				SetProperty(cat("ComboBox_h", partsnumber), 'itemList', NODETimberSections:-h[WhateverYouNeed["materialdata"]["timbertype"], b_]);
+				SetProperty(cat("ComboBox_section_h", partsnumber), 'itemList', NODETimberSections:-section_h[WhateverYouNeed["materialdata"]["timbertype"], b_]);
 			else
-				SetProperty(cat("ComboBox_h", partsnumber), 'itemList', NODETimberSections:-h[WhateverYouNeed["materialdataAll"][partsnumber]["timbertype"], b_]);
+				SetProperty(cat("ComboBox_section_h", partsnumber), 'itemList', NODETimberSections:-section_h[WhateverYouNeed["materialdataAll"][partsnumber]["timbertype"], b_]);
 			end if;
-			SetProperty(cat("ComboBox_h", partsnumber), 'selectedIndex', 0);
-			h_ := parse(GetProperty(cat("ComboBox_h", partsnumber), value));
-			SetProperty(cat("TextArea_h", partsnumber), 'value', h_);
+			SetProperty(cat("ComboBox_section_h", partsnumber), 'selectedIndex', 0);
+			h_ := parse(GetProperty(cat("ComboBox_section_h", partsnumber), value));
+			SetProperty(cat("TextArea_section_h", partsnumber), 'value', h_);
 		end if;
 		
 	elif dim = "h" then
-		if NODEFunctions:-ComponentExists(cat("ComboBox_h", partsnumber)) then
-			h_ := parse(GetProperty(cat("ComboBox_h", partsnumber), value));
-			SetProperty(cat("TextArea_h", partsnumber), 'value', h_);
+		if NODEFunctions:-ComponentExists(cat("ComboBox_section_h", partsnumber)) then
+			h_ := parse(GetProperty(cat("ComboBox_section_h", partsnumber), value));
+			SetProperty(cat("TextArea_section_h", partsnumber), 'value', h_);
 		end if;
 		
 	end if;
@@ -411,17 +411,17 @@ GetActiveSectionName := proc(WhateverYouNeed::table, partsnumber::string) ::stri
 	description "Create activesection reading TextArea";
 	local b_, bout_, h_, sectiontype;
 
-	if NODEFunctions:-ComponentExists(cat("TextArea_b", partsnumber)) and GetProperty(cat("TextArea_b", partsnumber), 'enabled') = "true"
-		and NODEFunctions:-ComponentExists(cat("TextArea_h", partsnumber)) and GetProperty(cat("TextArea_h", partsnumber), 'enabled') = "true" then
+	if NODEFunctions:-ComponentExists(cat("TextArea_section_b", partsnumber)) and GetProperty(cat("TextArea_section_b", partsnumber), 'enabled') = "true"
+		and NODEFunctions:-ComponentExists(cat("TextArea_section_h", partsnumber)) and GetProperty(cat("TextArea_section_h", partsnumber), 'enabled') = "true" then
 			
 		# sectiontype := WhateverYouNeed["materialdata"]["timbertype"];
 		sectiontype := "Rectangular";
 					
-		b_ := parse(GetProperty(cat("TextArea_b", partsnumber), value));	# Combobox value is string, convert to number
-		h_ := parse(GetProperty(cat("TextArea_h", partsnumber), value));
+		b_ := parse(GetProperty(cat("TextArea_section_b", partsnumber), value));	# Combobox value is string, convert to number
+		h_ := parse(GetProperty(cat("TextArea_section_h", partsnumber), value));
 
-		if NODEFunctions:-ComponentExists(cat("TextArea_bout", partsnumber)) and GetProperty(cat("TextArea_bout", partsnumber), 'enabled') = "true" then
-			bout_ := parse(GetProperty(cat("TextArea_bout", partsnumber), value));
+		if NODEFunctions:-ComponentExists(cat("TextArea_section_bout", partsnumber)) and GetProperty(cat("TextArea_section_bout", partsnumber), 'enabled') = "true" then
+			bout_ := parse(GetProperty(cat("TextArea_section_bout", partsnumber), value));
 			if b_ <> bout_ then
 				return cat(sectiontype, " / ", b_, "(", bout_, ")x", h_);
 			else
@@ -434,7 +434,7 @@ GetActiveSectionName := proc(WhateverYouNeed::table, partsnumber::string) ::stri
 		
 	else
 		return "";
-		# Alert(cat("GetActiveSectionName: TextArea_b", partsnumber, " / ", cat("TextArea_h", partsnumber), " not found"), WhateverYouNeed["warnings"], 3)
+		# Alert(cat("GetActiveSectionName: TextArea_section_b", partsnumber, " / ", cat("TextArea_section_h", partsnumber), " not found"), WhateverYouNeed["warnings"], 3)
 	end if
 end proc:
 

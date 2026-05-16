@@ -396,6 +396,7 @@ CalculateLoads := proc(loadcase::string, loadsaving::boolean, action::string, Wh
 	end if;
 end proc:
 
+
 # https://www.mapleprimes.com/questions/231694-Check-If-Component-Exists
 ComponentExists := proc(EC::{name,string})
 	description "Check if Maple component exists";
@@ -407,6 +408,7 @@ ComponentExists := proc(EC::{name,string})
 		false;
 	end try;
 end proc:
+
 
 ConvertUnitfree := proc(varname::string, varvalue, WhateverYouNeed::table)::numeric;
 	description "Convert value to unit_free based on predefined unit";
@@ -433,6 +435,7 @@ ConvertUnitfree := proc(varname::string, varvalue, WhateverYouNeed::table)::nume
 		return varvalue;
 	end if;	
 end proc:
+
 
 disableTextAreaEtaMax := proc(WhateverYouNeed::table)
 	description "Disable TextArea for etamax, showing that results are not updated";
@@ -759,7 +762,7 @@ LibInitCommon := proc(WhateverYouNeed, calculationtype)
 	
 	#initialize var_units
 	var_units := table();
-	var_units["mm"] := {"loadcenter_"};
+	var_units["mm"] := {"loadcenter_", "section_"};
 	var_units["m"] := {};
 	var_units["kN"] := {"F_", "V_"};
 	var_units["kN*m"] := {"M_"};
@@ -1170,6 +1173,7 @@ ProcessLoadcasesFromFile := proc(lctable::table, loadvariables::set)
 
 	return eval(loadcases), loadname;
 end proc:
+
 
 ReadComponentsCommon := proc(action::string, WhateverYouNeed::table)
 	description "Read values from common components in worksheet";
@@ -1842,14 +1846,14 @@ SectionChanged := proc(material::string, activesection::string, WhateverYouNeed:
 
 		# try existing function instead
 		# no need to call ConvertUnitfree because b (bout) and h are defined through section name, not value in xml file, always [mm]
-		SetProperty(cat("TextArea_b", partsnumber), 'value', convert(convert(WhateverYouNeed["sectiondata"]["b"], 'unit_free'), string));
-		SetProperty(cat("TextArea_h", partsnumber), 'value', convert(WhateverYouNeed["sectiondata"]["h"], 'unit_free'));
+		SetProperty(cat("TextArea_section_b", partsnumber), 'value', convert(convert(WhateverYouNeed["sectiondata"]["b"], 'unit_free'), string));
+		SetProperty(cat("TextArea_section_h", partsnumber), 'value', convert(WhateverYouNeed["sectiondata"]["h"], 'unit_free'));
 
 		if assigned(WhateverYouNeed["sectiondata"]["bout"]) then
 			if WhateverYouNeed["sectiondata"]["bout"] <> "false" then
-				SetProperty(cat("TextArea_bout", partsnumber), 'value', convert(convert(WhateverYouNeed["sectiondata"]["bout"], 'unit_free'), string));
+				SetProperty(cat("TextArea_section_bout", partsnumber), 'value', convert(convert(WhateverYouNeed["sectiondata"]["bout"], 'unit_free'), string));
 			else
-				SetProperty(cat("TextArea_bout", partsnumber), 'enabled', "false")
+				SetProperty(cat("TextArea_section_bout", partsnumber), 'enabled', "false")
 			end if;
 		end if;
 
@@ -2330,10 +2334,6 @@ WriteValueToComponent := proc(compvariable::string, b, check_calculations::set)
 	description "Find component we could write our value to";
 	uses ListTools;
 	local foundvalue, upd_check_calculations, componentvalue, checkvar;
-
-# if compvariable = "graindirection1" then
-# 	DEBUG()
-# end if;
 
 	if member("nocheck", check_calculations) then
 		checkvar := false
