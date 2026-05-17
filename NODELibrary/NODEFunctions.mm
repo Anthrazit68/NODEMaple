@@ -421,8 +421,7 @@ ConvertUnitfree := proc(varname::string, varvalue, WhateverYouNeed::table)::nume
 
 		for i in indices(var_units, 'nolist') do
 			for j in var_units[i] do 
-				if evalb(j = substring(varname, 1..numelems(j))) then
-#				if member(varname, substring~(var_units[i], 1..numelems(varname))) then			# "F_" "F_axd"
+				if j = substring(varname, 1..numelems(j)) then				
 					return convert(convert(varvalue, 'units', parse(i)), 'unit_free');
 				end if;
 			end do;
@@ -710,20 +709,26 @@ end proc:
 
 
 isNumericVariable := proc(varname::string, WhateverYouNeed::table)::boolean;
-	description "Check if variable is numeric or not";
+	description "Check if variable is defined as a numeric variable or not";
 	local isnumeric, i;
 	
 	isnumeric := false;
 
 	for i in WhateverYouNeed["componentvariables"]["var_numeric"] do
-		if evalb(i = substring(varname, 1..numelems(i))) then
-			isnumeric := true
+		if numelems(varname) < numelems(i) then
+			# variable name is shorter than variables in list and should not be considered for check 
+		elif i = substring(varname, 1..numelems(i)) then
+			isnumeric := true;
+			break
 		end if;
 	end do;
 
 	for i in WhateverYouNeed["calculations"]["loadvariables"] do
-		if evalb(i = substring(varname, 1..numelems(i))) then
-			isnumeric := true
+		if numelems(varname) < numelems(i) then
+			# variable name is shorter than variables in list and should not be considered for check 
+		elif i = substring(varname, 1..numelems(i)) then
+			isnumeric := true;
+			break
 		end if;
 	end do;
 
@@ -823,19 +828,6 @@ LibInitCommon := proc(WhateverYouNeed, calculationtype)
 
 		if ComponentExists(cat("TextArea_", i)) or ComponentExists(cat("Slider_", i)) or ComponentExists(cat("ComboBox_", i)) then
 			loadvariables := loadvariables union {i};
-
-			# if SearchText("F_", i) = 1 then
-			# 	var_units["kN"] := var_units["kN"] union {i}
-			# elif SearchText("V_", i) = 1 then
-			# 	var_units["kN"] := var_units["kN"] union {i}
-			# elif SearchText("M_", i) = 1 then
-			# 	var_units["kN*m"] := var_units["kN*m"] union {i}
-			# elif SearchText("alpha", i) = 1 then
-			# 	var_units["arcdeg"] := var_units["arcdeg"] union {i}
-			# elif SearchText("loadcenter_", i) = 1 then
-			# 	var_units["mm"] := var_units["mm"] union {i}
-			# end if;
-
 		end if;
 
 	end do;
@@ -1965,63 +1957,7 @@ StoredsettingsToComponents := proc(WhateverYouNeed::table)
 
 				elif type(WhateverYouNeed[parent][child], table) then	# ["calculations"]["structure"]
 
-					# didn't manage to do that recursive, so we need to do that manually a couple of levels downwards
-					for j in indices(WhateverYouNeed[parent][child], 'nolist') do
-					
-						if type(WhateverYouNeed[parent][child][j], string) or type(WhateverYouNeed[parent][child][j], numeric) then
-							checkvar := WriteValueToComponent(j, WhateverYouNeed[parent][child][j], checkvar)
-
-						elif type(WhateverYouNeed[parent][child][j], boolean) then
-							checkvar := WriteValueToComponent(j, WhateverYouNeed[parent][child][j], checkvar)							
-
-						elif type(WhateverYouNeed[parent][child][j], 'with_unit') then
-							checkvar := WriteValueToComponent(j, convert(ConvertUnitfree(j, WhateverYouNeed[parent][child][j], WhateverYouNeed), string), checkvar)
-
-						elif member(cat("-",j), WhateverYouNeed["componentvariables"]["var_ComboBox"]) then
-							# "-variable" will be ignored
-
-						# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
-						elif member(j, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		
-							if ComponentExists(cat("ComboBox_", j)) then
-								ModifyComboVariables(cat("ComboBox_", j), "Write", WhateverYouNeed[parent][child][j], table());	# write new values to combobox
-							else
-								Alert(cat("StoredsettingsToComponents: ComboBox_", j, " not found"), WhateverYouNeed["warnings"], 1)
-							end if;
-
-						elif type(WhateverYouNeed[parent][child][j], table) then	#  ["calculations"]["structure"]["fastener"]
-
-							for k in indices(WhateverYouNeed[parent][child][j], 'nolist') do
-						
-								if type(WhateverYouNeed[parent][child][j][k], string) or type(WhateverYouNeed[parent][child][j][k], numeric) then
-									checkvar := WriteValueToComponent(k, WhateverYouNeed[parent][child][j][k], checkvar)
-
-								elif type(WhateverYouNeed[parent][child][j][k], boolean) then
-									checkvar := WriteValueToComponent(k, WhateverYouNeed[parent][child][j][k], checkvar)
-
-								elif type(WhateverYouNeed[parent][child][j][k], 'with_unit') then
-									checkvar := WriteValueToComponent(k, convert(ConvertUnitfree(k, WhateverYouNeed[parent][child][j][k], WhateverYouNeed), string), checkvar)
-
-								elif member(cat("-",k), WhateverYouNeed["componentvariables"]["var_ComboBox"]) then
-									# "-variable" will be ignored
-
-								elif member(k, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
-									ModifyComboVariables(cat("ComboBox_", k), "Write", WhateverYouNeed[parent][child][j][k], table());	# write new values to combobox
-								
-								elif type(WhateverYouNeed[parent][child][j][k], table) then								
-									Alert("Missing implementation in StoredsettingsToComponents 1a", WhateverYouNeed["warnings"], 1);
-
-								else							
-									Alert(cat("Missing implementation in StoredsettingsToComponents 1b for variable ", k), WhateverYouNeed["warnings"], 1);
-									
-								end if;
-							end do;
-							
-						else							
-							Alert(cat("Missing implementation in StoredsettingsToComponents: ", WhateverYouNeed[parent][child][j], ",  type ", whattype(WhateverYouNeed[parent][child][j])), WhateverYouNeed["warnings"], 1);
-							
-						end if;
-						
-					end do;
+					checkvar := UnpackTable(WhateverYouNeed[parent][child], child, checkvar, WhateverYouNeed);
 					
 				else
 					Alert(cat("Unknown value ", dummy), WhateverYouNeed["warnings"], 1);
@@ -2034,6 +1970,7 @@ StoredsettingsToComponents := proc(WhateverYouNeed::table)
 			end if;
 			
 		else
+
 			if assigned(WhateverYouNeed[dummy]) then
 				
 				# top level string variables should not exist
@@ -2051,60 +1988,65 @@ StoredsettingsToComponents := proc(WhateverYouNeed::table)
 						ModifyComboVariables(cat("ComboBox_", dummy), "Write", WhateverYouNeed[dummy], table());	# write new values to combobox
 
 				elif type(WhateverYouNeed[dummy], table) then
-					
-					# didn't manage to do that recursive, so we need to do that manually a couple of levels downwards
-					for j in indices(WhateverYouNeed[dummy], 'nolist') do
-						
-						if type(WhateverYouNeed[dummy][j], string) or type(WhateverYouNeed[dummy][j], numeric) then
-							checkvar := WriteValueToComponent(j, WhateverYouNeed[dummy][j], checkvar)
 
-						elif type(WhateverYouNeed[dummy][j], 'with_unit') then
-							checkvar := WriteValueToComponent(j, convert(ConvertUnitfree(j, WhateverYouNeed[dummy][j], WhateverYouNeed), string), checkvar)
-
-						elif member(j, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
-							ModifyComboVariables(cat("ComboBox_", j), "Write", WhateverYouNeed[dummy][j], table());	# write new values to combobox
-
-						elif type(dummy[j], table) then
-							
-							for k in indices(WhateverYouNeed[dummy][j], 'nolist') do
-						
-								if type(WhateverYouNeed[dummy][j][k], string) or type(WhateverYouNeed[dummy][j][k], numeric) then
-									checkvar := WriteValueToComponent(k, WhateverYouNeed[dummy][j][k], checkvar)
-
-								elif type(WhateverYouNeed[dummy][j][k], 'with_unit') then
-									checkvar := WriteValueToComponent(k, convert(ConvertUnitfree(k, WhateverYouNeed[dummy][j][k], WhateverYouNeed), string), checkvar)
-
-								elif member(k, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
-									ModifyComboVariables(cat("ComboBox_", k), "Write", WhateverYouNeed[dummy][j][k], table());	# write new values to combobox
-
-								elif type(WhateverYouNeed[dummy][j][k], table) then
-									
-									Alert("Missing implementation in StoredsettingsToComponents 2a", WhateverYouNeed["warnings"], 1);
-									
-								else
-									Alert("Missing implementation in StoredsettingsToComponents 2b", WhateverYouNeed["warnings"], 1);
-									
-								end if;
-								
-							end do;
-							
-						else							
-							Alert("Missing implementation in StoredsettingsToComponents 2c", WhateverYouNeed["warnings"], 1);
-							
-						end if;
-						
-					end do;
+					checkvar := UnpackTable(WhateverYouNeed[dummy], dummy, checkvar, WhateverYouNeed);
 
 				else 
 					Alert(cat("Unknown value ", dummy), WhateverYouNeed["warnings"], 1);
 			
 				end if;
+
 			else
 				Alert(cat("Unassigned value ", dummy), WhateverYouNeed["warnings"], 1);
 			end if;
+
 		end if;
 	end do;
 end proc:
+
+
+UnpackTable := proc(t::table, current_path::string, checkvar::set, WhateverYouNeed::table)
+	description "Recursive solution for StoredSettingsToComponents";
+    local idx, new_path, upd_check;
+	upd_check := checkvar;
+    
+    for idx in indices(t, 'nolist') do
+
+		# build accumulated component/variablename        
+        # Hvis current_path er tom, starter vi, ellers legger vi til indeksen (f.eks. cat("eta", "max"))
+
+        if current_path = "" then
+    	    new_path := cat("[", convert(idx, string), "]");
+	    else
+	        new_path := cat(current_path, cat("[", convert(idx, string), "]"));
+		end if;
+
+        if type(t[idx], table) then
+            # If element is table, iterate and send new path
+            upd_check := UnpackTable(t[idx], new_path, upd_check, WhateverYouNeed);
+
+	    elif type(t[idx], string) or type(t[idx], numeric) then
+			upd_check := WriteValueToComponent(idx, t[idx], upd_check)
+
+		elif type(t[idx], 'with_unit') then
+			upd_check := WriteValueToComponent(idx, convert(ConvertUnitfree(idx, t[idx], WhateverYouNeed), string), upd_check)
+
+		elif member(cat("-",idx), WhateverYouNeed["componentvariables"]["var_ComboBox"]) then
+			# "-variable" will be ignored
+
+		# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
+		elif member(idx, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		
+			ModifyComboVariables(cat("ComboBox_", idx), "Write", t[idx], table());	# write new values to combobox
+
+		else
+			Alert(cat("Missing implementation in UnpackTable: ", new_path), table(), 1);
+			
+        end if;
+
+    end do;
+    return upd_check;	
+end proc:
+
 
 Storesettings := proc(WhateverYouNeed::table)
 	description "Storing settings to file";
@@ -2403,7 +2345,7 @@ WriteValueToComponent := proc(compvariable::string, b, check_calculations::set)
 				SetProperty(cat("Slider_", compvariable), 'value', parse(componentvalue))
 			elif type(componentvalue, numeric) then
 				SetProperty(cat("Slider_", compvariable), 'value', componentvalue)
-			elif type(componentvalue, with_unit) then
+			elif type(componentvalue, 'with_unit') then
 				SetProperty(cat("Slider_", compvariable), 'value', ConvertUnitfree(compvariable, componentvalue, WhateverYouNeed))
 			else
 				Alert("Can't set value to slider component", table(), 1)

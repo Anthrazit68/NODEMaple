@@ -347,6 +347,7 @@ calculate_amin_alpha := proc(part::string, WhateverYouNeed::table)
 		# 8.7.2
 		if chosenFastener = "Screw" and axiallyLoaded = "true" then
 			if evalb(t[part] < 12 * d) then
+			# if evalb(t[part] < 12 * d) then
 				# Alert("axiallyLoaded skrue, t < 12*d");		# litt usikker p� om det er et krav eller noe annet som st�r i standarden
 				comments[cat("872_", part)] := "8.7.2(2) axially Loaded screw, t < 12*d, check minimumdistance"
 			end if;
