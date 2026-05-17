@@ -22,20 +22,24 @@ SetComboBoxMaterial := proc(WhateverYouNeed::table, forceSectionUpdate::boolean,
 	local ind, val, foundit, sectionchanged;
 	local materialdata, timbertype, strengthclass, serviceclass, loaddurationclass, warnings;
 
+	warnings := WhateverYouNeed["warnings"];
+
 	# define local variables
 	if partsnumber = "" then
 		materialdata := WhateverYouNeed["materialdata"];
 		
 	elif partsnumber = "1" or partsnumber = "2" then		
 		materialdata := WhateverYouNeed["materialdataAll"][partsnumber];
+
+	else 
+		Alert(cat("SetComboBoxMaterial: partsnumber out of range: ", partsnumber), warnings, 3)
+
 	end if;
-	
+
 	timbertype := materialdata["timbertype"];
 	strengthclass := materialdata["strengthclass"];
 	serviceclass := materialdata["serviceclass"];
 	loaddurationclass := materialdata["loaddurationclass"];		
-	warnings := WhateverYouNeed["warnings"];
-
 	sectionchanged := false;
 
 	# check if active timbertype is different from setting in combobox
@@ -66,10 +70,11 @@ SetComboBoxMaterial := proc(WhateverYouNeed::table, forceSectionUpdate::boolean,
 
 			SetProperty(cat("ComboBox_section_b", partsnumber), 'itemList', NODETimberSections:-section_b[timbertype]);
 			SetProperty(cat("ComboBox_section_b", partsnumber), 'selectedIndex', 0);
-			Changed_bh(WhateverYouNeed, cat("section_b", partsnumber));
+			Changed_bh(WhateverYouNeed, cat("b", partsnumber));
 
 		else
-			Alert("Invalid timbertype", warnings, 5);
+			Alert(cat("Invalid timbertype: ", timbertype), warnings, 5);
+			return
 		end if;
 	
 	end if;
@@ -84,7 +89,8 @@ SetComboBoxMaterial := proc(WhateverYouNeed::table, forceSectionUpdate::boolean,
 				SetProperty(cat("ComboBox_strengthclass", partsnumber), 'selectedIndex', 0);
 				strengthclass := GetProperty(cat("ComboBox_strengthclass", partsnumber), value)
 			else
-				Alert("Invalid strengthclass", warnings, 5);
+				Alert(cat("Invalid strengthclass: ", strengthclass), warnings, 5);
+				return
 			end if
 		end if;
 
@@ -100,7 +106,8 @@ SetComboBoxMaterial := proc(WhateverYouNeed::table, forceSectionUpdate::boolean,
 				SetProperty("ComboBox_serviceclass", 'selectedIndex', 0);
 				serviceclass := GetProperty("ComboBox_serviceclass", value)
 			else
-				Alert("Invalid serviceclass", warnings, 5);
+				Alert(cat("Invalid serviceclass: ", serviceclass), warnings, 5);
+				return
 			end if
 		end if;
 
@@ -116,7 +123,8 @@ SetComboBoxMaterial := proc(WhateverYouNeed::table, forceSectionUpdate::boolean,
 				SetProperty("ComboBox_loaddurationclass", 'selectedIndex', 0);
 				loaddurationclass := GetProperty("ComboBox_loaddurationclass", value)
 			else
-				Alert("Invalid loaddurationclass", warnings, 5);
+				Alert(cat("Invalid loaddurationclass: ", loaddurationclass), warnings, 5);
+				return
 			end if
 		end if;
 

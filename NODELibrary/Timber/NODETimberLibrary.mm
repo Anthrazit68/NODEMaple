@@ -678,7 +678,7 @@ SetVisibilityComboboxConnection := proc(WhateverYouNeed::table)
 	structure := WhateverYouNeed["calculations"]["structure"];
 	components := table();
 
-	components["steel"] := {"ComboBox_steelgrade", "TextArea_graindirectionsteel", "TextArea_bsteel", "TextArea_hsteel", "TextArea_lengthleftsteel", "TextArea_lengthrightsteel",
+	components["steel"] := {"ComboBox_steelgrade", "TextArea_graindirectionsteel", "TextArea_section_bsteel", "TextArea_section_hsteel", "TextArea_lengthleftsteel", "TextArea_lengthrightsteel",
 			"TextArea_angleleftsteel", "TextArea_anglerightsteel", "ComboBox_cutleftsteel", "ComboBox_cutrightsteel", "TextArea_activematerialsteel", "TextArea_activesectionsteel",
 			"TextArea_a1_minsteel", "TextArea_a2_minsteel", "TextArea_a3_minsteel", "TextArea_a4_minsteel", "TextArea_a1steel", "TextArea_a2steel", "TextArea_a3steel", "TextArea_a4steel",
 			"TextArea_etaBoltSteel_active", "MathContainer_N_plRd", "MathContainer_N_uRd", "MathContainer_F_vRd_bolt", "MathContainer_F_bRd_steel"};

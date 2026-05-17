@@ -570,15 +570,13 @@ PlotResults := proc(WhateverYouNeed::table)
 				local opening, openingResult, cracklength, CrackLeft, CrackRight, a, hd, e, alphaScrew, a3c_min_max, ls, h_r;
 
 				opening := WhateverYouNeed["calculations"]["structure"]["opening"];
-				# openingResult := WhateverYouNeed["results"]["opening"];
-				# a := convert(opening["opening_a"], 'unit_free');
-				# e := convert(opening["opening_e"], 'unit_free');
-				# ls := convert(WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_ls"], 'unit_free');
-				# h_r := convert~(openingResult["h_r"], 'unit_free');		# distance from edge to crack
+				openingResult := WhateverYouNeed["results"]["opening"];
+				
 				a := ConvertUnitfree("opening_a", opening["opening_a"], WhateverYouNeed);
 				e := ConvertUnitfree("opening_e", opening["opening_e"], WhateverYouNeed);
 				ls := ConvertUnitfree("fastener_ls", WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_ls"], WhateverYouNeed);
-				h_r := ConvertUnitfree~("h_r", openingResult["h_r"], WhateverYouNeed);		# distance from edge to crack
+				h_r := convert~(openingResult["h_r"], 'unit_free');		# distance from edge to crack, ConvertUnitFree: unable to use ~ for each element				
+
 #				lv := opening["opening_lv"];
 #				lA := opening["opening_lA"];
 #				lz := opening["opening_lz"];
