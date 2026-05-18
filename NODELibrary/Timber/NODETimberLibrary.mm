@@ -1465,7 +1465,7 @@ CheckLoadExcentricity := proc(WhateverYouNeed::table)
 	local opening_a, activeloadcase, loadcenter_x, tolerance, warnings;
 
 	tolerance := 1 * Unit('mm');
-	opening_a := WhateverYouNeed["calculations"]["structure"]["opening"]["opening_a"];	
+	opening_a := WhateverYouNeed["calculations"]["structure"]["opening"]["opening_a"];
 	activeloadcase := WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"];
 	loadcenter_x := WhateverYouNeed["calculations"]["loadcases"][activeloadcase]["loadcenter_x"];
 	warnings := WhateverYouNeed["warnings"];

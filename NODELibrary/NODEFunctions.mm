@@ -91,6 +91,7 @@ CalculateAllLoadcases := proc(WhateverYouNeed::table)
 	local maxFindex, maxF, maxFallLoadcases, maxloadedFastener, loadcaseResults, dummy;
 
 	WhateverYouNeed["calculations"]["calculatingAllLoadcases"]:= true;		# running calculation of all loadcases at the moment
+	WhateverYouNeed["calculations"]["suppress_gui"] := true;
 	activeloadcase := WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"];
 	loadcases := WhateverYouNeed["calculations"]["loadcases"];
 	warnings := WhateverYouNeed["warnings"];
@@ -253,10 +254,13 @@ CalculateAllLoadcases := proc(WhateverYouNeed::table)
 		NODEFastenerPattern:-SetComponentsCriticalLoadcase("activate", WhateverYouNeed)
 	end if;
 
-	# reset values to active loadcase
+	# reset values to active loadcase	
+	WhateverYouNeed["calculations"]["calculatingAllLoadcases"]:= false;		# running calculation of all loadcases at the moment
 	WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"] := activeloadcase;
-	# MainCommon("calculateAllLoadcasesCleanup")
-	Main(WhateverYouNeed, "calculateAllLoadcasesCleanup")
+	WhateverYouNeed["calculations"]["suppress_gui"] = false;
+	WriteValueToComponent("loadcases", activeloadcase, {"nocheck"});
+	MainCommon("calculateAllLoadcasesCleanup");
+	# Main(WhateverYouNeed, "calculateAllLoadcasesCleanup");
 
 end proc:
 
@@ -715,18 +719,14 @@ isNumericVariable := proc(varname::string, WhateverYouNeed::table)::boolean;
 	isnumeric := false;
 
 	for i in WhateverYouNeed["componentvariables"]["var_numeric"] do
-		if numelems(varname) < numelems(i) then
-			# variable name is shorter than variables in list and should not be considered for check 
-		elif i = substring(varname, 1..numelems(i)) then
+		if StringTools:-IsPrefix(i, varname) then # i = substring(varname, 1..numelems(i))
 			isnumeric := true;
 			break
 		end if;
 	end do;
 
 	for i in WhateverYouNeed["calculations"]["loadvariables"] do
-		if numelems(varname) < numelems(i) then
-			# variable name is shorter than variables in list and should not be considered for check 
-		elif i = substring(varname, 1..numelems(i)) then
+		if StringTools:-IsPrefix(i, varname) then
 			isnumeric := true;
 			break
 		end if;
@@ -847,6 +847,8 @@ LibInitCommon := proc(WhateverYouNeed, calculationtype)
 	calculations["autoloadsave"] := autoloadsave;
 	calculations["autocalc"] := autocalc;
 	calculations["loadvariables"] := loadvariables;
+	calculations["suppress_gui"] = false;
+	calculations["calculatingAllLoadcases"] := false;
 
 	results["eta"] := eta;		
 	results["usedcode"] := usedcode;
@@ -1596,12 +1598,12 @@ ReadComponentsCommon := proc(action::string, WhateverYouNeed::table)
 		end if;
 	end if;
 
-	# loadcases
-	if action = "calculateAllLoadcases" or ComponentExists("Button_calculateAllLoadcases") = false then
-		WhateverYouNeed["calculateAllLoadcases"] := true
-	else
-		WhateverYouNeed["calculateAllLoadcases"] := false
-	end if;
+	# # loadcases
+	# if action = "calculateAllLoadcases" or ComponentExists("Button_calculateAllLoadcases") = false then
+	# 	WhateverYouNeed["calculations"]["calculateAllLoadcases"] := true
+	# else
+	# 	WhateverYouNeed["calculations"]["calculateAllLoadcases"] := false
+	# end if;
 
 	if action = "all" or action = "GetLoadcase" or action = "calculateAllLoadcasesCleanup" then
 		if ComponentExists("ComboBox_loadcases") and ComponentExists("TextArea_activeloadcase") then
@@ -1956,8 +1958,7 @@ StoredsettingsToComponents := proc(WhateverYouNeed::table)
 					ModifyComboVariables(cat("ComboBox_", child), "Write", WhateverYouNeed[parent][child], table());	# write new values to combobox
 
 				elif type(WhateverYouNeed[parent][child], table) then	# ["calculations"]["structure"]
-
-					checkvar := UnpackTable(WhateverYouNeed[parent][child], child, checkvar, WhateverYouNeed);
+					checkvar := UnpackTable(WhateverYouNeed[parent][child], checkvar, WhateverYouNeed);
 					
 				else
 					Alert(cat("Unknown value ", dummy), WhateverYouNeed["warnings"], 1);
@@ -1989,7 +1990,7 @@ StoredsettingsToComponents := proc(WhateverYouNeed::table)
 
 				elif type(WhateverYouNeed[dummy], table) then
 
-					checkvar := UnpackTable(WhateverYouNeed[dummy], dummy, checkvar, WhateverYouNeed);
+					checkvar := UnpackTable(WhateverYouNeed[dummy], checkvar, WhateverYouNeed);
 
 				else 
 					Alert(cat("Unknown value ", dummy), WhateverYouNeed["warnings"], 1);
@@ -2002,49 +2003,6 @@ StoredsettingsToComponents := proc(WhateverYouNeed::table)
 
 		end if;
 	end do;
-end proc:
-
-
-UnpackTable := proc(t::table, current_path::string, checkvar::set, WhateverYouNeed::table)
-	description "Recursive solution for StoredSettingsToComponents";
-    local idx, new_path, upd_check;
-	upd_check := checkvar;
-    
-    for idx in indices(t, 'nolist') do
-
-		# build accumulated component/variablename        
-        # Hvis current_path er tom, starter vi, ellers legger vi til indeksen (f.eks. cat("eta", "max"))
-
-        if current_path = "" then
-    	    new_path := cat("[", convert(idx, string), "]");
-	    else
-	        new_path := cat(current_path, cat("[", convert(idx, string), "]"));
-		end if;
-
-        if type(t[idx], table) then
-            # If element is table, iterate and send new path
-            upd_check := UnpackTable(t[idx], new_path, upd_check, WhateverYouNeed);
-
-	    elif type(t[idx], string) or type(t[idx], numeric) then
-			upd_check := WriteValueToComponent(idx, t[idx], upd_check)
-
-		elif type(t[idx], 'with_unit') then
-			upd_check := WriteValueToComponent(idx, convert(ConvertUnitfree(idx, t[idx], WhateverYouNeed), string), upd_check)
-
-		elif member(cat("-",idx), WhateverYouNeed["componentvariables"]["var_ComboBox"]) then
-			# "-variable" will be ignored
-
-		# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
-		elif member(idx, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		
-			ModifyComboVariables(cat("ComboBox_", idx), "Write", t[idx], table());	# write new values to combobox
-
-		else
-			Alert(cat("Missing implementation in UnpackTable: ", new_path), table(), 1);
-			
-        end if;
-
-    end do;
-    return upd_check;	
 end proc:
 
 
@@ -2104,6 +2062,41 @@ SyncSliderWithTextArea := proc(i::string)
 			SetProperty(cat("Slider_", i), 'value', parse(GetProperty(cat("TextArea_", i), value)))
 		end if;
 	end if;		
+end proc:
+
+
+UnpackTable := proc(t::table, checkvar::set, WhateverYouNeed::table)
+	description "Recursive solution for StoredSettingsToComponents";
+    local idx, upd_check, warnings;
+	
+	upd_check := checkvar;
+	warnings := WhateverYouNeed["warnings"];
+    
+    for idx in indices(t, 'nolist') do
+
+        if type(t[idx], table) then            
+            upd_check := UnpackTable(t[idx], upd_check, WhateverYouNeed);
+
+	    elif type(t[idx], string) or type(t[idx], numeric) or type(t[idx], boolean) then
+			upd_check := WriteValueToComponent(idx, t[idx], upd_check)
+
+		elif type(t[idx], 'with_unit') then
+			upd_check := WriteValueToComponent(idx, convert(ConvertUnitfree(idx, t[idx], WhateverYouNeed), string), upd_check)
+
+		elif member(cat("-",idx), WhateverYouNeed["componentvariables"]["var_ComboBox"]) then
+			# "-variable" will be ignored
+
+		# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
+		elif member(idx, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		
+			ModifyComboVariables(cat("ComboBox_", idx), "Write", t[idx], table());	# write new values to combobox
+
+		else
+			Alert(cat("Missing implementation in UnpackTable: ", idx, " = ", t[idx], " type ", whattype(t[idx])), warnings, 1);
+			
+        end if;
+
+    end do;
+    return upd_check;	
 end proc:
 
 
@@ -2277,6 +2270,11 @@ WriteValueToComponent := proc(compvariable::string, b, check_calculations::set)
 	uses ListTools;
 	local foundvalue, upd_check_calculations, componentvalue, checkvar;
 
+	# no need to slow down calculations with updating components, when not required
+	if WhateverYouNeed["calculations"]["suppress_gui"] = true then 
+    	return check_calculations
+	end if;
+
 	if member("nocheck", check_calculations) then
 		checkvar := false
 	else
@@ -2391,21 +2389,6 @@ WriteValueToComponent := proc(compvariable::string, b, check_calculations::set)
 
 	return upd_check_calculations
 end proc:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # ResetDocument := proc()
 #	description "Reset document as far as possible";
