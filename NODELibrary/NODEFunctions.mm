@@ -847,7 +847,7 @@ LibInitCommon := proc(WhateverYouNeed, calculationtype)
 	calculations["autoloadsave"] := autoloadsave;
 	calculations["autocalc"] := autocalc;
 	calculations["loadvariables"] := loadvariables;
-	calculations["suppress_gui"] = false;
+	calculations["suppress_gui"] := false;
 	calculations["calculatingAllLoadcases"] := false;
 
 	results["eta"] := eta;		
