@@ -257,7 +257,7 @@ CalculateAllLoadcases := proc(WhateverYouNeed::table)
 	# reset values to active loadcase	
 	WhateverYouNeed["calculations"]["calculatingAllLoadcases"]:= false;		# running calculation of all loadcases at the moment
 	WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"] := activeloadcase;
-	WhateverYouNeed["calculations"]["suppress_gui"] = false;
+	WhateverYouNeed["calculations"]["suppress_gui"] := false;
 	WriteValueToComponent("loadcases", activeloadcase, {"nocheck"});
 	MainCommon("calculateAllLoadcasesCleanup");
 	# Main(WhateverYouNeed, "calculateAllLoadcasesCleanup");
@@ -1037,10 +1037,10 @@ ModifyLoadcases := proc(combobox::string, action::string, variables::set, loadca
 								elif GetProperty("ComboBox_FastenerPatternUnits", value) = "mm" then
 									loadcase[i] := parse(GetProperty(dummy, value)) * Unit('mm')
 								else
-									loadcase[i] := parse(GetProperty(dummy, value))
+									loadcase[i] := parse(GetProperty(dummy, value)) * Unit('mm')
 								end if
 							else
-								loadcase[i] := parse(GetProperty(dummy, value))
+								loadcase[i] := parse(GetProperty(dummy, value)) * Unit('mm')
 							end if;
 
 						# moments
@@ -2222,6 +2222,7 @@ Write_eta2 := proc(eta, usedcode::string, comments, loadcase)
 	end if;
 end proc:
 
+
 WriteLoadsToDocument := proc(loadcase, WhateverYouNeed::table)
 	description "Get loadcases and write to document";
 	local i, dummy, loadvariables, loadcases;
@@ -2241,7 +2242,7 @@ WriteLoadsToDocument := proc(loadcase, WhateverYouNeed::table)
 					SetProperty(dummy, 'enabled', false);
 				else									# loadcases do also store 'enabled' property now
 					SetProperty(dummy, 'enabled', true);
-					SetProperty(dummy, 'value', ConvertUnitfree(i, loadcases[loadcase][i], WhateverYouNeed));
+					SetProperty(dummy, 'value', round2(ConvertUnitfree(i, loadcases[loadcase][i], WhateverYouNeed), 2));
 				end if;
 			else 
 				SetProperty(dummy, 'value', "0");

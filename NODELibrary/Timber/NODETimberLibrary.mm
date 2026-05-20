@@ -1435,28 +1435,44 @@ end proc:
 
 
 SetLoadExcentricity := proc(WhateverYouNeed::table, createnewloadcase::boolean)
-	description "Setting load excentricity based on load position, called when generating new load case";
-	local side, dummy, warnings;
-	
-	dummy := convert(evalf(WhateverYouNeed["calculations"]["structure"]["opening"]["opening_a"] / 2), 'unit_free');
-	warnings := WhateverYouNeed["warnings"];
+	description "Setting load excentricity based on load position, called when generating new load case or when CheckLoadExcentricity triggers error";
+	local side, dummy, warnings, activeloadcase;
 
-	if searchtext("left", GetProperty("TextArea_activeloadcase", 'value')) > 0 then
-		side := "left";
- 		dummy := -dummy
-	elif searchtext("right", GetProperty("TextArea_activeloadcase", 'value')) > 0  then
-		side := "right"
+	dummy := evalf(WhateverYouNeed["calculations"]["structure"]["opening"]["opening_a"] / 2);
+	warnings := WhateverYouNeed["warnings"];
+	activeloadcase := WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"];
+
+	if createnewloadcase then
+		if searchtext("left", GetProperty("TextArea_activeloadcase", 'value')) > 0 then
+			side := "left";
+			dummy := -dummy
+		elif searchtext("right", GetProperty("TextArea_activeloadcase", 'value')) > 0  then
+			side := "right"
+		else
+			side := "";
+			Alert("Error: loadcase name must include side \"left\" or \"right\" for calculation of excentricity", warnings, 4);
+			return;
+		end if;
 	else
-		side := "";
-		Alert("Error: loadcase name must include side \"left\" or \"right\" for calculation of excentricity", warnings, 4);
-		return;
+		if searchtext("left", activeloadcase) > 0 then
+			side := "left";
+			dummy := -dummy
+		elif searchtext("right", activeloadcase) > 0  then
+			side := "right"
+		else
+			side := "";
+			Alert("Error: loadcase name must include side \"left\" or \"right\" for calculation of excentricity", warnings, 4);
+			return;
+		end if;
 	end if;
 
 	WriteValueToComponent("loadcenter_x", round(dummy), {"nocheck"});
 	if createnewloadcase then		
 		MainCommon("NewLoadcase");
+	else
+		WhateverYouNeed["calculations"]["loadcases"][activeloadcase]["loadcenter_x"] := dummy
 	end if;
-	# MainCommon("CalculateLoads_calculate")
+	
 end proc:
 
 
@@ -1471,7 +1487,7 @@ CheckLoadExcentricity := proc(WhateverYouNeed::table)
 	warnings := WhateverYouNeed["warnings"];
 	
 	if evalf(abs(loadcenter_x) - opening_a / 2) > tolerance then
-		Alert(cat("loadcase ", activeloadcase, ": load excentricity wrong"), warnings, 3);
+		Alert(cat("loadcase ", activeloadcase, ": load excentricity wrong, calculating new value"), warnings, 1);
 		SetLoadExcentricity(WhateverYouNeed, false);
 	end if;
 end proc:

@@ -113,7 +113,7 @@ runAfterXMLImport := proc(successful::boolean, WhateverYouNeed::table)
 
 	XMLImportlog := cat(XMLImportlog, "\n runAfterXMLImport: \n");
 
-	StoredsettingsToComponents(WhateverYouNeed);		# setting default variables to components
+	# StoredsettingsToComponents(WhateverYouNeed);		# setting default variables to components
 
 	if successful then
 		StoreSettings(WhateverYouNeed);
@@ -223,6 +223,7 @@ runAfterXMLImport := proc(successful::boolean, WhateverYouNeed::table)
 				# Alert(cat("Unknown variable ", i, " in runAfterXMLImport."), warnings, 1)
 				
 			end if;
+
 		end do;
 
 		WhateverYouNeed["logs"]["XMLImport"] := XMLImportlog;
