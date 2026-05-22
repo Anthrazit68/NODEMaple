@@ -2081,7 +2081,7 @@ UnpackTable := proc(t::table, checkvar::set, WhateverYouNeed::table)
 			upd_check := WriteValueToComponent(idx, t[idx], upd_check)
 
 		elif type(t[idx], 'with_unit') then
-			upd_check := WriteValueToComponent(idx, convert(ConvertUnitfree(idx, t[idx], WhateverYouNeed), string), upd_check)
+			upd_check := WriteValueToComponent(idx, ConvertUnitfree(idx, t[idx], WhateverYouNeed), upd_check)
 
 		elif member(cat("-",idx), WhateverYouNeed["componentvariables"]["var_ComboBox"]) then
 			# "-variable" will be ignored

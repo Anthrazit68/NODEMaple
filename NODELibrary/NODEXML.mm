@@ -235,6 +235,7 @@ runAfterXMLImport := proc(successful::boolean, WhateverYouNeed::table)
 	end if;
 end proc:
 
+
 XMLCalculations := proc(WhateverYouNeed::table)
 	description "Convert calculation to XML";
 	local xmlcalculation, dummy, dummy1, dummy2, dummy3, xmlLevel0, xmlLevel1, xmlLevel2, counter, item, item1, item2, item3, storeitems;
@@ -312,7 +313,16 @@ XMLCalculations := proc(WhateverYouNeed::table)
 								
 							else																	
 								if dummy2 <> "name" then
-									xmlLevel1 := AddAttribute(xmlLevel1, dummy2, convert(eval(item2), string));			# direct writeout after readin might give strange Units conversions 'Units:-Simple:-`-`(Units:-Simple:-`*`(75.8,Units:-Unit(kN)))
+									
+									# direct writeout after readin might give strange Units conversions 'Units:-Simple:-`-`(Units:-Simple:-`*`(75.8,Units:-Unit(kN)))
+									# xmlLevel1 := AddAttribute(xmlLevel1, dummy2, convert(eval(item2), string));	
+
+									if type(item2, 'with_unit') then
+    									xmlLevel1 := AddAttribute(xmlLevel1, dummy2, convert(ConvertUnitfree(dummy2, item2, WhateverYouNeed), string));
+									else
+										xmlLevel1 := AddAttribute(xmlLevel1, dummy2, convert(item2, string));
+									end if;
+
 								end if;									
 																	
 							end if
@@ -431,7 +441,7 @@ XMLImport := proc(items::set, WhateverYouNeed::table)
 	if successful = false then
 		return successful
 	end if;
-
+DEBUG();
 	# read data
 	for counter from 1 to numelems(rqdata) do
 
@@ -517,6 +527,133 @@ XMLImport := proc(items::set, WhateverYouNeed::table)
 
 end proc:
 
+XMLMaterialConcrete := proc(materials::table)
+	description "Skriv materialspesifikk XML del";
+	local xmlconcrete, xmlitem, ind, material, xmlvalues, counter;
+	uses XMLTools;
+	# f�rst lager vi xmltimber definisjon i xml filen
+	xmlconcrete := XMLElement("concrete"); 
+	counter := 0;
+
+	for ind in indices(materials, 'nolist', 'indexorder') do
+		material := materials[ind];
+		xmlitem := XMLElement("material", ["material" = material["material"], "name" = material["name"], "strengthclass_NS" = material["strengthclass_NS"], "strengthclass_CEN" = material["strengthclass_CEN"],
+		"exposureclass" = material["exposureclass"], "durabilityclass" = material["durabilityclass"], "gamma_C" = convert(material["gamma_C"], string)]);
+	
+		xmlvalues := XMLElement("values", [
+		"f_ck" = convert(material["f_ck"], string),
+		"f_ckcube" = convert(material["f_ckcube"], string),
+		"f_cm" = convert(material["f_cm"], string),
+		"f_ctm" = convert(material["f_ctm"], string),
+		"f_ctk005" = convert(material["f_ctk005"], string),
+		"f_ctk095" = convert(material["f_ctk095"], string),
+		"E_cm" = convert(material["E_cm"], string),
+
+		"epsilon_c1" = convert(material["epsilon_c1"], string),
+		"epsilon_cu1" = convert(material["epsilon_cu1"], string),
+		"epsilon_c2" = convert(material["epsilon_c2"], string),
+		"epsilon_cu2" = convert(material["epsilon_cu2"], string),
+		"epsilon_c3" = convert(material["epsilon_c3"], string),
+		"epsilon_cu3" = convert(material["epsilon_cu3"], string),
+		"n" = convert(material["n"], string),
+		"alpha_cc" = convert(material["alpha_cc"], string),
+		"alpha_ct" = convert(material["alpha_ct"], string),
+
+		"f_cd" = convert(material["f_cd"], string),
+		"f_ctd" = convert(material["f_ctd"], string)]);
+
+		xmlitem := AddChild(xmlitem, xmlvalues, 0);
+		xmlconcrete := AddChild(xmlconcrete, xmlitem, counter);
+		counter := counter + 1;
+	end do;
+	return xmlconcrete;
+	
+end proc:
+
+
+XMLMaterialSteel := proc(materials::table)
+	description "Skriv materialspesifikk XML del";
+	local xmlsteel, xmlitem, ind, material, xmlvalues, counter;
+	uses XMLTools;
+	
+	# f�rst lager vi xmlsteel definisjon i xml filen
+	xmlsteel := XMLElement("steel"); 
+	counter := 0;
+	
+	for ind in indices(materials, 'nolist', 'indexorder') do
+		material := materials[ind];
+		xmlitem := XMLElement("material", ["material" = material["material"], "name" = material["name"], "steelcode" = material["steelcode"], 
+		"steelgrade" = material["steelgrade"], "thicknessclass" = material["thicknessclass"], "gamma_M0" = convert(material["gamma_M0"], string)]);
+	
+		xmlvalues := XMLElement("values", [
+		"f_uk" = convert(material["f_uk"], string),
+		"f_yk" = convert(material["f_yk"], string),
+		"f_ud" = convert(material["f_ud"], string),
+		"f_yd" = convert(material["f_yd"], string), 
+		"E" = convert(material["E"], string),
+		"G" = convert(material["G"], string), 
+		"nu" = convert(material["nu"], string),
+		"alpha_t" = convert(material["alpha_t"], string)]); 
+
+		xmlitem := AddChild(xmlitem, xmlvalues, 0);
+		xmlsteel := AddChild(xmlsteel, xmlitem, counter);
+		counter := counter + 1;
+	end do;
+	return xmlsteel;
+	
+end proc:
+
+
+XMLMaterialTimber := proc(materials::table)
+	description "Skriv materialspesifikk XML del";
+	local xmltimber, xmlitem, ind, material, xmlvalues1, xmlvalues2, counter;
+	uses XMLTools;
+	# f�rst lager vi xmltimber definisjon i xml filen
+	xmltimber := XMLElement("timber"); 
+	counter := 0;
+	
+	for ind in indices(materials, 'nolist', 'indexorder') do
+		material := materials[ind];
+		xmlitem := XMLElement("material", ["material" = material["material"], "name" = material["name"], "timbertype" = material["timbertype"], 
+		"strengthclass" = material["strengthclass"], "serviceclass" = material["serviceclass"], "loaddurationclass" = material["loaddurationclass"],
+		"gamma_M" = convert(material["gamma_M"], string), "k_mod" = convert(material["k_mod"], string)]);
+	
+		xmlvalues1 := XMLElement("values_c", [
+		"f_mk" = convert(material["f_mk"], string),
+		"f_t0k" = convert(material["f_t0k"], string),
+		"f_t90k" = convert(material["f_t90k"], string),
+		"f_c0k" = convert(material["f_c0k"], string),
+		"f_c90k" = convert(material["f_c90k"], string),
+		"f_vk" = convert(material["f_vk"], string),
+		"f_rk" = convert(material["f_rk"], string),
+		"E_m0mean" = convert(material["E_m0mean"], string),
+		"E_m0k" = convert(material["E_m0k"], string),
+		"E_m90mean" = convert(material["E_m90mean"], string),
+		"E_9005" = convert(material["E_9005"], string), 
+		"G_mean" = convert(material["G_mean"], string), 
+		"G_005" = convert(material["G_005"], string), 
+		"G_rmean" = convert(material["G_rmean"], string),
+		"G_r05" = convert(material["G_r05"], string), 
+		"rho_k" = convert(material["rho_k"], string),
+		"rho_mean" = convert(material["rho_mean"], string)]); 
+
+		xmlvalues2 := XMLElement("values_d", [
+		"f_md" = convert(material["f_md"], string),
+		"f_t0d" = convert(material["f_t0d"], string),
+		"f_t90d" = convert(material["f_t90d"], string),
+		"f_c0d" = convert(material["f_c0d"], string),
+		"f_c90d" = convert(material["f_c90d"], string),
+		"f_vd" = convert(material["f_vd"], string),
+		"f_rd" = convert(material["f_rd"], string)]);
+	
+		xmlitem := AddChild(xmlitem, xmlvalues1, 0);
+		xmlitem := AddChild(xmlitem, xmlvalues2, 1);
+		xmltimber := AddChild(xmltimber, xmlitem, counter);
+		counter := counter + 1;
+	end do;
+	return xmltimber;
+	
+end proc:
 
 
 XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
@@ -875,12 +1012,21 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 
 									# adding attributes
 									for p in AttributeNames(xmldummy) do
+
 										if isNumericVariable(p, WhateverYouNeed) then
-											returndata3[p] := parse(AttributeValue(xmldummy, p));
+											# catch exceptions with invalid values which can't be parsed
+											try
+												returndata3[p] := parse(AttributeValue(xmldummy, p));
+											catch:
+												Alert(cat("Unable to parse variable ", p, " = ", AttributeValue(xmldummy, p)), warnings, 4);
+												FileTools[Text][WriteLine](logfile, cat("Unable to parse variable ", p, " = ", AttributeValue(xmldummy, p)));
+												returndata3[p] := 0;
+											end try;
 										else
 											returndata3[p] := AttributeValue(xmldummy, p)
 										end if;
 										FileTools[Text][WriteLine](logfile, cat("   ", p, ": ", convert(returndata3[p], string)));
+
 									end do;
 
 									# adding children								
@@ -896,12 +1042,20 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 										FileTools[Text][WriteLine](logfile, cat("   ", nameIndex));
 
 										for p in AttributeNames(xmldummy1) do
+
 											if isNumericVariable(p, WhateverYouNeed) then
-												returndata4[p] := eval(parse(AttributeValue(xmldummy1, p)))
+												try
+													returndata4[p] := eval(parse(AttributeValue(xmldummy1, p)))
+												catch:
+													Alert(cat("Unable to parse variable ", p, " = ", AttributeValue(xmldummy1, p)), warnings, 4);
+													FileTools[Text][WriteLine](logfile, cat("Unable to parse variable ", p, " = ", AttributeValue(xmldummy1, p)));
+													returndata4[p] := 0;
+												end try;
 											else
 												returndata4[p] := AttributeValue(xmldummy1, p)
 											end if;
 											FileTools[Text][WriteLine](logfile, cat("    ", p, ": ", convert(returndata4[p], string)));
+
 										end do;
 											
 										# adding children
@@ -917,11 +1071,19 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 											FileTools[Text][WriteLine](logfile, cat("    ", nameIndex1));
 
 											for q in AttributeNames(xmldummy2) do
+
 												if isNumericVariable(q, WhateverYouNeed) then
-													returndata5[q] := eval(parse(AttributeValue(xmldummy2, q)))
+													try
+														returndata5[q] := eval(parse(AttributeValue(xmldummy2, q)))
+													catch:
+														Alert(cat("Unable to parse variable ", q, " = ", AttributeValue(xmldummy2, q)), warnings, 4);
+														FileTools[Text][WriteLine](logfile, cat("Unable to parse variable ", q, " = ", AttributeValue(xmldummy2, q)));
+														returndata5[q] := 0;
+													end try;
 												else
 													returndata5[q] := AttributeValue(xmldummy2, q)
 												end if;
+
 												FileTools[Text][WriteLine](logfile, cat("     ", q, ": ", convert(returndata5[q], string)));
 											end do;
 
@@ -983,6 +1145,116 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 end proc:
 
 
+XMLSectionSteel := proc(sections::table)
+	description "Skriv sections- XML del";
+	local xmlsection, xmlitem, xmlvalue, sectionvalues, ind, item, Textfelt, section, counter;
+	uses XMLTools;
+	
+	# f�rst lager vi XMLMaterialSteel definisjon i xml filen
+	xmlsection := XMLElement("steel"); 
+	counter := 0;
+	
+	for ind in indices(sections, 'nolist', 'indexorder') do
+		section := sections[ind];
+		xmlitem := XMLElement("section", ["name" = section["name"], "sectiontype" = section["sectiontype"], "section" = section["section"], "code" = section["standard"]]);
+		sectionvalues := [indices(section)[1..,1]];									# liste over hvilke parameter som er definert i profilen
+
+		xmlvalue := XMLElement("geometry");
+		Textfelt := ["h", "b", "t_w", "t_f", "h_w", "d", "t", "r", "r_o", "r_i"];
+		for item in Textfelt do								# g�r gjennom variabler av aktuell section
+			if member(item, sectionvalues) then
+				xmlvalue := AddAttribute(xmlvalue, item, convert(section[item], string))
+			end if
+		end do;	
+		xmlitem := AddChild(xmlitem, xmlvalue, 0);
+
+		xmlvalue := XMLElement("cross_section_properties");
+		Textfelt := ["A", "A_m", "U", "U_o", "U_i", "U_m", "m_k", "g_k", "alpha_1", "alpha_2", "alpha_3", "alpha_4", "d_L", "w_1", "w_2", "w_3", 
+		"I_y", "I_z", "I_p", "W_el_y", "W_el_z", "W_pl_y", "W_pl_z", "i_y", "i_z", "i_p", "S_y", "S_z", "alpha_pl_y", "alpha_pl_z", "I_t0", "I_t"];
+		for item in Textfelt do								# g�r gjennom variabler av aktuell section
+			if member(item, sectionvalues) then
+				xmlvalue := AddAttribute(xmlvalue, item, convert(section[item], string))
+			end if
+		end do;	
+		xmlitem := AddChild(xmlitem, xmlvalue, 1);
+
+		xmlvalue := XMLElement("shear_torsion_warping_properties");
+		Textfelt := ["A_vy", "A_steg", "A_z", "A_vz", "I_omega", "W_omega", "omega_0", "omega_1", "omega_2", "omega_3", "omega_max", "S_omega_0", "S_omega_1", "S_omega_2", "S_omega_3", "S_omega_max"];
+		for item in Textfelt do								# g�r gjennom variabler av aktuell section
+			if member(item, sectionvalues) then
+				xmlvalue := AddAttribute(xmlvalue, item, convert(section[item], string))
+			end if
+		end do;	
+		xmlitem := AddChild(xmlitem, xmlvalue, 2);
+
+		xmlvalue := XMLElement("capacity");
+		Textfelt := ["N_pl_RK_S235", "V_pl_y_RK_S235", "V_pl_z_RK_S235", "M_el_y_Rk_S235", "M_el_z_Rk_S235", "M_pl_y_Rk_S235", "M_pl_z_Rk_S235"];	# liste over mulige sectionsparameter
+		for item in Textfelt do								# g�r gjennom variabler av aktuell section
+			if member(item, sectionvalues) then
+				xmlvalue := AddAttribute(xmlvalue, item, convert(section[item], string))
+			end if
+		end do;	
+		xmlitem := AddChild(xmlitem, xmlvalue, 3);
+
+		xmlvalue := XMLElement("buckling_cross_section_class");
+		Textfelt := ["buckling_curve_y_S235-420", "buckling_curve_z_S235-420", "buckling_curve_y_S460", "buckling_curve_z_S460", "cross_section_class_bending_S235", "cross_section_class_compression_S235", 
+		"cross_section_class_bending_S355", "cross_section_class_compression_S355", "cross_section_class_bending_S460". "cross_section_class_compression_S460"];
+		for item in Textfelt do								# g�r gjennom variabler av aktuell section
+			if member(item, sectionvalues) then
+				xmlvalue := AddAttribute(xmlvalue, item, convert(section[item], string))
+			end if
+		end do;	
+		xmlitem := AddChild(xmlitem, xmlvalue, 4);
+	
+		xmlsection := AddChild(xmlsection, xmlitem, counter);
+		counter := counter + 1;
+	end do;
+	
+	return xmlsection;
+	
+end proc:
+
+
+XMLSectionTimber := proc(sections::table)
+	description "Skriv sections- XML del";
+	local xmlsection, xmlitem, xmlvalue, sectionvalues, ind, item, Textfelt, section, counter;
+	uses XMLTools;
+	
+	xmlsection := XMLElement("timber"); 
+	counter := 0;
+	
+	for ind in indices(sections, 'nolist', 'indexorder') do
+		section := sections[ind];
+		xmlitem := XMLElement("section", ["name" = section["name"], "sectiontype" = section["sectiontype"]]);
+		sectionvalues := [indices(section)[1..,1]];									# liste over hvilke parameter som er definert i profilen
+
+		xmlvalue := XMLElement("geometry");
+		Textfelt := ["h", "b"];
+		for item in Textfelt do								# g�r gjennom variabler av aktuell section
+			if member(item, sectionvalues) then
+				xmlvalue := AddAttribute(xmlvalue, item, convert(section[item], string))
+			end if
+		end do;	
+		xmlitem := AddChild(xmlitem, xmlvalue, 0);
+
+		xmlvalue := XMLElement("cross_section_properties");
+		Textfelt := ["A", "I_y", "I_z", "I_t", "W_y", "W_z", "i_y", "i_z"];
+		for item in Textfelt do								# g�r gjennom variabler av aktuell section
+			if member(item, sectionvalues) then
+				xmlvalue := AddAttribute(xmlvalue, item, convert(section[item], string))
+			end if
+		end do;	
+		xmlitem := AddChild(xmlitem, xmlvalue, 1);
+	
+		xmlsection := AddChild(xmlsection, xmlitem, counter);
+		counter := counter + 1;
+	end do;
+	
+	return xmlsection;
+	
+end proc:
+
+
 XMLWrite := proc(exportItems::set, WhateverYouNeed::table)
 	description "Write out XML file";
 	uses Maplets[Elements], XMLTools;
@@ -1016,7 +1288,7 @@ XMLWrite := proc(exportItems::set, WhateverYouNeed::table)
 		software := "https://github.com/Anthrazit68/NODEMaple";
 		xmltree := XMLElement("database", ["version" = xmlversion, "source_software" = software, "created" = convert(Date(), string)]);		# general information
 	else	# merge
-		xmltree := CleanXML(ParseFile(afilename, prolog = true));
+		xmltree := CleanXML(ParseFile(afilename));
 	end if;
 	
 	for mainType in exportItems do		#"projectdata", "materials", "sections", "calculations"
@@ -1247,243 +1519,4 @@ XMLWrite := proc(exportItems::set, WhateverYouNeed::table)
 	FileTools:-Text:-WriteString(afilename, xmltree);
 	fclose(afilename);
 
-end proc:
-
-
-XMLMaterialTimber := proc(materials::table)
-	description "Skriv materialspesifikk XML del";
-	local xmltimber, xmlitem, ind, material, xmlvalues1, xmlvalues2, counter;
-	uses XMLTools;
-	# f�rst lager vi xmltimber definisjon i xml filen
-	xmltimber := XMLElement("timber"); 
-	counter := 0;
-	
-	for ind in indices(materials, 'nolist', 'indexorder') do
-		material := materials[ind];
-		xmlitem := XMLElement("material", ["material" = material["material"], "name" = material["name"], "timbertype" = material["timbertype"], 
-		"strengthclass" = material["strengthclass"], "serviceclass" = material["serviceclass"], "loaddurationclass" = material["loaddurationclass"],
-		"gamma_M" = convert(material["gamma_M"], string), "k_mod" = convert(material["k_mod"], string)]);
-	
-		xmlvalues1 := XMLElement("values_c", [
-		"f_mk" = convert(material["f_mk"], string),
-		"f_t0k" = convert(material["f_t0k"], string),
-		"f_t90k" = convert(material["f_t90k"], string),
-		"f_c0k" = convert(material["f_c0k"], string),
-		"f_c90k" = convert(material["f_c90k"], string),
-		"f_vk" = convert(material["f_vk"], string),
-		"f_rk" = convert(material["f_rk"], string),
-		"E_m0mean" = convert(material["E_m0mean"], string),
-		"E_m0k" = convert(material["E_m0k"], string),
-		"E_m90mean" = convert(material["E_m90mean"], string),
-		"E_9005" = convert(material["E_9005"], string), 
-		"G_mean" = convert(material["G_mean"], string), 
-		"G_005" = convert(material["G_005"], string), 
-		"G_rmean" = convert(material["G_rmean"], string),
-		"G_r05" = convert(material["G_r05"], string), 
-		"rho_k" = convert(material["rho_k"], string),
-		"rho_mean" = convert(material["rho_mean"], string)]); 
-
-		xmlvalues2 := XMLElement("values_d", [
-		"f_md" = convert(material["f_md"], string),
-		"f_t0d" = convert(material["f_t0d"], string),
-		"f_t90d" = convert(material["f_t90d"], string),
-		"f_c0d" = convert(material["f_c0d"], string),
-		"f_c90d" = convert(material["f_c90d"], string),
-		"f_vd" = convert(material["f_vd"], string),
-		"f_rd" = convert(material["f_rd"], string)]);
-	
-		xmlitem := AddChild(xmlitem, xmlvalues1, 0);
-		xmlitem := AddChild(xmlitem, xmlvalues2, 1);
-		xmltimber := AddChild(xmltimber, xmlitem, counter);
-		counter := counter + 1;
-	end do;
-	return xmltimber;
-	
-end proc:
-
-
-XMLMaterialConcrete := proc(materials::table)
-	description "Skriv materialspesifikk XML del";
-	local xmlconcrete, xmlitem, ind, material, xmlvalues, counter;
-	uses XMLTools;
-	# f�rst lager vi xmltimber definisjon i xml filen
-	xmlconcrete := XMLElement("concrete"); 
-	counter := 0;
-
-	for ind in indices(materials, 'nolist', 'indexorder') do
-		material := materials[ind];
-		xmlitem := XMLElement("material", ["material" = material["material"], "name" = material["name"], "strengthclass_NS" = material["strengthclass_NS"], "strengthclass_CEN" = material["strengthclass_CEN"],
-		"exposureclass" = material["exposureclass"], "durabilityclass" = material["durabilityclass"], "gamma_C" = convert(material["gamma_C"], string)]);
-	
-		xmlvalues := XMLElement("values", [
-		"f_ck" = convert(material["f_ck"], string),
-		"f_ckcube" = convert(material["f_ckcube"], string),
-		"f_cm" = convert(material["f_cm"], string),
-		"f_ctm" = convert(material["f_ctm"], string),
-		"f_ctk005" = convert(material["f_ctk005"], string),
-		"f_ctk095" = convert(material["f_ctk095"], string),
-		"E_cm" = convert(material["E_cm"], string),
-
-		"epsilon_c1" = convert(material["epsilon_c1"], string),
-		"epsilon_cu1" = convert(material["epsilon_cu1"], string),
-		"epsilon_c2" = convert(material["epsilon_c2"], string),
-		"epsilon_cu2" = convert(material["epsilon_cu2"], string),
-		"epsilon_c3" = convert(material["epsilon_c3"], string),
-		"epsilon_cu3" = convert(material["epsilon_cu3"], string),
-		"n" = convert(material["n"], string),
-		"alpha_cc" = convert(material["alpha_cc"], string),
-		"alpha_ct" = convert(material["alpha_ct"], string),
-
-		"f_cd" = convert(material["f_cd"], string),
-		"f_ctd" = convert(material["f_ctd"], string)]);
-
-		xmlitem := AddChild(xmlitem, xmlvalues, 0);
-		xmlconcrete := AddChild(xmlconcrete, xmlitem, counter);
-		counter := counter + 1;
-	end do;
-	return xmlconcrete;
-	
-end proc:
-
-
-XMLMaterialSteel := proc(materials::table)
-	description "Skriv materialspesifikk XML del";
-	local xmlsteel, xmlitem, ind, material, xmlvalues, counter;
-	uses XMLTools;
-	
-	# f�rst lager vi xmlsteel definisjon i xml filen
-	xmlsteel := XMLElement("steel"); 
-	counter := 0;
-	
-	for ind in indices(materials, 'nolist', 'indexorder') do
-		material := materials[ind];
-		xmlitem := XMLElement("material", ["material" = material["material"], "name" = material["name"], "steelcode" = material["steelcode"], 
-		"steelgrade" = material["steelgrade"], "thicknessclass" = material["thicknessclass"], "gamma_M0" = convert(material["gamma_M0"], string)]);
-	
-		xmlvalues := XMLElement("values", [
-		"f_uk" = convert(material["f_uk"], string),
-		"f_yk" = convert(material["f_yk"], string),
-		"f_ud" = convert(material["f_ud"], string),
-		"f_yd" = convert(material["f_yd"], string), 
-		"E" = convert(material["E"], string),
-		"G" = convert(material["G"], string), 
-		"nu" = convert(material["nu"], string),
-		"alpha_t" = convert(material["alpha_t"], string)]); 
-
-		xmlitem := AddChild(xmlitem, xmlvalues, 0);
-		xmlsteel := AddChild(xmlsteel, xmlitem, counter);
-		counter := counter + 1;
-	end do;
-	return xmlsteel;
-	
-end proc:
-
-
-XMLSectionSteel := proc(sections::table)
-	description "Skriv sections- XML del";
-	local xmlsection, xmlitem, xmlvalue, sectionvalues, ind, item, Textfelt, section, counter;
-	uses XMLTools;
-	
-	# f�rst lager vi XMLMaterialSteel definisjon i xml filen
-	xmlsection := XMLElement("steel"); 
-	counter := 0;
-	
-	for ind in indices(sections, 'nolist', 'indexorder') do
-		section := sections[ind];
-		xmlitem := XMLElement("section", ["name" = section["name"], "sectiontype" = section["sectiontype"], "section" = section["section"], "code" = section["standard"]]);
-		sectionvalues := [indices(section)[1..,1]];									# liste over hvilke parameter som er definert i profilen
-
-		xmlvalue := XMLElement("geometry");
-		Textfelt := ["h", "b", "t_w", "t_f", "h_w", "d", "t", "r", "r_o", "r_i"];
-		for item in Textfelt do								# g�r gjennom variabler av aktuell section
-			if member(item, sectionvalues) then
-				xmlvalue := AddAttribute(xmlvalue, item, convert(section[item], string))
-			end if
-		end do;	
-		xmlitem := AddChild(xmlitem, xmlvalue, 0);
-
-		xmlvalue := XMLElement("cross_section_properties");
-		Textfelt := ["A", "A_m", "U", "U_o", "U_i", "U_m", "m_k", "g_k", "alpha_1", "alpha_2", "alpha_3", "alpha_4", "d_L", "w_1", "w_2", "w_3", 
-		"I_y", "I_z", "I_p", "W_el_y", "W_el_z", "W_pl_y", "W_pl_z", "i_y", "i_z", "i_p", "S_y", "S_z", "alpha_pl_y", "alpha_pl_z", "I_t0", "I_t"];
-		for item in Textfelt do								# g�r gjennom variabler av aktuell section
-			if member(item, sectionvalues) then
-				xmlvalue := AddAttribute(xmlvalue, item, convert(section[item], string))
-			end if
-		end do;	
-		xmlitem := AddChild(xmlitem, xmlvalue, 1);
-
-		xmlvalue := XMLElement("shear_torsion_warping_properties");
-		Textfelt := ["A_vy", "A_steg", "A_z", "A_vz", "I_omega", "W_omega", "omega_0", "omega_1", "omega_2", "omega_3", "omega_max", "S_omega_0", "S_omega_1", "S_omega_2", "S_omega_3", "S_omega_max"];
-		for item in Textfelt do								# g�r gjennom variabler av aktuell section
-			if member(item, sectionvalues) then
-				xmlvalue := AddAttribute(xmlvalue, item, convert(section[item], string))
-			end if
-		end do;	
-		xmlitem := AddChild(xmlitem, xmlvalue, 2);
-
-		xmlvalue := XMLElement("capacity");
-		Textfelt := ["N_pl_RK_S235", "V_pl_y_RK_S235", "V_pl_z_RK_S235", "M_el_y_Rk_S235", "M_el_z_Rk_S235", "M_pl_y_Rk_S235", "M_pl_z_Rk_S235"];	# liste over mulige sectionsparameter
-		for item in Textfelt do								# g�r gjennom variabler av aktuell section
-			if member(item, sectionvalues) then
-				xmlvalue := AddAttribute(xmlvalue, item, convert(section[item], string))
-			end if
-		end do;	
-		xmlitem := AddChild(xmlitem, xmlvalue, 3);
-
-		xmlvalue := XMLElement("buckling_cross_section_class");
-		Textfelt := ["buckling_curve_y_S235-420", "buckling_curve_z_S235-420", "buckling_curve_y_S460", "buckling_curve_z_S460", "cross_section_class_bending_S235", "cross_section_class_compression_S235", 
-		"cross_section_class_bending_S355", "cross_section_class_compression_S355", "cross_section_class_bending_S460". "cross_section_class_compression_S460"];
-		for item in Textfelt do								# g�r gjennom variabler av aktuell section
-			if member(item, sectionvalues) then
-				xmlvalue := AddAttribute(xmlvalue, item, convert(section[item], string))
-			end if
-		end do;	
-		xmlitem := AddChild(xmlitem, xmlvalue, 4);
-	
-		xmlsection := AddChild(xmlsection, xmlitem, counter);
-		counter := counter + 1;
-	end do;
-	
-	return xmlsection;
-	
-end proc:
-
-
-XMLSectionTimber := proc(sections::table)
-	description "Skriv sections- XML del";
-	local xmlsection, xmlitem, xmlvalue, sectionvalues, ind, item, Textfelt, section, counter;
-	uses XMLTools;
-	
-	xmlsection := XMLElement("timber"); 
-	counter := 0;
-	
-	for ind in indices(sections, 'nolist', 'indexorder') do
-		section := sections[ind];
-		xmlitem := XMLElement("section", ["name" = section["name"], "sectiontype" = section["sectiontype"]]);
-		sectionvalues := [indices(section)[1..,1]];									# liste over hvilke parameter som er definert i profilen
-
-		xmlvalue := XMLElement("geometry");
-		Textfelt := ["h", "b"];
-		for item in Textfelt do								# g�r gjennom variabler av aktuell section
-			if member(item, sectionvalues) then
-				xmlvalue := AddAttribute(xmlvalue, item, convert(section[item], string))
-			end if
-		end do;	
-		xmlitem := AddChild(xmlitem, xmlvalue, 0);
-
-		xmlvalue := XMLElement("cross_section_properties");
-		Textfelt := ["A", "I_y", "I_z", "I_t", "W_y", "W_z", "i_y", "i_z"];
-		for item in Textfelt do								# g�r gjennom variabler av aktuell section
-			if member(item, sectionvalues) then
-				xmlvalue := AddAttribute(xmlvalue, item, convert(section[item], string))
-			end if
-		end do;	
-		xmlitem := AddChild(xmlitem, xmlvalue, 1);
-	
-		xmlsection := AddChild(xmlsection, xmlitem, counter);
-		counter := counter + 1;
-	end do;
-	
-	return xmlsection;
-	
 end proc:
