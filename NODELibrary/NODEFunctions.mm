@@ -251,7 +251,7 @@ CalculateAllLoadcases := proc(WhateverYouNeed::table)
 	end if;
 
 	if hasindex(WhateverYouNeed["results"], "FastenerGroup") then
-		NODEFastenerPattern:-SetComponentsCriticalLoadcase("activate", WhateverYouNeed)
+		NODEFastenerPattern:-SetComponentsCriticalLoadcase("activate", WhateverYouNeed)		# deprecated function?
 	end if;
 
 	# reset values to active loadcase	
