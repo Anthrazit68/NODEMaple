@@ -425,8 +425,13 @@ ConvertUnitfree := proc(varname::string, varvalue, WhateverYouNeed::table)::nume
 
 		for i in indices(var_units, 'nolist') do
 			for j in var_units[i] do 
-				if j = substring(varname, 1..numelems(j)) then				
-					return convert(convert(varvalue, 'units', parse(i)), 'unit_free');
+				if j = substring(varname, 1..numelems(j)) then
+					try
+						return convert(convert(varvalue, 'units', parse(i)), 'unit_free');
+					catch:
+						Alert(cat("Attempted to parse unit in ConvertUnitfree unsuccessful, ", varname, " = ", i), warnings, 4);
+						return 0
+					end try;
 				end if;
 			end do;
 		end do;	

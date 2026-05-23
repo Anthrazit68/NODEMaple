@@ -315,13 +315,7 @@ XMLCalculations := proc(WhateverYouNeed::table)
 								if dummy2 <> "name" then
 									
 									# direct writeout after readin might give strange Units conversions 'Units:-Simple:-`-`(Units:-Simple:-`*`(75.8,Units:-Unit(kN)))
-									# xmlLevel1 := AddAttribute(xmlLevel1, dummy2, convert(eval(item2), string));	
-
-									if type(item2, 'with_unit') then
-    									xmlLevel1 := AddAttribute(xmlLevel1, dummy2, convert(ConvertUnitfree(dummy2, item2, WhateverYouNeed), string));
-									else
-										xmlLevel1 := AddAttribute(xmlLevel1, dummy2, convert(item2, string));
-									end if;
+									xmlLevel1 := AddAttribute(xmlLevel1, dummy2, convert(eval(item2), string));	
 
 								end if;									
 																	
@@ -441,7 +435,7 @@ XMLImport := proc(items::set, WhateverYouNeed::table)
 	if successful = false then
 		return successful
 	end if;
-DEBUG();
+
 	# read data
 	for counter from 1 to numelems(rqdata) do
 
@@ -531,7 +525,7 @@ XMLMaterialConcrete := proc(materials::table)
 	description "Skriv materialspesifikk XML del";
 	local xmlconcrete, xmlitem, ind, material, xmlvalues, counter;
 	uses XMLTools;
-	# f�rst lager vi xmltimber definisjon i xml filen
+
 	xmlconcrete := XMLElement("concrete"); 
 	counter := 0;
 
@@ -576,7 +570,6 @@ XMLMaterialSteel := proc(materials::table)
 	local xmlsteel, xmlitem, ind, material, xmlvalues, counter;
 	uses XMLTools;
 	
-	# f�rst lager vi xmlsteel definisjon i xml filen
 	xmlsteel := XMLElement("steel"); 
 	counter := 0;
 	
@@ -608,7 +601,7 @@ XMLMaterialTimber := proc(materials::table)
 	description "Skriv materialspesifikk XML del";
 	local xmltimber, xmlitem, ind, material, xmlvalues1, xmlvalues2, counter;
 	uses XMLTools;
-	# f�rst lager vi xmltimber definisjon i xml filen
+
 	xmltimber := XMLElement("timber"); 
 	counter := 0;
 	
@@ -734,15 +727,13 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 	# read projectdata information
 	# if HasChild(xmltree, XMLElement("projectdata")) then				fungerer ikke, se https://www.mapleprimes.com/questions/230855-XMLTools--HasChild
 
-
-
 	for i from 1 to nops(requesteddata) do		# outer list, go through requests
 		
 		# outer loop for requested data
 		# "projectdata", "material", "section", "all"
 
 		if requesteddata[i][1] = "projectdata" then
-			
+
 			if numelems(GetChildByName(xmltree, "projectdata")) > 0 then				# workaround
 
 				FileTools[Text][WriteLine](logfile, "Projectdata: ");
@@ -775,7 +766,7 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 			rq2 := requesteddata[i][2];			# "timber", "steel", "concrete" or "all"
 			rq3 := requesteddata[i][3];			# this one needs to be a list with what is requested
 			returndata1 := table();
-			
+
 			if numelems(GetChildByName(xmltree, "materials")) > 0 then
 
 				FileTools[Text][WriteLine](logfile, "Materials: ");
@@ -901,32 +892,30 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 
 					# find if there is a definition of that specific type of calculation in the file (should only be one of them)
 					foundcalculationtype := 0;
+
 					for j from 1 to ContentModelCount(xmlcalculations) do
+
 						if HasAttribute(GetChild(xmlcalculations, j), "calculationtype") then
 							if AttributeValue(GetChild(xmlcalculations, j), "calculationtype") = rq2 then
 								foundcalculationtype := j;
 							end if;
 						else
-
 							Alert("Warning: XML definition for calculation (1) missing attribute 'calculationtype'", warnings, 4);
 							FileTools[Text][WriteLine](logfile, "Warning: XML definition for calculation (1) missing attribute 'calculationtype'");	
-
+							next
 						end if;
 					end do;
-					
+
 					if foundcalculationtype = 0 then			# this type of calculation is not defined yet
-
-						Alert("No calculation found in file", warnings, 4);
+						Alert("No calculation found in file", warnings, 3);
 						FileTools[Text][WriteLine](logfile, "No calculations found in file");
-
+						next;
 					else		# calculationtype already exists
-
 						xmlcalculationtype := GetChild(xmlcalculations, foundcalculationtype);
-
 					end if;
 
 					# find which calculation that should be loaded
-					foundcalculationtype := {};		
+					foundcalculationtype := {};
 
 					for j from 1 to ContentModelCount(xmlcalculationtype) do
 
@@ -938,8 +927,8 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 
 						else
 
-							Alert("XML definisjon for calculation (2) missing attribute 'type'", warnings, 4);
-							FileTools[Text][WriteLine](logfile, "XML definisjon for calculation (2) missing attribute 'type'");
+							Alert("XML definition for calculation (2) missing attribute 'calculationtype'", warnings, 4);
+							FileTools[Text][WriteLine](logfile, "XML definition for calculation (2) missing attribute 'type'");
 
 						end if;
 					end do;
@@ -1062,7 +1051,7 @@ XMLRead := proc(requesteddata::list, WhateverYouNeed::table)
 										for p from 1 to ContentModelCount(xmldummy1) do				# 1, FastenerPattern
 											returndata5 := table();
 											xmldummy2 := GetChild(xmldummy1, p);
-# 2026-05-06
+
 											if HasAttribute(xmldummy2, "name") then
 												nameIndex1 := AttributeValue(xmldummy2, "name")
 											else
@@ -1149,8 +1138,7 @@ XMLSectionSteel := proc(sections::table)
 	description "Skriv sections- XML del";
 	local xmlsection, xmlitem, xmlvalue, sectionvalues, ind, item, Textfelt, section, counter;
 	uses XMLTools;
-	
-	# f�rst lager vi XMLMaterialSteel definisjon i xml filen
+		
 	xmlsection := XMLElement("steel"); 
 	counter := 0;
 	
@@ -1198,7 +1186,7 @@ XMLSectionSteel := proc(sections::table)
 
 		xmlvalue := XMLElement("buckling_cross_section_class");
 		Textfelt := ["buckling_curve_y_S235-420", "buckling_curve_z_S235-420", "buckling_curve_y_S460", "buckling_curve_z_S460", "cross_section_class_bending_S235", "cross_section_class_compression_S235", 
-		"cross_section_class_bending_S355", "cross_section_class_compression_S355", "cross_section_class_bending_S460". "cross_section_class_compression_S460"];
+		"cross_section_class_bending_S355", "cross_section_class_compression_S355", "cross_section_class_bending_S460", "cross_section_class_compression_S460"];
 		for item in Textfelt do								# g�r gjennom variabler av aktuell section
 			if member(item, sectionvalues) then
 				xmlvalue := AddAttribute(xmlvalue, item, convert(section[item], string))
@@ -1321,7 +1309,7 @@ XMLWrite := proc(exportItems::set, WhateverYouNeed::table)
 				writeposition := 2
 			end if;
 		
-			material := WhateverYouNeed["material"];			# "timber"
+			material := WhateverYouNeed["material"];		# "timber"
 			materials := WhateverYouNeed["materials"];		# table of materials
 		
 			if material = "timber" then
@@ -1336,13 +1324,13 @@ XMLWrite := proc(exportItems::set, WhateverYouNeed::table)
 
 			if numelems(GetChildByName(xmltree, "materials")) > 0 then
 				xmlmaterials := GetChildByName(xmltree, "materials")[1];								# GetChildByName returns list, need to go into list
-				if ContentModelCount(xmlmaterials) > 0 then											# det finnes allerede noen materialer som er definert i listen
-					if numelems(GetChildByName(xmlmaterials, material)) = 0 then						# materialet er ikke definert enn�, legg til material p� slutten av listen
+				if ContentModelCount(xmlmaterials) > 0 then											
+					if numelems(GetChildByName(xmlmaterials, material)) = 0 then						# material not defined yet, add to end of list
 						xmlmaterials := AddChild(xmlmaterials, xmlMaterial, ContentModelCount(xmlmaterials));
 					else
 						for ind from 1 to ContentModelCount(xmlmaterials) do
 							if ElementName(GetChild(xmlmaterials, ind)) = material then
-								xmlmaterials := ReplaceChild(ind = xmlMaterial, xmlmaterials);			# erstatt eksisterende definisjon av timber med ny
+								xmlmaterials := ReplaceChild(ind = xmlMaterial, xmlmaterials);			# replace existing definition of timber
 							end if;
 						end do;
 					end if;
@@ -1351,7 +1339,7 @@ XMLWrite := proc(exportItems::set, WhateverYouNeed::table)
 				end if;
 				xmltree := ReplaceChild(writeposition = xmlmaterials, xmltree);							# deretter m� ogs� xmlmaterials erstattes/oppdateres i xmltree, material i 1. posisjon
 				
-			else # materials definisjon mangler ogs�
+			else # missing materials definition as well
 				xmlmaterials := XMLElement("materials");
 				xmlmaterials := AddChild(xmlmaterials, xmlMaterial, 0);
 				xmltree := AddChild(xmltree, xmlmaterials, min(n, writeposition-1));
@@ -1365,28 +1353,27 @@ XMLWrite := proc(exportItems::set, WhateverYouNeed::table)
 			if numelems(GetChildByName(xmltree, "materials")) > 0 then
 				writeposition := writeposition + 1
 			end if;
-			
-			# section := WhateverYouNeed["section"];
-			section := WhateverYouNeed["material"];
+						
+			material := WhateverYouNeed["material"];		# section material
 			sections := WhateverYouNeed["sections"];
 			
-			if section = "steel" then
+			if material = "steel" then
 				xmlSection := XMLSectionSteel(sections)
-			elif section = "timber" then
+			elif material = "timber" then
 				xmlSection := XMLSectionTimber(sections)
 			else
-				Alert("Error in XMLWrite: section material invalid", WhateverYouNeed["warnings"], 4);
+				Alert(cat("Error in XMLWrite: section material ", material, " not defined"), WhateverYouNeed["warnings"], 4);
 			end if;
 
 			if numelems(GetChildByName(xmltree, "sections")) > 0 then
 				xmlsections := GetChildByName(xmltree, "sections")[1];								# GetChildByName returns list, need to go into list
-				if ContentModelCount(xmlsections) > 0 then										# det finnes allerede noen tverrsnitt som er definert i listen
-					if numelems(GetChildByName(xmlsections, section)) = 0 then						# tverrsnitt ikke definert enn�, legg til p� slutten av listen
+				if ContentModelCount(xmlsections) > 0 then											
+					if numelems(GetChildByName(xmlsections, material)) = 0 then						# section not defined yet, add to end of list
 						xmlsections := AddChild(xmlsections, xmlSection, ContentModelCount(xmlsections));
 					else
 						for ind from 1 to ContentModelCount(xmlsections) do
-							if ElementName(GetChild(xmlsections, ind)) = section then
-								xmlsections := ReplaceChild(ind = xmlSection, xmlsections);			# erstatt eksisterende definisjon av tverrsnitt med ny
+							if ElementName(GetChild(xmlsections, ind)) = material then
+								xmlsections := ReplaceChild(ind = xmlSection, xmlsections);			# replace exisiting timber definition
 							end if;
 						end do;
 					end if;
@@ -1395,7 +1382,7 @@ XMLWrite := proc(exportItems::set, WhateverYouNeed::table)
 				end if;
 				xmltree := ReplaceChild(writeposition = xmlsections, xmltree);						# deretter m� ogs� xmlsections erstattes/oppdateres i xmltree, tverrsnitt vanligvis i 2. posisjon
 				
-			else # tverrsnitt definisjon mangler ogs�
+			else # section definition is missing
 				xmlsections := XMLElement("sections");
 				xmlsections := AddChild(xmlsections, xmlSection, 0);
 				xmltree := AddChild(xmltree, xmlsections,  min(n, writeposition-1));					# legges p� slutten, kan v�re i 1. eller 2. posisjon, litt avhengig om det er definert section i filen allerede
