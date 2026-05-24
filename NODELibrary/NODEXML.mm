@@ -1144,7 +1144,7 @@ XMLSectionSteel := proc(sections::table)
 	
 	for ind in indices(sections, 'nolist', 'indexorder') do
 		section := sections[ind];
-		xmlitem := XMLElement("section", ["name" = section["name"], "sectiontype" = section["sectiontype"], "section" = section["section"], "code" = section["standard"]]);
+		xmlitem := XMLElement("section", ["name" = section["name"], "sectiontype" = section["sectiontype"], "section" = section["section"], "code" = section["code"]]);
 		sectionvalues := [indices(section)[1..,1]];									# liste over hvilke parameter som er definert i profilen
 
 		xmlvalue := XMLElement("geometry");

@@ -16,22 +16,19 @@
 
 	
 GetMaterialdata := proc(material::string, WhateverYouNeed::table)		
-	uses NODESteelMaterial, DocumentTools;
+	uses NODESteelMaterial, DocumentTools, NODEFunctions;
 	description "Get materialvalues for predefined material";
-	local steelcode, steelgrade, thicknessclass;
-	local firstpos, secondpos, materialdata;
-	local f_yk, f_uk, E, G, nu, alpha_t, gamma_M0, gamma_M1, gamma_M2;
-	local f_yd, f_ud, warnings;
+	local steelcode, steelgrade, thicknessclass, firstpos, secondpos, materialdata, f_yk, f_uk, E, G, nu,
+		 alpha_t, gamma_M0, gamma_M1, gamma_M2, f_yd, f_ud, warnings, parts;
 
 	warnings := WhateverYouNeed["warnings"];
 
 	# NS-EN 10025-2 / S 355 / 0 - 40 mm
-	firstpos := searchtext(" / ", material);					# posisjon for f�rste begrensning
-	secondpos := searchtext(" / ", material, firstpos + 1 .. -1) + firstpos;	# https://www.mapleprimes.com/questions/230804-Searchtext-Result-Position?sq=230804
-
-	steelcode := substring(material, 1..firstpos-1);
-	steelgrade := substring(material, firstpos+3..secondpos-1);
-	thicknessclass := substring(material, secondpos+3..-1);
+	
+	parts := StringTools:-Split(material, "/");
+	steelcode := StringTools:-Trim(parts[1]);
+	steelgrade := StringTools:-Trim(parts[2]);
+	thicknessclass := StringTools:-Trim(parts[3]);
 
 	# characteristic material parameters
 	if thicknessclass = "0 - 40 mm" then
@@ -56,15 +53,26 @@ GetMaterialdata := proc(material::string, WhateverYouNeed::table)
 	nu := eval(NODESteelMaterial:-Property1({steelgrade, steelcode}, "nu"));
 	alpha_t := eval(NODESteelMaterial:-Property1({steelgrade, steelcode}, "alpha_t"));
 
-	gamma_M0 := 1.05;
-	gamma_M1 := 1.05;
-	gamma_M2 := 1.25;
+	if WhateverYouNeed["calculations"]["code"] = "norwegian" then
+
+		# NS-EN 1993-1-1 2005 NA.6.1(1)2B (buildings)
+		gamma_M0 := 1.05;
+		gamma_M1 := 1.05;
+		gamma_M2 := 1.25;
+
+	else
+		# NS-EN 1993-1-1 2005 6.1(1)2B (buildings)
+		gamma_M0 := 1.00;
+		gamma_M1 := 1.00;
+		gamma_M2 := 1.25;
+
+	end if;
 
 	# dimensjonerende materialverdier
 	f_yd := f_yk / gamma_M0;
 	f_ud := f_uk / gamma_M0;
 
-	# lagre materialdata
+	# store materialdata
 	materialdata := table();
 	materialdata["material"] := "steel";
 	materialdata["name"] := material;
@@ -94,19 +102,22 @@ end proc:
 
 
 GetSectiondata := proc(profilename::string, WhateverYouNeed::table)
-	uses NODESteelProfiles_CF_SHS, NODESteelProfiles_CF_RHS, NODESteelProfiles_HF_SHS, NODESteelProfiles_HF_RHS, NODESteelProfiles_I, NODESteelProfiles_H, DocumentTools;
+	uses NODEFunctions, NODESteelProfiles_CF_SHS, NODESteelProfiles_CF_RHS, NODESteelProfiles_HF_SHS, NODESteelProfiles_HF_RHS, 
+		NODESteelProfiles_I, NODESteelProfiles_H, DocumentTools;
 	description "Get steel profile data";
-	local sectioncode, sectiontype, section, sectiondata;
-	local data, metadata, sectionproperties, i, warnings;
+	local sectioncode, sectiontype, section, sectiondata, data, metadata, sectionproperties, i, warnings, parts;
 
 	warnings := WhateverYouNeed["warnings"];
 
 	# CF SHS / SHS 350 x 16
-	sectiontype := substring(profilename, 1 .. searchtext(" / ", profilename)-1);
-	section := substring(profilename, searchtext(" / ", profilename)+3 .. -1);
+	parts := StringTools:-Split(profilename, "/");
+	sectiontype := StringTools:-Trim(parts[1]);
+	section := StringTools:-Trim(parts[2]);
 
 	if sectiontype = "Rectangular" then 
+
 		SectiondataRectangular(profilename, WhateverYouNeed)
+
 	else
 
 		sectioncode := cat("NODESteelProfiles_",sectiontype,":-Property");	# NODESteelProfiles_CF SHS:-Property
@@ -126,11 +137,17 @@ GetSectiondata := proc(profilename::string, WhateverYouNeed::table)
 		sectiondata["section"] := section;		# "HE 100 A"
 		sectiondata["name"] := cat(sectiontype," / ", section);
 
-		data := sprintf("%s(%a,%a)", sectioncode, section, "standard");		# legger til standard informasjon
-		sectiondata["standard"] := eval(parse(data));
-
+		data := sprintf("%s(%a,%a)", sectioncode, section, "steelcode");		# add code information
 		metadata := sprintf("%s(%a)", sectioncode, "metadata");	# https://www.mapleprimes.com/questions/231067-Can-I-Have-An-Apostroph-In-Cat-
-		metadata := eval(parse(metadata));
+		
+
+		try
+			sectiondata["steelcode"] := eval(parse(data));
+			metadata := eval(parse(metadata));
+		catch:
+			Alert("Error when parsing sectiondata / metadata for steel profiles in GetSectiondata", warnings, 5);
+			return
+		end try;
 
 		# go through section properties
 		for i in sectionproperties do
@@ -142,8 +159,8 @@ GetSectiondata := proc(profilename::string, WhateverYouNeed::table)
 			
 			else
 				if searchtext("SHS", sectioncode) > 0 then
-					if i = "b" then					# kopierer h verdi til b for quadratiske profiler
-						data := sprintf("%s(%a,%a)", sectioncode, section, "h");		# henter tverrsnittsdata
+					if i = "b" then					# copz h to b for square shaped profiles
+						data := sprintf("%s(%a,%a)", sectioncode, section, "h");
 						sectiondata[i] := eval(parse(data));
 						# Ezzat profildata har definert verdier b�de for z og y, dvs. det er ikke n�dvendig � kopiere data over lenger
 						# elif Search("z", i) > 0 then								# kopier y verdier til z verdier for quadratiske profiler
@@ -181,26 +198,26 @@ GetSectiondata := proc(profilename::string, WhateverYouNeed::table)
 		end do;
 
 		WhateverYouNeed["sectionproperties"] := sectionproperties;
-		WhateverYouNeed["sectiondata"] := sectiondata;
-	
-		# return eval(sectiondata);
+		WhateverYouNeed["sectiondata"] := sectiondata;		
 	end if;
 end proc:
 
 
 SectiondataRectangular := proc(profilename::string, WhateverYouNeed::table)
 	description "Get section data, just rectangular sections for the moment";
-	local b, h, A, W_y, W_z, I_y, I_z, I_t, i_y, i_z;
-	local sectiontype, section, sectionproperties, sectiondata, b_, h_, i, j;
+	local b, h, A, W_y, W_z, I_y, I_z, I_t, i_y, i_z, sectiontype, section, sectionproperties, sectiondata, b_, h_, i, j, parts, warnings;
 
-# 	warnings := WhateverYouNeed["warnings"];
+ 	warnings := WhateverYouNeed["warnings"];
 
 	sectionproperties := ["h", "b", "A", "I_y", "I_z", "I_t", "W_y", "W_z", "i_y", "i_z"];
 
-	sectiontype := substring(profilename, 1 .. searchtext(" / ", profilename)-1);
-	section := substring(profilename, searchtext(" / ", profilename)+3 .. -1);	
-	b_ := parse(substring(section, 1 .. searchtext("x", section)-1));
-	h_ := parse(substring(section, searchtext("x", section)+1 .. -1));
+	parts := StringTools:-Split(profilename, "/");
+	sectiontype := StringTools:-Trim(parts[1]);
+	section := StringTools:-Trim(parts[2]);
+
+	parts := StringTools:-Split(section, "x");
+	b_ := StringTools:-Trim(parts[1]);
+	h_ := StringTools:-Trim(parts[2]);
 
 	b := b_*Unit('mm');
 	h := h_*Unit('mm');
@@ -215,8 +232,8 @@ SectiondataRectangular := proc(profilename::string, WhateverYouNeed::table)
 	I_z := evalf(h * b^3 / 12);
 	W_y := evalf(b * h^2 / 6);
 	W_z := evalf(h * b^2 / 6);
-	i_y := sqrt(I_y/A);
-	i_z := sqrt(I_z/A);
+	i_y := evalf(sqrt(combine(I_y/A, 'units')));	# check that units are simplified before sqrt
+	i_z := evalf(sqrt(combine(I_z/A, 'units')));
 
 	i := max(b, h);
 	j := min(b, h);
@@ -238,16 +255,13 @@ SectiondataRectangular := proc(profilename::string, WhateverYouNeed::table)
 
 	WhateverYouNeed["sectionproperties"] := sectionproperties;
 	WhateverYouNeed["sectiondata"] := sectiondata;
-
-	# return eval(sectiondata);
 end proc:
 
 
 SetComboBoxMaterial := proc(WhateverYouNeed::table)
-	uses DocumentTools;
+	uses DocumentTools, NODEFunctions;
 	description "Set combobox according to chosen material or section";
-	local ind, val, foundit, warnings;
-	local steelcode, steelgrade, thicknessclass, sectiontype, section;
+	local ind, val, foundit, warnings, steelcode, steelgrade, thicknessclass, sectiontype, section;
 
 	# define local variables
 	warnings := WhateverYouNeed["warnings"];
@@ -283,10 +297,10 @@ SetComboBoxMaterial := proc(WhateverYouNeed::table)
 		if ComponentExists("ComboBox_steelgrade") then
 			if steelgrade <> GetProperty("ComboBox_steelgrade", value) then
 				foundit := false;
-				for ind, val in GetProperty("ComboBox_steelgrade", itemlist) do
+				for ind, val in GetProperty("ComboBox_steelgrade", 'itemlist') do
 					if val = steelgrade then
 						foundit := true;
-						SetProperty("ComboBox_steelgrade", selectedindex, ind-1)
+						SetProperty("ComboBox_steelgrade", 'selectedindex', ind-1)
 					end if;
 				end do;
 				if not foundit then
@@ -299,10 +313,10 @@ SetComboBoxMaterial := proc(WhateverYouNeed::table)
 		if ComponentExists("ComboBox_thicknessclass") then
 			if thicknessclass <> GetProperty("ComboBox_thicknessclass", value) then
 				foundit := false;
-				for ind, val in GetProperty("ComboBox_thicknessclass", itemlist) do
+				for ind, val in GetProperty("ComboBox_thicknessclass", 'itemlist') do
 					if val = thicknessclass then
 						foundit := true;
-						SetProperty("ComboBox_thicknessclass", selectedindex, ind-1)
+						SetProperty("ComboBox_thicknessclass", 'selectedindex', ind-1)
 					end if;
 				end do;
 				if not foundit then
@@ -321,13 +335,13 @@ SetComboBoxMaterial := proc(WhateverYouNeed::table)
 			if sectiontype <> GetProperty("ComboBox_sectiontype", value) then
 				foundit := false;
 				if sectiontype = "" then
-					SetProperty("ComboBox_sectiontype", selectedindex, 0);
+					SetProperty("ComboBox_sectiontype", 'selectedindex', 0);
 					sectiontype := GetProperty("ComboBox_sectiontype", value)
 				else
-					for ind, val in GetProperty("ComboBox_sectiontype", itemlist) do
+					for ind, val in GetProperty("ComboBox_sectiontype", 'itemlist') do
 						if val = sectiontype then
 							foundit := true;
-							SetProperty("ComboBox_sectiontype", selectedindex, ind-1);
+							SetProperty("ComboBox_sectiontype", 'selectedindex', ind-1);
 						end if;
 					end do;
 					if not foundit then
@@ -342,10 +356,10 @@ SetComboBoxMaterial := proc(WhateverYouNeed::table)
 		if ComponentExists("ComboBox_section") then
 			if section <> GetProperty("ComboBox_section", value) then
 				foundit := false;
-				for ind, val in GetProperty("ComboBox_section", itemlist) do
+				for ind, val in GetProperty("ComboBox_section", 'itemlist') do
 					if val = section then
 						foundit := true;
-						SetProperty("ComboBox_section", selectedindex, ind-1)
+						SetProperty("ComboBox_section", 'selectedindex', ind-1)
 					end if;
 				end do;
 				if not foundit then
@@ -369,6 +383,6 @@ SetComboBoxSection := proc(sectiontype::string)
 	sections := sprintf("%s(%a)", sectioncode, "allmembers");	# https://www.mapleprimes.com/questions/231067-Can-I-Have-An-Apostroph-In-Cat-
 	sections := eval(parse(sections));
 
-	SetProperty("ComboBox_section", itemlist, sections);
-	SetProperty("ComboBox_section", selectedIndex, 0);
+	SetProperty("ComboBox_section", 'itemlist', sections);
+	SetProperty("ComboBox_section", 'selectedindex', 0);
 end proc:

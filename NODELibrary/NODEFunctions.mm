@@ -405,11 +405,14 @@ end proc:
 ComponentExists := proc(EC::{name,string})
 	description "Check if Maple component exists";
 	try
-		# DocumentTools:-GetProperty(EC, ':-visible');
-		GetProperty(EC, ':-visible');
+		DocumentTools:-GetProperty(EC, ':-visible');
+		# GetProperty(EC, ':-visible');
 		true;
 	catch "Attempted to retrieve property of unknown component":
 		false;
+	catch:
+		Alert("Unknown error in ComponentExists", table(), 5);
+		DEBUG();	
 	end try;
 end proc:
 
@@ -854,6 +857,7 @@ LibInitCommon := proc(WhateverYouNeed, calculationtype)
 	calculations["loadvariables"] := loadvariables;
 	calculations["suppress_gui"] := false;
 	calculations["calculatingAllLoadcases"] := false;
+	calculations["code"] := "norwegian";
 
 	results["eta"] := eta;		
 	results["usedcode"] := usedcode;
