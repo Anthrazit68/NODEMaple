@@ -1,4 +1,4 @@
-# NODESteelEN1993.mm : EN 1993 (steel) general procedures
+# NODESteelProfiles_CF_RHS.mm: cold formed rectangular hollow sections
 # Copyright (C) 2024  Andreas Zieritz
 
 # This program is free software: you can redistribute it and/or modify
@@ -15,9 +15,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 NODESteelProfiles_CF_RHS:= module()
-	
-	description "CF RHS profiler";
-   option package;
+	uses NODEFunctions;
+	description "CF RHS profiles";
+    option package;
 	export Property: 
 	
    local metadata, dataTable, parNames, memberNames, parPos;
@@ -25,8 +25,7 @@ NODESteelProfiles_CF_RHS:= module()
 $include "Steel/Data_CF_RHS.mm"
 
    parNames:=convert(metadata[1..,2], list):
-   memberNames := [indices(dataTable, 'indexorder', 'nolist')]:
-   # memberNames := sort([indices(dataTable, 'nolist')]):
+   memberNames := sort([indices(dataTable, 'nolist')], SortProfilename);
 
    Property := proc(requiredMember::string, requiredPar::string)
     uses ListTools;

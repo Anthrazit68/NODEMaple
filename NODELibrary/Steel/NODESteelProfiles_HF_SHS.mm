@@ -1,4 +1,4 @@
-# NODESteelEN1993.mm : EN 1993 (steel) general procedures
+# NODESteelProfiles_HF_SHS.mm: hot formed square hollow sections
 # Copyright (C) 2024  Andreas Zieritz
 
 # This program is free software: you can redistribute it and/or modify
@@ -15,49 +15,49 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 NODESteelProfiles_HF_SHS:= module()
-	
-	description "HF SHS profiler";
+	uses NODEFunctions;
+	description "HF SHS profiles";
+    option package;
 	export Property: 
-	option package;  
+	
+   local metadata, dataTable, parNames, memberNames, parPos;
+	
+$include "Steel/Data_HF_SHS.mm"
 
-	global metadata, data, dataTable;
-	local parNames, memberNames, NODEMetadata, NODEData, NODETable;
+   parNames:=convert(metadata[1..,2], list):
+   memberNames := sort([indices(dataTable, 'nolist')], SortProfilename);
 
-   NODEMetadata := metadata:
-   NODEData := data:
-   NODETable := eval(dataTable,1):
+   Property := proc(requiredMember::string, requiredPar::string)
+    uses ListTools;
 
-   parNames:=convert(metadata[1..,2],list):
-   memberNames := convert(NODEData[1..,1],list):	
+    if _npassed = 2 then         
+        
+        # Sjekk direkte om profilen og parameteren faktisk eksisterer
+        if assigned(dataTable[requiredMember]) then
+            if assigned(dataTable[requiredMember][requiredPar]) then
+                return dataTable[requiredMember][requiredPar];
+            else
+                error("Parameter not found: %1", requiredPar);
+            end if;
+        else
+            error("Member not found: %1", requiredMember);
+        end if;
 
-   Property:=proc(requiredMember::string,requiredPar::string)
+    elif _npassed = 3 and _passed[3] = "metadata" then
+        local parPos := ListTools:-Search(requiredPar, parNames);
+        if parPos > 0 then
+            return metadata[parPos, 4]; 
+        else
+            error("Parameter not found in metadata");
+        end if;
 
-      local parPos, memberPos:
+    elif _npassed = 1 and _passed[1] = "allmembers" then
+        return memberNames;
 
-      if _npassed = 2 then      
-         if requiredMember in memberNames and requiredPar in parNames then
-           NODETable[requiredMember][requiredPar]:
-         else
-            if not requiredMember in memberNames and not requiredPar in parNames then
-               error("Member and parameter not found"):
-            elif not requiredMember in memberNames then
-               error("Member not found"):
-            elif not requiredPar in parNames then
-               error("Parameter not found"):
-            end if:
-         end if:
-
-      elif _npassed = 3 and _passed[3] = "metadata" then
-         parPos:=ListTools:-Search(requiredPar, parNames):
-         return NODEMetadata[parPos+1,5]:
-
-      elif _npassed = 1 and _passed[1] = "allmembers" then
-         return memberNames:
-
-	elif _npassed = 1 and _passed[1] = "metadata" then
-         return parNames:
-
-      end if:
+    elif _npassed = 1 and _passed[1] = "metadata" then
+        return parNames;      
+    end if;
 
    end proc:
+
 end module:

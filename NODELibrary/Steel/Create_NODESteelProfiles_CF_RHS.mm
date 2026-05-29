@@ -1,14 +1,22 @@
-# Create_NODESteelMaterial
-# Based on Creating the AISC Shapes Database Package, Samir Khan (skhan@maplesoft.com) , September 2019. 
-# v 0.2
-# Andreas Zieritz
+# NODEFunctions.mm : general functions or extensions of existing Maple functions
+# Copyright (C) 2024  Andreas Zieritz
 
-# Program reads materialdatabase and writes to Maple library
-# Importing and Parsing Data
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 proc()
    local data, metadata, dataTable, i, j, file, ofilename;
-   data:=convert(ExcelTools:-Import("Data/Steelprofiles.xlsx","CF RHS (Ezzat)","A4:BF147"), Matrix):
+   data:=convert(ExcelTools:-Import("Data/Steelprofiles.xlsx","CF RHS (Ezzat)","A4:BF"), Matrix):
    data:=subs("&ndash;" = NULL,data):
 
    # This is the metadata from the spreadsheet
@@ -89,25 +97,24 @@ proc()
    # i...number of rows with values
    # j...number of columns with values
 
-   #  indexing data 2x, once for the older and more common way with "HEA 100", the other for the newer but not so common way "HE 100 A"
-
    dataTable:=table():
 
-   # Merk j = 3..58 (vi hopper over tekstkolonnene 1 og 2 ved enhets-ganging)
    for i from 1 to numelems(data[..,1]) do
-      dataTable[data[i,1]] := table([
-         "steelcode" = data[i,2],
-         seq(metadata[j,2] = `if`(data[i,j]<>NULL, data[i,j]*Unit(metadata[j,3]), NULL), j = 3..58)
-      ]);
+      if data[i,1] <> NULL and data[i,1] <> "" then   # we don't want empty rows at end of worksheet
+         dataTable[data[i,1]] := table([
+            "steelcode" = data[i,2],
+            seq(metadata[j,2] = `if`(data[i,j]<>NULL, data[i,j]*Unit(metadata[j,3]), NULL), j = 3..58)
+            ]);
+      end if;
    end do:
 
-   # NÅ SKRIVER VI DETTE UT TIL EN REN TEKSTFIL:
-    ofilename := "Steel/Data_CF_RHS.mm";
-    file := FileTools[Text][Open](ofilename, create=true, overwrite=true);
+   # write out to textfile
+   ofilename := "Steel/Data_CF_RHS.mm";
+   file := FileTools[Text][Open](ofilename, create=true, overwrite=true);
 
-   # %a i sprintf dumper hele tabellen/matrisen som rå, gyldig Maple-kode!
+   # %a i sprintf dumps table/matrix into raw, valid Maple-code
    FileTools[Text][WriteString](file, sprintf("metadata := %a:\n", eval(metadata)));
    FileTools[Text][WriteString](file, sprintf("dataTable := %a:\n", eval(dataTable)));
    FileTools[Text][Close](file);
 
-end proc(): # () gjør at den kjører umiddelbart ved $include
+end proc(): # () makes it run immediately at $include

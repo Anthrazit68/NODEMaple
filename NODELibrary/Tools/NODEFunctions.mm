@@ -1,4 +1,4 @@
-# NODEFunctions.mm : general functions or extensions of existing Maple functions
+# NODEFunctions.mm: general functions or extensions of existing Maple functions
 # Copyright (C) 2024  Andreas Zieritz
 
 # This program is free software: you can redistribute it and/or modify
@@ -21,7 +21,7 @@ NODEFunctions := module()
 	
 	export Alert, CalculateAllLoadcases, ComponentExists, ConvertUnitfree, disableTextAreaEtaMax, ExcelFileInOut, HighlightResults, isNumericVariable, isNumericValue, LibInitCommon, MASTERALARM, MaterialChanged, maxIndexTable,
 			  ModifyComboVariables, ModifyLoadcases, PrintAlert, ProcessLoadcasesFromFile, ReadComponentsCommon, ResetComponent, ResetWarnings, Restoresettings, round2, SectionChanged, SetComboBoxValues, Storesettings,
-			  SetVisibilityTextAreaLoads, StoredsettingsToComponents, SyncSliderWithTextArea, WriteLoadsToDocument, Segment2Arrow, Write_eta, Write_eta2, WriteValueToComponent;
+			  SetVisibilityTextAreaLoads, SortProfilename, StoredsettingsToComponents, SyncSliderWithTextArea, WriteLoadsToDocument, Segment2Arrow, Write_eta, Write_eta2, WriteValueToComponent;
 
 	local rnd2, updateResults, CalculateLoads, UnpackTable;
 
@@ -1938,6 +1938,30 @@ NODEFunctions := module()
 			end if
 		end if;	
 		return activated
+	end proc:
+
+
+	SortProfilename := proc(a::string, b::string)::boolean;
+		description "Sorts (rectangular) profile names after profile size";
+		local tA, tB, i, biterA, biterB, s;
+		uses StringTools;
+				
+		# split string with space, 'x' and '.'
+		biterA := Split(RegSubs("[x.]" = " ", a));
+		biterB := Split(RegSubs("[x.]" = " ", b));
+		
+		# take parts that are clean numbers and parse them
+		tA := [seq(`if`(IsDigit(s), parse(s), NULL), s in biterA)];
+		tB := [seq(`if`(IsDigit(s), parse(s), NULL), s in biterB)];
+		
+		# sort numbers sequentially (height -> width -> thickness)
+		for i from 1 to min(numelems(tA), numelems(tB)) do
+			if tA[i] <> tB[i] then
+				return evalb(tA[i] < tB[i]); # return true/false to sort engine
+			end if;
+		end do;
+		
+		return evalb(length(a) < length(b));
 	end proc:
 
 
