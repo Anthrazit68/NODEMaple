@@ -1,16 +1,26 @@
-# Create_NODESteelMaterial
-# Based on Creating the AISC Shapes Database Package, Samir Khan (skhan@maplesoft.com) , September 2019. 
-# v 0.2
-# Andreas Zieritz
+# Create_NODESteelProfiles_HF_SHS.mm :create hot formed square hollow sections
+# Copyright (C) 2026  Andreas Zieritz
 
-# Program reads materialdatabase and writes to Maple library
-# Importing and Parsing Data
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
 
-data:=convert(ExcelTools:-Import("Data/Steelprofiles.xlsx","HF SHS (Ezzat)","A4:BE109"), Matrix):
-data:=subs("&ndash;" = NULL,data):
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 
-# This is the metadata from the spreadsheet
-# - ingen dots in variablename!
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+proc()
+   local data, metadata, dataTable, i, j, file, ofilename;
+   data:=convert(ExcelTools:-Import("Data/Steelprofiles.xlsx","HF SHS (Ezzat)","A4:BE"), Matrix):
+   data:=subs("&ndash;" = NULL,data):
+
+   # This is the metadata from the spreadsheet
+   # - ingen dots in variablename!
 
 metadata:=[ 
  [A, "section", 1, "Betegnelse iht. EN 10219-2"]
@@ -81,43 +91,28 @@ metadata:=[
 ,[BE, "buckling_curve_S460", 1, "Knekklinje, S460"]
 ]:
 
+   # Create a table data structure and read the material data into it
+   # i...number of rows with values
+   # j...number of columns with values
 
-# Create a table data structure and read the material data into it
-# i...number of rows with values
-# j...number of columns with values
+   dataTable:=table():
 
-#  indexing data 2x, once for the older and more common way with "HEA 100", the other for the newer but not so common way "HE 100 A"
+   for i from 1 to numelems(data[..,1]) do
+      if data[i,1] <> NULL and data[i,1] <> "" then   # we don't want empty rows at end of worksheet
+         dataTable[data[i,1]] := table([
+            "steelcode" = data[i,2],
+            seq(metadata[j,2] = `if`(data[i,j]<>NULL, data[i,j]*Unit(metadata[j,3]), NULL), j = 3..57)
+            ]);
+      end if;
+   end do:
 
-dataTable:=table():
-temp:=seq(
-dataTable[data[i,1]] = 
+   # write out to textfile
+   ofilename := "Steel/Data_HF_SHS.mm";
+   file := FileTools[Text][Open](ofilename, create=true, overwrite=true);
 
-table([ 
-   seq(metadata[j,2] = 
-      `if`(data[i,j]<>NULL, data[i,j]*Unit(metadata[j,3]), NULL) 
-   ,j = 1..57)
- ])
-,i=1..106):
+   # %a i sprintf dumps table/matrix into raw, valid Maple-code
+   FileTools[Text][WriteString](file, sprintf("metadata := %a:\n", eval(metadata)));
+   FileTools[Text][WriteString](file, sprintf("dataTable := %a:\n", eval(dataTable)));
+   FileTools[Text][Close](file);
 
-assign(temp):
-
-temp:=seq(
-dataTable[data[i,2]] = 
-
-table([ 
-
-   seq(metadata[j,2] = 
-
-      `if`(data[i,j]<>NULL, data[i,j]*Unit(metadata[j,3]), NULL) 
-
-   ,j = 1..57)
-
- ])
-
-,i=1..106):
-
-assign(temp):
-
-convert(data[1,1..],list):
-convert(metadata[1..,2],list):
-convert(data[1..,1],list):
+end proc(): # () makes it run immediately at $include

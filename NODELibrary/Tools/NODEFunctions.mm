@@ -1942,26 +1942,34 @@ NODEFunctions := module()
 
 
 	SortProfilename := proc(a::string, b::string)::boolean;
-		description "Sorts (rectangular) profile names after profile size";
-		local tA, tB, i, biterA, biterB, s;
+		local tA, tB, biterA, biterB, s, i, prefiksA, prefiksB;
 		uses StringTools;
-				
-		# split string with space, 'x' and '.'
+		
+		# 1. Trekk ut tekst-prefiks (f.eks. "HEA", "HE", "RHS") for å sortere etter profilfamilie først
+		prefiksA := Select(IsAlpha, Split(a)[1]);
+		prefiksB := Select(IsAlpha, Split(b)[1]);
+		
+		if prefiksA <> prefiksB then
+			return evalb(prefiksA < prefiksB);
+		end if;
+
+		# 2. Splitt resten av strengene ved mellomrom, 'x' og '.' for numerisk sjekk
 		biterA := Split(RegSubs("[x.]" = " ", a));
 		biterB := Split(RegSubs("[x.]" = " ", b));
 		
-		# take parts that are clean numbers and parse them
+		# Isoler kun de bitene som faktisk er rene tall og gjør dem til tallverdier
 		tA := [seq(`if`(IsDigit(s), parse(s), NULL), s in biterA)];
 		tB := [seq(`if`(IsDigit(s), parse(s), NULL), s in biterB)];
 		
-		# sort numbers sequentially (height -> width -> thickness)
+		# Sammenlign tallene sekvensielt (Hoveddimensjoner)
 		for i from 1 to min(numelems(tA), numelems(tB)) do
 			if tA[i] <> tB[i] then
-				return evalb(tA[i] < tB[i]); # return true/false to sort engine
+				return evalb(tA[i] < tB[i]);
 			end if;
 		end do;
 		
-		return evalb(length(a) < length(b));
+		# 3. Fallback: Hvis alt annet er likt, sorter leksikografisk på hele strengen (fanger opp f.eks. 'A' vs 'B' vs 'M')
+		return evalb(a < b);
 	end proc:
 
 

@@ -1,5 +1,5 @@
-# NODEFunctions.mm : general functions or extensions of existing Maple functions
-# Copyright (C) 2024  Andreas Zieritz
+# Create_NODESteelProfiles_CF_RHS.mm :create cold formed rectangular hollow sections
+# Copyright (C) 2026  Andreas Zieritz
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

@@ -22,10 +22,11 @@ NODESteelProfiles_H:= module()
 	
     local metadata, dataTable, parNames, memberNames, parPos;
 	
-$include "Steel/H.mm"
+$include "Steel/Data_H.mm"
 
     parNames:=convert(metadata[1..,2], list):
     memberNames := sort([indices(dataTable, 'nolist')], SortProfilename);
+    # memberNames := [indices(dataTable, 'indexorder', 'nolist')];
 
     Property := proc(requiredMember::string, requiredPar::string)
     uses ListTools;
