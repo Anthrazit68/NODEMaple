@@ -25,7 +25,7 @@ NODESteelProfiles_HF_RHS:= module()
 $include "Steel/Data_HF_RHS.mm"
 
    parNames:=convert(metadata[1..,2], list):
-   memberNames := sort([indices(dataTable, 'nolist')], SortProfilename);
+   memberNames := sort([indices(dataTable, 'nolist')], SortStructuralnames);
 
    Property := proc(requiredMember::string, requiredPar::string)
     uses ListTools;

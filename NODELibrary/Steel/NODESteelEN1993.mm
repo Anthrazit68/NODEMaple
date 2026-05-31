@@ -33,7 +33,7 @@ NODESteelEN1993 := module()
 
 		# NS-EN 10025-2 / S 355 / 0 - 40 mm
 		
-		parts := StringTools:-Split(material, "/");
+		parts := StringTools:-RegSplit(" +/ +", material);		# some materialnames have the "/" as part of their name
 		steelcode := StringTools:-Trim(parts[1]);
 		steelgrade := StringTools:-Trim(parts[2]);
 		thicknessclass := StringTools:-Trim(parts[3]);
@@ -51,7 +51,7 @@ NODESteelEN1993 := module()
 			f_yk := eval(NODESteelMaterial:-Property1({steelgrade, steelcode}, "f_y_40_80"));
 			f_uk := eval(NODESteelMaterial:-Property1({steelgrade, steelcode}, "f_u_40_80"));
 		else 
-			Alert("Invalid steel thickness", warnings, 5);
+			Alert(cat("Invalid steel thickness: ", thicknessclass, " material: ", material), warnings, 5);
 			f_yk := 0;
 			f_uk := 0;
 		end if;

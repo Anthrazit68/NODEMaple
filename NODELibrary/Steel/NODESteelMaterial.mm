@@ -1,5 +1,5 @@
-# NODESteelEN1993.mm : EN 1993 (steel) general procedures
-# Copyright (C) 2024  Andreas Zieritz
+# NODESteelMaterial.mm: steel material data
+# Copyright (C) 2026  Andreas Zieritz
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,62 +14,73 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+# NODESteelMaterial.mm
 NODESteelMaterial := module()
-	export Property, Property1, steelcodes, steelgrades: 
-	option package;  
+    description "Material properties for steel according to EN 10025";
+    uses NODEFunctions;
+    option package;  
+    export Property, Property1, steelcodes, steelgrades; 
+    
+    # Fully encapsulated on module level - zero global variables!
+    local metadata, dataTable, dataTable1, standarder, steeltypeTocode, parNames, memberNames;
 
-	global standarder, steeltypeTocode, metadata, data, dataTable, dataTable1;
-	local parNames, memberNames, NODEMetadata, NODEData, NODETable, NODETable1;
-	
-	steelcodes := standarder; 			# liste over st�l-materialstandarder
-	steelgrades := eval(steeltypeTocode);	# st�ltyper som er definert i hver av standardene, HUSK eval!!
+    # Include the pre-generated dataset compiled by the generator
+$include "Steel/Data_SteelMaterial.mm"
 
-	NODEMetadata := metadata:
-	NODEData := data:
-	NODETable := eval(dataTable,1):
-	NODETable1 := eval(dataTable1,1):
+    # Export lists directly to the GUI / ComboBox components
+    steelcodes := standarder; 			
+    steelgrades := eval(steeltypeTocode);	
 
-	parNames:=convert(metadata[2..,2],list):
-	memberNames:=convert(NODEData[2..,1],list):
+    parNames := convert(metadata[2..,2], list):
+    
+    # memberNames extracts ALL unique steel grades across all tables and sorts them cleanly
+    memberNames := sort([indices(dataTable, 'nolist')], SortStructuralnames);
 
-	# Property:=proc(requiredMember::string,requiredPar::string)
-	# https://www.mapleprimes.com/questions/229521-This-Is-Not-A-List#answer268450
-	
-	Property:=proc(requiredMember::string,requiredPar::string)
-		
-		local parPos, memberPos:
+    # Standard lookup using only the steel grade string (e.g., Property("S 235 W", "E"))
+    Property := proc(requiredMember::string, requiredPar::string)
+        uses ListTools;
 
-		if _npassed = 2 then
-         		if requiredMember in memberNames and requiredPar in parNames then
-          		NODETable[requiredMember][requiredPar]:
-         		else
-          		if not requiredMember in memberNames and not requiredPar in parNames then
-              			error("Member and parameter not found"):
-            		elif not requiredMember in memberNames then
-               		error("Member not found"):
-            		elif not requiredPar in parNames then
-               		error("Parameter not found"):
-            		end if:
-         		end if:
+        if _npassed = 2 then
+            if assigned(dataTable[requiredMember]) then
+                if assigned(dataTable[requiredMember][requiredPar]) then
+                    return dataTable[requiredMember][requiredPar];
+                else
+                    error("Parameter not found: %1", requiredPar);
+                end if;
+            else
+                error("Material/Steelgrade not found: %1", requiredMember);
+            end if;
 
-      	elif _npassed = 3 and _passed[3] = "metadata" then
-         		parPos:=ListTools:-Search(requiredPar, parNames):
-         		return NODEMetadata[parPos+1,5]:
+        elif _npassed = 3 and _passed[3] = "metadata" then
+            local parPos := ListTools:-Search(requiredPar, parNames);
+            if parPos > 0 then
+                return metadata[parPos+1, 5];
+            else
+                error("Parameter not found in metadata");
+            end if;
 
-      	elif _npassed = 1 and _passed[1] = "allmembers" then
-         		return memberNames:
+        elif _npassed = 1 and _passed[1] = "allmembers" then
+            return memberNames;
 
-         	elif _npassed = 1 and _passed[1] = "metadata" then
-	         return parNames:
+        elif _npassed = 1 and _passed[1] = "metadata" then
+            return parNames;
+        end if;
+    end proc:
 
-      	end if:
+    # Bulletproof lookup using a set to handle identical names in different codes
+    # e.g., Property1({"S 355", "NS-EN 10025-2"}, "f_y_0_40")
+    Property1 := proc(requiredMember::set, requiredPar::string)
+        
+        if assigned(dataTable1[requiredMember]) then
+            if assigned(dataTable1[requiredMember][requiredPar]) then
+                return dataTable1[requiredMember][requiredPar];
+            else
+                error("Parameter not found for this material set: %1", requiredPar);
+            end if;
+        else
+            error("Material set not found: %1", requiredMember);
+        end if;
 
-	end proc:
-
-	Property1:=proc(requiredMember::set,requiredPar::string)
-		
-		NODETable1[requiredMember][requiredPar]
-
-	end proc:
+    end proc:
 
 end module:

@@ -21,7 +21,7 @@ NODEFunctions := module()
 	
 	export Alert, CalculateAllLoadcases, ComponentExists, ConvertUnitfree, disableTextAreaEtaMax, ExcelFileInOut, HighlightResults, isNumericVariable, isNumericValue, LibInitCommon, MASTERALARM, MaterialChanged, maxIndexTable,
 			  ModifyComboVariables, ModifyLoadcases, PrintAlert, ProcessLoadcasesFromFile, ReadComponentsCommon, ResetComponent, ResetWarnings, Restoresettings, round2, SectionChanged, SetComboBoxValues, Storesettings,
-			  SetVisibilityTextAreaLoads, SortProfilename, StoredsettingsToComponents, SyncSliderWithTextArea, WriteLoadsToDocument, Segment2Arrow, Write_eta, Write_eta2, WriteValueToComponent;
+			  SetVisibilityTextAreaLoads, SortStructuralnames, StoredsettingsToComponents, SyncSliderWithTextArea, WriteLoadsToDocument, Segment2Arrow, Write_eta, Write_eta2, WriteValueToComponent;
 
 	local rnd2, updateResults, CalculateLoads, UnpackTable;
 
@@ -1941,34 +1941,43 @@ NODEFunctions := module()
 	end proc:
 
 
-	SortProfilename := proc(a::string, b::string)::boolean;
-		local tA, tB, biterA, biterB, s, i, prefiksA, prefiksB;
+	SortStructuralnames := proc(a::string, b::string)::boolean;
+		local valA, valB, tokensA, tokensB, token, i, prefixA, prefixB;
 		uses StringTools;
 		
-		# 1. Trekk ut tekst-prefiks (f.eks. "HEA", "HE", "RHS") for å sortere etter profilfamilie først
-		prefiksA := Select(IsAlpha, Split(a)[1]);
-		prefiksB := Select(IsAlpha, Split(b)[1]);
+		# 1. Split strings by spaces, 'x', and '.' to isolate components
+		tokensA := Split(RegSubs("[x.]" = " ", a));
+		tokensB := Split(RegSubs("[x.]" = " ", b));
 		
-		if prefiksA <> prefiksB then
-			return evalb(prefiksA < prefiksB);
+		# 2. Isolate parts that are pure digits and parse them into integers (e.g., "235", "355")
+		valA := [seq(`if`(IsDigit(token), parse(token), NULL), token in tokensA)];
+		valB := [seq(`if`(IsDigit(token), parse(token), NULL), token in tokensB)];
+		
+		# 3. Primary sorting for materials: If strings contain numbers, sort by the first number first!
+		# (This places e.g., 'S 275 NH' before 'S 355 H' because 275 < 355)
+		if numelems(valA) > 0 and numelems(valB) > 0 then
+			if valA[1] <> valB[1] then
+				return evalb(valA[1] < valB[1]);
+			end if;
 		end if;
 
-		# 2. Splitt resten av strengene ved mellomrom, 'x' og '.' for numerisk sjekk
-		biterA := Split(RegSubs("[x.]" = " ", a));
-		biterB := Split(RegSubs("[x.]" = " ", b));
+		# 4. Secondary sorting for profiles: Isolate alphabetical prefixes (e.g., "HEA" vs "HEB" vs "RHS")
+		# Character-by-character check on the first token to extract letters cleanly
+		prefixA := cat(seq(`if`(IsAlpha(token), token, NULL), token in Split(tokensA[1], "")));
+		prefixB := cat(seq(`if`(IsAlpha(token), token, NULL), token in Split(tokensB[1], "")));
 		
-		# Isoler kun de bitene som faktisk er rene tall og gjør dem til tallverdier
-		tA := [seq(`if`(IsDigit(s), parse(s), NULL), s in biterA)];
-		tB := [seq(`if`(IsDigit(s), parse(s), NULL), s in biterB)];
+		if prefixA <> prefixB then
+			return evalb(prefixA < prefixB);
+		end if;
 		
-		# Sammenlign tallene sekvensielt (Hoveddimensjoner)
-		for i from 1 to min(numelems(tA), numelems(tB)) do
-			if tA[i] <> tB[i] then
-				return evalb(tA[i] < tB[i]);
+		# 5. Compare any remaining dimensions (e.g., width and thickness for RHS profiles)
+		for i from 2 to min(numelems(valA), numelems(valB)) do
+			if valA[i] <> valB[i] then
+				return evalb(valA[i] < valB[i]);
 			end if;
 		end do;
 		
-		# 3. Fallback: Hvis alt annet er likt, sorter leksikografisk på hele strengen (fanger opp f.eks. 'A' vs 'B' vs 'M')
+		# 6. Fallback: Lexicographical comparison on full strings if everything else matches (e.g., 'H' vs 'NH')
 		return evalb(a < b);
 	end proc:
 

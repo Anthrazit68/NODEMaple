@@ -25,7 +25,7 @@ NODESteelProfiles_H:= module()
 $include "Steel/Data_H.mm"
 
     parNames:=convert(metadata[1..,2], list):
-    memberNames := sort([indices(dataTable, 'nolist')], SortProfilename);
+    memberNames := sort([indices(dataTable, 'nolist')], SortStructuralnames);
     # memberNames := [indices(dataTable, 'indexorder', 'nolist')];
 
     Property := proc(requiredMember::string, requiredPar::string)

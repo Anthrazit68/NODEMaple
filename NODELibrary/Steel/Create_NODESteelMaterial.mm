@@ -1,84 +1,102 @@
-# Create_NODESteelMaterial
-# Based on Creating the AISC Shapes Database Package, Samir Khan (skhan@maplesoft.com) , September 2019. 
-# v 0.2
-# Andreas Zieritz
+# Create_NODESteelMaterial.mm :create steel material database
+# Copyright (C) 2026  Andreas Zieritz
 
-# Program reads materialdatabase and writes to Maple library
-# Importing and Parsing Data
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
 
-data:=convert(ExcelTools:-Import("Data/Materialdata.xlsx","steel","A2:J33"), Matrix):
-data:=subs("&ndash;" = NULL,data):
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 
-# This is the metadata from the spreadsheet
-# - ingen dots in variablename!
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-metadata:=[ 
- 	[A, "steeltype", 1, "Stålsort, e.g. S 235 H"]
-	,[B, "steelcode", 1, "Standard, e.g. NS-EN 10210-1"]
-	,[C, "f_y_0_40", (MPa), "flytespenning, t=0-40mm"]
-	,[D, "f_u_0_40", (MPa), "strekkfasthet, t=0-40mm"]
-	,[E, "f_y_40_80", (MPa), "flytespenning, t=40-80mm"]
-	,[F, "f_u_40_80", (MPa), "strekkfasthet, t=40-80mm"]
-	,[G, "E", (MPa), "elastisitetsmodul"]
-	,[H, "nu", 1, "Poisson tall"]
-	,[I, "G", (MPa), "skjærmodul"]
-	,[J, "alpha_t", (1/K), "temperaturutvidelseskoeffisient"]]:
+proc()
+    local rawData, metadata, dataTable, dataTable1, standardsList, steelTypeToCode, i, j, 
+          outputFile, outputFilename, currentStd, currentGrade, materialProperties;
+    uses ExcelTools, ListTools, NODEFunctions;
 
-# Create a table data structure and read the material data into it
-# i...number of rows with values
-# j...number of columns with values
+    # Dynamic import: Reads from cell A2 down to the bottom of column J
+    rawData := convert(ExcelTools:-Import("Data/Materialdata.xlsx", "steel", "A2:J"), Matrix):
+    rawData := subs("&ndash;" = NULL, rawData):
 
-# List of steelcodes
+    # Metadata describing columns, units, and descriptions
+    metadata := [ 
+         [A, "steeltype", 1, "Steel grade, e.g. S 235 H"]
+        ,[B, "steelcode", 1, "Standard, e.g. NS-EN 10210-1"]
+        ,[C, "f_y_0_40", (MPa), "yield strength, t=0-40mm"]
+        ,[D, "f_u_0_40", (MPa), "tensile strength, t=0-40mm"]
+        ,[E, "f_y_40_80", (MPa), "yield strength, t=40-80mm"]
+        ,[F, "f_u_40_80", (MPa), "tensile strength, t=40-80mm"]
+        ,[G, "E", (MPa), "modulus of elasticity"]
+        ,[H, "nu", 1, "Poisson's ratio"]
+        ,[I, "G", (MPa), "shear modulus"]
+        ,[J, "alpha_t", (1/K), "coefficient of thermal expansion"]
+    ]:
 
-standarder := {}:
+    # 1. Gather all unique standards from column 2 (e.g., "NS-EN 10025-2")
+    standardsList := [];
+    for i from 1 to numelems(rawData[..,2]) do
+        currentStd := rawData[i,2];
+        if currentStd <> NULL and currentStd <> "" and ListTools:-Search(currentStd, standardsList) = 0 then
+            standardsList := [op(standardsList), currentStd];
+        end if;
+    end do:
+    # Sort the standards list alphabetically
+    standardsList := sort(standardsList);
 
-for ind,val in data do # loop over data
-   if ind[2] = 2 then  # ind returnerer linje, rad, vi trenger bare det som står i kolonne 2
-       standarder:=standarder union {val};
-   end if
-end do;
+    # 2. Initialize the relation table (mapping each standard to an empty list of steel grades)
+    steelTypeToCode := table():
+    for currentStd in standardsList do
+        steelTypeToCode[currentStd] := [];
+    end do:
 
-steeltypeTocode := table():     # initialisering av variablen som lagrer stålsort
+    # 3. Create and populate the storage tables
+    dataTable := table():
+    dataTable1 := table():
 
-for ind,val in standarder do
-     val;
-     steeltypeTocode[val] := {}   # initialisering av indeksvariablen
-end do:
+    for i from 1 to numelems(rawData[..,1]) do
+        currentGrade := rawData[i,1];
+        currentStd := rawData[i,2];
 
-for i from 1 to upperbound(data)[1] do      # går gjennom listen og lagrer stålsortene
-     steeltypeTocode[data[i,2]] := steeltypeTocode[data[i,2]] union {data[i,1]};
-end do:
+        # Skip empty rows from the Excel sheet
+        if currentGrade <> NULL and currentGrade <> "" then
+            
+            # Map material properties. We use j = 3..10 to skip text columns 1 and 2
+            materialProperties := table([
+                seq(metadata[j,2] = `if`(rawData[i,j]<>NULL, rawData[i,j]*Unit(metadata[j,3]), NULL), j = 3..10)
+            ]);
 
-# steel defined in 2 ways
-# reason is that steel quality can be defined in 2 different codes, with slightly different material parameters
+            # CRITICAL FIX: Use eval(materialProperties) to store the actual data, 
+            # not just the variable name string!
+            dataTable[currentGrade] := eval(materialProperties);
+            dataTable1[eval({currentGrade, currentStd})] := eval(materialProperties);
 
-# Create a table data structure and read the material data into it
-# i...number of rows with values
-# j...number of columns with values
+            # Append the steel grade to the list for this standard (if not already present)
+            if ListTools:-Search(currentGrade, steelTypeToCode[currentStd]) = 0 then
+                steelTypeToCode[currentStd] := [op(steelTypeToCode[currentStd]), currentGrade];
+            end if;
+        end if;
+    end do:
 
-# https://www.mapleprimes.com/questions/229521-This-Is-Not-A-List#answer268450
+    # 4. Sort the steel grades inside each standard using NODEFunctions
+    for currentStd in standardsList do
+        steelTypeToCode[currentStd] := sort(steelTypeToCode[currentStd], NODEFunctions:-SortStructuralnames);
+    end do:
 
-dataTable:=table():
-temp:=seq(
-	dataTable[data[i,1]] = 
-		table([ 
-   		seq(metadata[j,2] = 
-     		 `if`(data[i,j]<>NULL, data[i,j]*Unit(metadata[j,3]), NULL) 
-   		,j = 1..10)
- 		])
-		,i=1..32):
+    # 5. Export all components into a single clean file: Data_SteelMaterial.mm
+    outputFilename := "Steel/Data_SteelMaterial.mm";
+    outputFile := FileTools[Text][Open](outputFilename, create=true, overwrite=true);
 
-assign(temp):
+    FileTools[Text][WriteString](outputFile, sprintf("metadata := %a:\n", eval(metadata)));
+    FileTools[Text][WriteString](outputFile, sprintf("dataTable := %a:\n", eval(dataTable)));
+    FileTools[Text][WriteString](outputFile, sprintf("dataTable1 := %a:\n", eval(dataTable1)));
+    FileTools[Text][WriteString](outputFile, sprintf("standarder := %a:\n", eval(standardsList)));
+    FileTools[Text][WriteString](outputFile, sprintf("steeltypeTocode := %a:\n", eval(steelTypeToCode)));
 
-dataTable1:=table():
-temp1:=seq(
-	dataTable1[eval({data[i,1], data[i,2]})] = 
+    FileTools[Text][Close](outputFile);
 
-		table([ 
-   		seq(metadata[j,2] = 
-     		 `if`(data[i,j]<>NULL, data[i,j]*Unit(metadata[j,3]), NULL) 
-   		,j = 1..10)
- 		])
-		,i=1..32):
-
-assign(temp1):
+end proc(): # Executed immediately upon building
