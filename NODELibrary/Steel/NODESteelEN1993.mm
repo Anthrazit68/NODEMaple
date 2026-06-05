@@ -33,12 +33,18 @@ NODESteelEN1993 := module()
 
 		# NS-EN 10025-2 / S 355 / 0 - 40 mm
 		
-		parts := StringTools:-RegSplit(" +/ +", material);		# some materialnames have the "/" as part of their name
-		steelcode := StringTools:-Trim(parts[1]);
-		steelgrade := StringTools:-Trim(parts[2]);
-		thicknessclass := StringTools:-Trim(parts[3]);
+		parts := StringTools:-StringSplit(material, " / ");		# some materialnames have the "/" as part of their name
 
-		# characteristic material parameters
+        if numelems(parts) = 3 then
+			steelcode := StringTools:-Trim(parts[1]);
+			steelgrade := StringTools:-Trim(parts[2]);
+			thicknessclass := StringTools:-Trim(parts[3]);
+		else
+            error("Invalid concrete material string format. Expected 'Strength / Exposure / Durability'. Received: %1", material);
+            return
+        end if;
+
+		# characteristic material parpartameters
 		if thicknessclass = "0 - 40 mm" then
 			# f_yk := NODESteelMaterial:-Property(steelgrade, "f_y_0_40");
 			# f_uk := NODESteelMaterial:-Property(steelgrade, "f_u_0_40");

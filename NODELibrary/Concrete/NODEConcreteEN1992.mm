@@ -49,17 +49,16 @@ NODEConcreteEN1992 := module()
 
         warnings := WhateverYouNeed["warnings"];
 		
-        # Secure splitting using RegSplit to safely handle names like "C20/25"
-        # e.g., "B35 / XC3 / M60" splits into exactly 3 clean trimmed parts
-        parts := map(StringTools:-Trim, StringTools:-RegSplit(" +/ +", material));
-        
-        if numelems(parts) < 3 then
-            error("Invalid concrete material string format. Expected 'Strength / Exposure / Durability'. Received: %1", material);
-        end if;
+		parts := StringTools:-StringSplit(material, " / ", material);		# some materialnames have the "/" as part of their name
 
-        strengthclass   := parts[1];
-        exposureclass   := parts[2];
-        durabilityclass := parts[3];
+        if numelems(parts) = 3 then
+            strengthclass := StringTools:-Trim(parts[1]);
+            exposureclass := StringTools:-Trim(parts[2]);
+            durabilityclass := StringTools:-Trim(parts[3]);
+        else
+            error("Invalid concrete material string format. Expected 'Strength / Exposure / Durability'. Received: %1", material);
+            return
+        end if;
         
         strengthclass_CEN := Property(strengthclass, "strengthclass_CEN");
 
