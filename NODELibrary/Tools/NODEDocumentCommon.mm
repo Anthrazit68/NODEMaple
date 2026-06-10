@@ -23,10 +23,10 @@ NODEDocumentCommon := module()
            StoresettingsLocal, RestoresettingsLocal;
 
     # calculationtype and startup must be global to sync seamlessly with the sheet layout
-    global calculationtype, Main, InitSpecific;
+    global calculationtype, Main, InitSpecific, WhateverYouNeed;
     
     # Fully encapsulated internal memory structures
-    local WhateverYouNeed, storesettings, calculationdata, loadvariables, loadcases, warnings, var, startupStatus;
+    local storesettings, calculationdata, loadvariables, loadcases, warnings, var, startupStatus;
 
     startupcheck := proc()::boolean;
         description "Check if code is run during startup or via execute entire code";
@@ -45,25 +45,22 @@ NODEDocumentCommon := module()
         MainCommon("reset");
     end proc:
 
-    InitCommon := proc()
-        description "Initialize vocabulary dictionary and sheet-specific variables";
+    InitCommon := proc(materialType::string, calculationtype::string)
+        description "Initialize common data structures and store the active material type";
+        uses NODEFunctions;
+
         WhateverYouNeed := table();
         
         # Initialize generic library definitions using the shared global calculationtype
         LibInitCommon(eval(WhateverYouNeed), calculationtype);
-        
-        # Call the material-specific initialization sheet-side hook if defined globally
+
+        WhateverYouNeed["material"] := materialType;
+
+        # Run specific initialization if defined in the worksheet
         if type(eval(InitSpecific), procedure) then
-            InitSpecific();
+            InitSpecific(WhateverYouNeed);
         end if;
-        
-        # Dynamically determine and store material type based on the short configuration code
-        if assigned(calculationdata) and assigned(calculationdata["calculationtype_short"]) then
-            WhateverYouNeed["material"] := calculationdata["calculationtype_short"];
-        else
-            WhateverYouNeed["material"] := "steel"; # Safe default fallback
-        end if;
-        
+
         # Mark startup as completed so it doesn't re-run configuration on every manual execution
         startupStatus := false;
     end proc:
