@@ -1944,40 +1944,32 @@ NODEFunctions := module()
 	SortStructuralnames := proc(a::string, b::string)::boolean;
 		local valA, valB, tokensA, tokensB, token, i, prefixA, prefixB;
 		uses StringTools;
-		
-		# 1. Split strings by spaces, 'x', and '.' to isolate components
+
+		# 1. Splitt strengene ved mellomrom, 'x', og '.' for å isolere komponenter
 		tokensA := Split(RegSubs("[x.]" = " ", a));
 		tokensB := Split(RegSubs("[x.]" = " ", b));
 		
-		# 2. Isolate parts that are pure digits and parse them into integers (e.g., "235", "355")
-		valA := [seq(`if`(IsDigit(token), parse(token), NULL), token in tokensA)];
-		valB := [seq(`if`(IsDigit(token), parse(token), NULL), token in tokensB)];
-		
-		# 3. Primary sorting for materials: If strings contain numbers, sort by the first number first!
-		# (This places e.g., 'S 275 NH' before 'S 355 H' because 275 < 355)
-		if numelems(valA) > 0 and numelems(valB) > 0 then
-			if valA[1] <> valB[1] then
-				return evalb(valA[1] < valB[1]);
-			end if;
-		end if;
-
-		# 4. Secondary sorting for profiles: Isolate alphabetical prefixes (e.g., "HEA" vs "HEB" vs "RHS")
-		# Character-by-character check on the first token to extract letters cleanly
+		# 2. Isoler bokstav-prefikser fra det ALLER første tokenet (f.eks. "I" vs "IPE" vs "RHS")
+		# Vi gjør dette FØRST for å samle profiltyper
 		prefixA := cat(seq(`if`(IsAlpha(token), token, NULL), token in Split(tokensA[1], "")));
 		prefixB := cat(seq(`if`(IsAlpha(token), token, NULL), token in Split(tokensB[1], "")));
 		
 		if prefixA <> prefixB then
 			return evalb(prefixA < prefixB);
 		end if;
+
+		# 3. Isoler rene tall og gjør dem om til heltall (f.eks. "80", "100", "275")
+		valA := [seq(`if`(IsDigit(token), parse(token), NULL), token in tokensA)];
+		valB := [seq(`if`(IsDigit(token), parse(token), NULL), token in tokensB)];
 		
-		# 5. Compare any remaining dimensions (e.g., width and thickness for RHS profiles)
-		for i from 2 to min(numelems(valA), numelems(valB)) do
+		# 4. Sammenlign dimensjoner/tall sekvensielt (f.eks. 80 vs 100, eller bredde/tykkelse)
+		for i from 1 to min(numelems(valA), numelems(valB)) do
 			if valA[i] <> valB[i] then
 				return evalb(valA[i] < valB[i]);
 			end if;
 		end do;
 		
-		# 6. Fallback: Lexicographical comparison on full strings if everything else matches (e.g., 'H' vs 'NH')
+		# 5. Fallback: Hvis alt over er likt (f.eks. "IPE 80" vs "IPE 80"), bruk vanlig tekstsortering
 		return evalb(a < b);
 	end proc:
 

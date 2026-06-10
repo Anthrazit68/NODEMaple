@@ -16,7 +16,7 @@
 
 proc()
    local data, metadata, dataTable, i, j, file, ofilename;
-   data:=convert(ExcelTools:-Import("Data/Steelprofiles.xlsx","IPE (Ezzat)","A4:BB"), Matrix):
+   data:=convert(ExcelTools:-Import("Data/Steelprofiles.xlsx","I_complete","A4:BB"), Matrix):
    data:=subs("&ndash;" = NULL,data):
 
    # This is the metadata from the spreadsheet
