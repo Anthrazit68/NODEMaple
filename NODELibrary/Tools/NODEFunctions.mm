@@ -775,7 +775,8 @@ NODEFunctions := module()
 		var_projectdata  := {"projectnumber", "projecttitle", "client"};		# primary input variables for project
 		var_materials := {"materials"};
 		var_sections := {"sections"};
-		var_calculations := {};
+		var_calculations := {"positionnumber", "positiontitle", "activeloadcase", "activematerial", "activesection"};
+
 		var_calculationdata := {"positionnumber", "positiontitle", "calculationtype", "calculationtype_short"};
 		var_storeitems := {"projectdata", "materials", "sections", "calculations/calculationtype", "calculations/positionnumber",
 			"calculations/positiontitle", "calculations/loadcases", "calculations/structure", "calculations/activesettings"};
@@ -1302,13 +1303,18 @@ NODEFunctions := module()
 						
 					elif material = "timber" then
 						NODETimberEN1995:-GetMaterialdata(val, WhateverYouNeed)
+
+					else
+						Alert(cat("ReadComponentsCommon: unknown material", material), warnings, 2);
+						next;
 						
 					end if;
 					
 					if assigned(WhateverYouNeed["materialdata"]["name"]) then
 						materials[WhateverYouNeed["materialdata"]["name"]] := eval(WhateverYouNeed["materialdata"]);
 					else
-						Alert("materialdata name not assigned", warnings, 1);
+						Alert("ReadComponentsCommon: materialdata name not assigned", warnings, 1);
+						next;
 					end if;
 					
 				end do;
@@ -1698,24 +1704,25 @@ NODEFunctions := module()
 		# store values back to global variable
 		# don't store values in activesettings that should not be saved across sessions
 		# NOTE TO SELF: don't ever not make circular references	
-		if member("activeloadcase", WhateverYouNeed["componentvariables"]["var_calculations"]) then
-			activesettings["activeloadcase"] := activeloadcase
-		else
-			activesettings["activeloadcase"] := evaln(activesettings["activeloadcase"])
-		end if;
+		if assigned(WhateverYouNeed["componentvariables"]["var_calculations"]) then
+			if member("activeloadcase", WhateverYouNeed["componentvariables"]["var_calculations"]) then
+				activesettings["activeloadcase"] := activeloadcase
+			else
+				activesettings["activeloadcase"] := evaln(activesettings["activeloadcase"])
+			end if;
 
-		if member("activematerial", WhateverYouNeed["componentvariables"]["var_calculations"]) then
-			activesettings["activematerial"] := activematerial
-		else
-			activesettings["activematerial"] := evaln(activesettings["activematerial"])
-		end if;
+			if member("activematerial", WhateverYouNeed["componentvariables"]["var_calculations"]) then
+				activesettings["activematerial"] := activematerial
+			else
+				activesettings["activematerial"] := evaln(activesettings["activematerial"])
+			end if;
 
-		if member("activesection", WhateverYouNeed["componentvariables"]["var_calculations"]) then
-			activesettings["activesection"] := activesection
-		else
-			activesettings["activesection"] := evaln(activesettings["activesection"])
+			if member("activesection", WhateverYouNeed["componentvariables"]["var_calculations"]) then
+				activesettings["activesection"] := activesection
+			else
+				activesettings["activesection"] := evaln(activesettings["activesection"])
+			end if;
 		end if;
-
 			
 		ReadComponentsSpecific(action, WhateverYouNeed);		# call specific part of ReadSystemSection'
 

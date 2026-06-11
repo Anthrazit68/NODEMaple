@@ -28,22 +28,16 @@ NODEDocumentCommon := module()
     # Fully encapsulated internal memory structures
     local storesettings, calculationdata, loadvariables, loadcases, warnings, var, startupStatus;
 
-    startupcheck := proc()::boolean;
-        description "Check if code is run during startup or via execute entire code";
-        if startupStatus = false then
-            return false;
-        else
-            startupStatus := true;
-            return true;
-        end if;
+
+    ExcelInOut := proc(action::string)
+        description "Call Excel read and write operations mapping to runtime configurations";
+        var := table();
+        var["loadvariables"] := loadvariables;
+        var["loadcases"] := loadcases;
+
+        ExcelFileInOut(action, calculationdata["calculationtype_short"], var, warnings);
     end proc:
 
-    Reset := proc()
-        description "Reset the active calculation document";
-        storesettings := Matrix(1,1);
-        InitCommon();
-        MainCommon("reset");
-    end proc:
 
     InitCommon := proc(materialType::string, calculationtype::string)
         description "Initialize common data structures and store the active material type";
@@ -52,7 +46,7 @@ NODEDocumentCommon := module()
         WhateverYouNeed := table();
         
         # Initialize generic library definitions using the shared global calculationtype
-        LibInitCommon(eval(WhateverYouNeed), calculationtype);
+        LibInitCommon(WhateverYouNeed, calculationtype);
 
         WhateverYouNeed["material"] := materialType;
 
@@ -65,48 +59,58 @@ NODEDocumentCommon := module()
         startupStatus := false;
     end proc:
 
+
     MainCommon := proc(action::string)
         description "Main execution routine triggered after user input or resets";
-        local evaluatedTable;
         
         # If the user clicks "Execute entire code", make sure the table exists
         if not assigned(WhateverYouNeed) or type(WhateverYouNeed, table) = false then
             InitCommon();
         end if;
         
-        # Force evaluation so external shared libraries instantly accept it as a clean table type
-        evaluatedTable := eval(WhateverYouNeed);
+        ResetWarnings(WhateverYouNeed);
+        ReadComponentsCommon(action, WhateverYouNeed);
         
-        ResetWarnings(evaluatedTable);
-        ReadComponentsCommon(action, evaluatedTable);
-        
-        if MASTERALARM(evaluatedTable["warnings"]) = false and 
-           (action = "calculation" or evaluatedTable["calculations"]["autocalc"]) then
+        if MASTERALARM(WhateverYouNeed["warnings"]) = false and 
+           (action = "calculation" or WhateverYouNeed["calculations"]["autocalc"]) then
             # Delegates core calculation execution to the sheet's global Main procedure
             if type(eval(Main), procedure) then
                 Main(evaluatedTable);
             end if;
         end if;
+
     end proc:
 
-    ExcelInOut := proc(action::string)
-        description "Call Excel read and write operations mapping to runtime configurations";
-        var := table();
-        var["loadvariables"] := loadvariables;
-        var["loadcases"] := loadcases;
 
-        ExcelFileInOut(action, calculationdata["calculationtype_short"], var, warnings);
+    Reset := proc()
+        description "Reset the active calculation document";
+        storesettings := Matrix(1,1);
+        InitCommon();
+        MainCommon("reset");
     end proc:
+
+
+    RestoresettingsLocal := proc()
+        description "Restore settings matrix from module memory back to active UI components";
+        Restoresettings(storesettings, WhateverYouNeed);
+        StoredsettingsToComponents(WhateverYouNeed);
+    end proc:
+
+
+    startupcheck := proc()::boolean;
+        description "Check if code is run during startup or via execute entire code";
+        if startupStatus = false then
+            return false;
+        else
+            startupStatus := true;
+            return true;
+        end if;
+    end proc:
+
 
     StoresettingsLocal := proc(saveitems::table)
         description "Saves component state matrix to the local module boundary";
         storesettings[1,1] := eval(saveitems);
-    end proc:
-
-    RestoresettingsLocal := proc()
-        description "Restore settings matrix from module memory back to active UI components";
-        Restoresettings(storesettings, eval(WhateverYouNeed));
-        StoredsettingsToComponents(eval(WhateverYouNeed));
     end proc:
 
 end module:
