@@ -19,24 +19,13 @@ NODEDocumentCommon := module()
     option package;
     uses DocumentTools, StringTools, NODEFunctions;
 
-    export startupcheck, Reset, InitCommon, MainCommon, ExcelInOut, 
-           StoresettingsLocal, RestoresettingsLocal;
+    export startupcheck, Reset, InitCommon, MainCommon, StoresettingsLocal, RestoresettingsLocal;
 
-    # calculationtype and startup must be global to sync seamlessly with the sheet layout
-    global calculationtype, Main, InitSpecific, WhateverYouNeed;
+    # Only Main, InitSpecific and the central data table need global scope visibility
+    global Main, InitSpecific, WhateverYouNeed;
     
     # Fully encapsulated internal memory structures
-    local storesettings, calculationdata, loadvariables, loadcases, warnings, var, startupStatus;
-
-
-    ExcelInOut := proc(action::string)
-        description "Call Excel read and write operations mapping to runtime configurations";
-        var := table();
-        var["loadvariables"] := loadvariables;
-        var["loadcases"] := loadcases;
-
-        ExcelFileInOut(action, calculationdata["calculationtype_short"], var, warnings);
-    end proc:
+    local storesettings, loadvariables, loadcases, warnings, var, startupStatus;
 
 
     InitCommon := proc(materialType::string, calculationtype::string)
@@ -62,10 +51,17 @@ NODEDocumentCommon := module()
 
     MainCommon := proc(action::string)
         description "Main execution routine triggered after user input or resets";
+        local activeMat, activeType;
+        uses DocumentTools;
         
-        # If the user clicks "Execute entire code", make sure the table exists
+        # Robust fallback check if the global table has been wiped from memory
         if not assigned(WhateverYouNeed) or type(WhateverYouNeed, table) = false then
-            InitCommon();
+            
+            # Read directly from the sheet's GUI components to recover the state safely
+            activeMat  := `if`(ComponentExists("TextArea_material"), GetProperty("TextArea_material", value), "steel");
+            activeType := `if`(ComponentExists("TextArea_calculationtype"), GetProperty("TextArea_calculationtype", value), "Universal");
+            
+            InitCommon(activeMat, activeType);
         end if;
         
         ResetWarnings(WhateverYouNeed);
@@ -75,13 +71,13 @@ NODEDocumentCommon := module()
            (action = "calculation" or WhateverYouNeed["calculations"]["autocalc"]) then
             # Delegates core calculation execution to the sheet's global Main procedure
             if type(eval(Main), procedure) then
-                Main(evaluatedTable);
+                Main(WhateverYouNeed);
             end if;
         end if;
 
     end proc:
 
-
+ 
     Reset := proc()
         description "Reset the active calculation document";
         storesettings := Matrix(1,1);

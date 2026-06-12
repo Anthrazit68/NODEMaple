@@ -58,8 +58,8 @@ NODEFastenerPattern := module()
 			alphaForce := 0
 		else
 	# Bug appears here, support case 00156673
-			# alphaForce := convert(arctan(Fy, Fx) * Unit('radian'), 'units', 'degree')
-			alphaForce := convert(arctan(Fy_, Fx_) * Unit('radian'), 'units', 'degree')
+			# alphaForce := convert(arctan(Fy, Fx) * Unit('rad'), 'units', 'degree')
+			alphaForce := convert(arctan(Fy_, Fx_) * Unit('rad'), 'units', 'degree')
 		end if;		
 
 		alphaBeam := evalf(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", beamindex)]);
@@ -248,7 +248,7 @@ NODEFastenerPattern := module()
 	calculate_a := proc(WhateverYouNeed::table)			# calculate a-values according to EC5
 		description "Calculate a-values for timber constructions";
 		local i, j, fastenerPointlist, beamBoundarylines, beamBoundaryline, k, dist, dummy, dummy1, beamside, beamindex, warnings, distance, intPointL, intPointR, intPointS, intPointE, a1min, a2min,
-			segmentlist, segments, segm1, segm2, segm3, segm4, a1distance, a2distance, annotation1, annotation2, annotation3, annotation4, annotations, alpha, parline,
+			segmentlist, segments, segm1, segm2, segm3, segm4, a1distance, a2distance, annotation1, annotation2, annotation3, annotation4, annotations, alpha_, parline,
 			a1_FastenersInRow, a1_row, a1_nFastenersInRow, a2_FastenersInColumn, a2_column, a2_nFastenersInColumn, distanceOfInterest;
 
 		warnings := WhateverYouNeed["warnings"];
@@ -326,8 +326,9 @@ NODEFastenerPattern := module()
 				beamside := substring(convert(beamBoundarylines[beamBoundaryline], string), -6..-6);
 			end if;
 			
-			# alpha := convert(evalf(convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", beamindex)], 'radians')), 'unit_free');
-			alpha := ConvertUnitfree(cat("graindirection", beamindex), evalf(convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", beamindex)], 'radians')), WhateverYouNeed);
+			# do not use ConvertUnitfree, as alpha_ is assumed to be arcdeg. We need to convert value to radians, and drop the unit.
+			# textplot rotation = r where r must evaluate to a real number that is assumed to be in radians
+			alpha_ := convert(evalf(convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", beamindex)], 'rad')), 'unit_free');		
 
 			# a4: checking left and right sides
 			if beamside = "L" then			
@@ -362,7 +363,7 @@ NODEFastenerPattern := module()
 						end if;
 						dummy1 := cat("a4", beamindex, "=", convert(round(convert(distance[cat("a4", beamindex)], 'unit_free')), string), "mm");
 						annotation4 := plots:-textplot([op(geometry:-coordinates(geometry:-midpoint(parse(cat("a4", beamindex, "M")), segm4))) , dummy1],
-								'align' = {'above', 'right'}, 'color' = "Blue", 'rotation' = alpha);
+								'align' = {'above', 'right'}, 'color' = "Blue", 'rotation' = alpha_);
 					end if;	
 	#				end if;					
 				end do;
@@ -405,7 +406,7 @@ NODEFastenerPattern := module()
 						end if;
 						dummy1 := cat("a3", beamindex, "=", convert(round(convert(distance[cat("a3", beamindex)], 'unit_free')), string), "mm");
 						annotation3 := plots:-textplot([op(geometry:-coordinates(geometry:-midpoint(parse(cat("a3", beamindex, "M")), segm3))) , dummy1],
-								'align' = {'above', 'right'}, 'color' = "Blue", 'rotation' = alpha);
+								'align' = {'above', 'right'}, 'color' = "Blue", 'rotation' = alpha_);
 					end if;	
 
 	#				end if;					
@@ -450,8 +451,9 @@ NODEFastenerPattern := module()
 				beamside := substring(convert(beamBoundarylines[beamBoundaryline], string), -6..-6);
 			end if;
 			
-			# no need for check of correct unit
-			alpha := convert(evalf(convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", beamindex)], 'radians')), 'unit_free');			
+			# do not use ConvertUnitfree, as alpha_ is assumed to be arcdeg. We need to convert value to radians, and drop the unit.
+			# textplot rotation = r where r must evaluate to a real number that is assumed to be in radians			
+			alpha_ := convert(evalf(convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", beamindex)], 'rad')), 'unit_free');			
 			
 			if beamside = "L" then			# run each beam just once				
 
@@ -501,7 +503,7 @@ NODEFastenerPattern := module()
 								segm1 := geometry:-segment(parse(cat("a1", beamindex)), fastenerPointlist[i], parse(cat("a1_", beamBoundaryline, i, k)));
 								dummy1 := cat("a1", beamindex, "=", convert(round(convert(distance[cat("a1", beamindex)], 'unit_free')), string), "mm");
 								annotation1 := plots:-textplot([op(geometry:-coordinates(geometry:-midpoint(parse(cat("a1", beamindex, "M")), segm1))) , dummy1],
-										'align' = {'above', 'right'}, 'color' = "Blue", 'rotation' = alpha);
+										'align' = {'above', 'right'}, 'color' = "Blue", 'rotation' = alpha_);
 
 							# add point to list of points which have minimum distance to another point
 							elif convert(distance[cat("a1", beamindex)], 'unit_free') = a1distance then
@@ -532,7 +534,7 @@ NODEFastenerPattern := module()
 								segm2 := geometry:-segment(parse(cat("a2", beamindex)), fastenerPointlist[k], parse(cat("a1_", beamBoundaryline, i, k)));
 								dummy1 := cat("a2", beamindex, "=", convert(round(convert(distance[cat("a2", beamindex)], 'unit_free')), string), "mm");
 								annotation2 := plots:-textplot([op(geometry:-coordinates(geometry:-midpoint(parse(cat("a2", beamindex, "M")), segm2))) , dummy1],
-										'align' = {'above', 'right'}, 'color' = "Blue", 'rotation' = alpha);
+										'align' = {'above', 'right'}, 'color' = "Blue", 'rotation' = alpha_);
 
 							# add point to list of points which have minimum distance to another point
 							elif convert(distance[cat("a2", beamindex)], 'unit_free') = a2distance then
@@ -985,7 +987,7 @@ NODEFastenerPattern := module()
 			if ResultVector[1] = 0 and ResultVector[2] = 0 then
 				ResultVector[4] := 0
 			else
-				ResultVector[4] := convert(arctan(ResultVector[2], ResultVector[1]) * Unit('radian'), 'units', 'degree')		# alpha
+				ResultVector[4] := convert(arctan(ResultVector[2], ResultVector[1]) * Unit('rad'), 'units', 'degree')		# alpha
 			end if;
 
 			results(i) := ResultVector;
@@ -1202,7 +1204,14 @@ NODEFastenerPattern := module()
 		geometryList := [];	# list of geometry elements to be plotted
 		# displayPoints := [];
 		fastenerPointlist := [];
-		d_ := ConvertUnitfree("fastener_d", structure["fastener"]["fastener_d"], WhateverYouNeed);			# could d_ = false?
+
+		if d_ = "false" or d_ = 0 then
+    		Alert("Fastener diameter not defined", warnings, 3);
+			d_ := 0;
+		else
+			d_ := ConvertUnitfree("fastener_d", structure["fastener"]["fastener_d"], WhateverYouNeed);			# could d_ = false?
+		end if;
+		
 
 		if assigned(WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_d"]) then
 			r := round(d_ / 2)		# need to convert to posint, diameter to radius
