@@ -1261,7 +1261,7 @@ NODEXML := module()
 		# https://www.mapleprimes.com/questions/230384-File-Open-Dialogue-Box
 		maplet := Maplet(FileDialog['FD2']('filefilter' = "xml", 'filterdescription' = "XML file", 'onapprove' = Shutdown(['FD2']), 'oncancel' = Shutdown()));
 		afilename := Maplets[Display](maplet);
-		if type(afilename, list) then
+		if type(afilename, 'list') then
 			afilename := afilename[1];
 			if searchtext(".xml", afilename, -4..-1) = 0 then				# mest sannsynlig ny fil, xml ending ikke lagt inn
 				afilename := cat(afilename , ".xml")

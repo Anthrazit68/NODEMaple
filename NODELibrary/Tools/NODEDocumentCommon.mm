@@ -38,10 +38,13 @@ NODEDocumentCommon := module()
         LibInitCommon(WhateverYouNeed, calculationtype);
 
         WhateverYouNeed["material"] := materialType;
-
+DEBUG();
         # Run specific initialization if defined in the worksheet
-        if type(eval(InitSpecific), procedure) then
-            InitSpecific(WhateverYouNeed);
+        if type(eval(InitSpecific), 'procedure') then
+            Alert("running InitSpecific()", WhateverYouNeed["warnings"], 1);
+            InitSpecific();
+        else
+            Alert("InitSpecific() not found", WhateverYouNeed["warnings"], 1);
         end if;
 
         # Mark startup as completed so it doesn't re-run configuration on every manual execution
