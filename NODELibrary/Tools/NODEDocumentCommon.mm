@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+
 NODEDocumentCommon := module()
     description "Universal control and interface routines shared across all material documents";
     option package;
@@ -21,14 +22,12 @@ NODEDocumentCommon := module()
 
     export startupcheck, Reset, InitCommon, MainCommon, StoresettingsLocal, RestoresettingsLocal;
 
-    # Only Main, InitSpecific and the central data table need global scope visibility
-    global Main, InitSpecific, WhateverYouNeed;
+    global WhateverYouNeed;
     
-    # Fully encapsulated internal memory structures
     local storesettings, loadvariables, loadcases, warnings, var, startupStatus;
 
 
-    InitCommon := proc(materialType::string, calculationtype::string)
+InitCommon := proc(materialType::string, calculationtype::string)
         description "Initialize common data structures and store the active material type";
         uses NODEFunctions;
 
@@ -38,11 +37,11 @@ NODEDocumentCommon := module()
         LibInitCommon(WhateverYouNeed, calculationtype);
 
         WhateverYouNeed["material"] := materialType;
-DEBUG();
-        # Run specific initialization if defined in the worksheet
-        if type(eval(InitSpecific), 'procedure') then
+
+        # ENDRING: Vi bruker :-InitSpecific for å tvinge Maple til å se i worksheetet
+        if type(eval(:-InitSpecific), 'procedure') then             # check if there is a InitSpecific procedure in the global namespace
             Alert("running InitSpecific()", WhateverYouNeed["warnings"], 1);
-            InitSpecific();
+            :-InitSpecific();
         else
             Alert("InitSpecific() not found", WhateverYouNeed["warnings"], 1);
         end if;
@@ -74,7 +73,7 @@ DEBUG();
            (action = "calculation" or WhateverYouNeed["calculations"]["autocalc"]) then
             # Delegates core calculation execution to the sheet's global Main procedure
             if type(eval(Main), procedure) then
-                Main(WhateverYouNeed);
+                :-Main(WhateverYouNeed);
             end if;
         end if;
 
