@@ -27,7 +27,6 @@ NODEStatics := module()
     # 1. Initialisering (Tidligere InitSpecific)
     # ==========================================
     InitSpecific := proc()
-DEBUG();
         description "Deklarer globale variabler og oppsett for Fastener Pattern";        
         local var_calculations_FastenerPatterns, FastenerPatterns, var_numeric;
 

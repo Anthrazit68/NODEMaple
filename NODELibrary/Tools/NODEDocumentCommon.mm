@@ -20,16 +20,34 @@ NODEDocumentCommon := module()
     option package;
     uses DocumentTools, StringTools, NODEFunctions;
 
-    export startupcheck, Reset, InitCommon, MainCommon, StoresettingsLocal, RestoresettingsLocal;
+    export RegisterHandlers, startupcheck, Reset, InitCommon, MainCommon, StoresettingsLocal, RestoresettingsLocal;
 
     global WhateverYouNeed;
     
-    local storesettings, loadvariables, loadcases, warnings, var, startupStatus;
+    local initList, mainList, storesettings, loadvariables, loadcases, warnings, var, startupStatus;
+
+    initList := [];
+    mainList := [];
 
 
-InitCommon := proc(materialType::string, calculationtype::string)
+    RegisterHandlers := proc({initProc::procedure := NULL}, {mainProc::procedure := NULL})
+        description "Register other initialization procedures using keyword-arguments";
+        
+        # add to list if procedure was sent
+        if initProc <> NULL then
+            initList := [op(initList), eval(initProc)];
+        end if;
+        
+        if mainProc <> NULL then
+            mainList := [op(mainList), eval(mainProc)];
+        end if;
+    end proc:
+
+
+    InitCommon := proc(materialType::string, calculationtype::string)
         description "Initialize common data structures and store the active material type";
         uses NODEFunctions;
+        local p;
 
         WhateverYouNeed := table();
         
@@ -38,13 +56,10 @@ InitCommon := proc(materialType::string, calculationtype::string)
 
         WhateverYouNeed["material"] := materialType;
 
-        # ENDRING: Vi bruker :-InitSpecific for å tvinge Maple til å se i worksheetet
-        if type(eval(:-InitSpecific), 'procedure') then             # check if there is a InitSpecific procedure in the global namespace
-            Alert("running InitSpecific()", WhateverYouNeed["warnings"], 1);
-            :-InitSpecific();
-        else
-            Alert("InitSpecific() not found", WhateverYouNeed["warnings"], 1);
-        end if;
+        # run InitSpecific's
+        if nops(initList) > 0 then
+            for p in initList do p(); end do;
+        end if;             
 
         # Mark startup as completed so it doesn't re-run configuration on every manual execution
         startupStatus := false;
@@ -55,7 +70,8 @@ InitCommon := proc(materialType::string, calculationtype::string)
         description "Main execution routine triggered after user input or resets";
         local activeMat, activeType;
         uses DocumentTools;
-        
+        local p;
+
         # Robust fallback check if the global table has been wiped from memory
         if not assigned(WhateverYouNeed) or type(WhateverYouNeed, table) = false then
             
@@ -71,12 +87,13 @@ InitCommon := proc(materialType::string, calculationtype::string)
         
         if MASTERALARM(WhateverYouNeed["warnings"]) = false and 
            (action = "calculation" or WhateverYouNeed["calculations"]["autocalc"]) then
-            # Delegates core calculation execution to the sheet's global Main procedure
-            if type(eval(Main), procedure) then
-                :-Main(WhateverYouNeed);
-            end if;
-        end if;
 
+            # Delegates core calculation execution to the sheet's global Main procedure
+            if nops(mainList) > 0 then
+                for p in mainList do p(); end do;
+            end if;   
+
+        end if;
     end proc:
 
  
