@@ -32,7 +32,7 @@ NODEDocumentCommon := module()
 
     RegisterHandlers := proc({initProc::procedure := NULL}, {mainProc::procedure := NULL})
         description "Register other initialization procedures using keyword-arguments";
-        
+
         # add to list if procedure was sent
         if initProc <> NULL then
             initList := [op(initList), eval(initProc)];
@@ -68,9 +68,8 @@ NODEDocumentCommon := module()
 
     MainCommon := proc(action::string)
         description "Main execution routine triggered after user input or resets";
-        local activeMat, activeType;
-        uses DocumentTools;
-        local p;
+        local activeMat, activeType, p;
+        uses DocumentTools;        
 
         # Robust fallback check if the global table has been wiped from memory
         if not assigned(WhateverYouNeed) or type(WhateverYouNeed, table) = false then
@@ -90,7 +89,7 @@ NODEDocumentCommon := module()
 
             # Delegates core calculation execution to the sheet's global Main procedure
             if nops(mainList) > 0 then
-                for p in mainList do p(); end do;
+                for p in mainList do p(action); end do;
             end if;   
 
         end if;

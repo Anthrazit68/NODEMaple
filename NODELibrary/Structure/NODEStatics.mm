@@ -21,7 +21,7 @@ NODEStatics := module()
     
     global WhateverYouNeed; 
     export InitSpecific, ResetSpecific, runAfterXMLImportLocal, MainWrapper, Main, ReadComponentsSpecific;
-    uses DocumentTools, NODEFastenerPattern;
+    uses DocumentTools, NODEFunctions, NODEFastenerPattern;
 
     # ==========================================
     # 1. Initialisering (Tidligere InitSpecific)
@@ -91,24 +91,26 @@ NODEStatics := module()
     end proc:
 
 
-    # wrapper for running main calculation routine
-    MainWrapper := proc(action::string)
-        description "Run main calculation";
+    # # wrapper for running main calculation routine
+    # MainWrapper := proc(action::string)
+    #     description "Run main calculation";
 
-        # start calculation if either required by command or autoloadsave true
-        if action = "calculation" or WhateverYouNeed["calculations"]["autocalc"] then
-            Main(WhateverYouNeed);
-        end if;
-    end proc:
+    #     # start calculation if either required by command or autoloadsave true
+    #     if action = "calculation" or WhateverYouNeed["calculations"]["autocalc"] then
+    #         Main(WhateverYouNeed);
+    #     end if;
+    # end proc:
 
 
-    Main := proc(WhateverYouNeed::table)
+    Main := proc(action::string)
         
         if MASTERALARM(WhateverYouNeed["warnings"]) = false then
-            NODEFastenerPattern:-CalculateForcesInConnection(WhateverYouNeed);
-            if WhateverYouNeed["calculations"]["calculatingAllLoadcases"] = false then
-                NODEFastenerPattern:-PlotResults(WhateverYouNeed)
-            end if;		
+            if action = "calculation" or WhateverYouNeed["calculations"]["autocalc"] then
+                NODEFastenerPattern:-CalculateForcesInConnection(WhateverYouNeed);
+                if WhateverYouNeed["calculations"]["calculatingAllLoadcases"] = false then
+                    NODEFastenerPattern:-PlotResults(WhateverYouNeed)
+                end if;	
+            end if;
         end if;
     end proc:
 
