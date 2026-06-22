@@ -20,28 +20,17 @@ NODEDocumentCommon := module()
     option package;
     uses DocumentTools, StringTools, NODEFunctions;
 
-    export RegisterHandlers, startupcheck, Reset, InitCommon, MainCommon, StoresettingsLocal, RestoresettingsLocal;
+    export RegisterHandlers, startupcheck, Reset, InitCommon, MainCommon, StoresettingsLocal, RestoresettingsLocal, RunXMLHandlers;
 
     global WhateverYouNeed;
     
-    local initList, mainList, storesettings, loadvariables, loadcases, warnings, var, startupStatus;
+    local initList, mainList, resetList, xmlList, readList, storesettings, loadvariables, loadcases, warnings, var, startupStatus;
 
     initList := [];
     mainList := [];
-
-
-    RegisterHandlers := proc({initProc::procedure := NULL}, {mainProc::procedure := NULL})
-        description "Register other initialization procedures using keyword-arguments";
-
-        # add to list if procedure was sent
-        if initProc <> NULL then
-            initList := [op(initList), eval(initProc)];
-        end if;
-        
-        if mainProc <> NULL then
-            mainList := [op(mainList), eval(mainProc)];
-        end if;
-    end proc:
+    resetList := [];
+    xmlList := [];
+    readList := [];
 
 
     InitCommon := proc(materialType::string, calculationtype::string)
@@ -95,11 +84,32 @@ NODEDocumentCommon := module()
         end if;
     end proc:
 
- 
+
+    RegisterHandlers := proc({initProc::procedure := NULL}, {mainProc::procedure := NULL}, {resetProc::procedure := NULL}, {xmlProc::procedure := NULL}, {readProc::procedure := NULL})
+        description "Register other initialization procedures using keyword-arguments";
+
+        # Eksisterende registrering
+        if initProc <> NULL then initList := [op(initList), eval(initProc)]; end if;
+        if mainProc <> NULL then mainList := [op(mainList), eval(mainProc)]; end if;
+        
+        # NYTT: Registrering av de tre nye prosedyrene
+        if resetProc <> NULL then resetList := [op(resetList), eval(resetProc)]; end if;
+        if xmlProc <> NULL then xmlList := [op(xmlList), eval(xmlProc)]; end if;
+        if readProc <> NULL then readList := [op(readList), eval(readProc)]; end if;
+    end proc:
+
+
     Reset := proc()
         description "Reset the active calculation document";
+        local p;
         storesettings := Matrix(1,1);
         InitCommon();
+        
+        # run specific reset procedures
+        if nops(resetList) > 0 then
+            for p in resetList do p(); end do;
+        end if;
+
         MainCommon("reset");
     end proc:
 
@@ -108,6 +118,17 @@ NODEDocumentCommon := module()
         description "Restore settings matrix from module memory back to active UI components";
         Restoresettings(storesettings, WhateverYouNeed);
         StoredsettingsToComponents(WhateverYouNeed);
+    end proc:
+
+
+    RunXMLHandlers := proc(i::string)
+        description "Running registered XML procedures from specific modules";
+        local p;
+        if nops(xmlList) > 0 then
+            for p in xmlList do 
+                p(i); # forward command (e.g. "fastener")
+            end do;
+        end if;
     end proc:
 
 

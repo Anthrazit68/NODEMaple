@@ -20,12 +20,10 @@ NODEStatics := module()
     option package;
     
     global WhateverYouNeed; 
-    export InitSpecific, ResetSpecific, runAfterXMLImportLocal, MainWrapper, Main, ReadComponentsSpecific;
+    export InitSpecific, ResetSpecific, runAfterXMLImportLocal, Main, ReadComponentsSpecific;
     uses DocumentTools, NODEFunctions, NODEFastenerPattern;
 
-    # ==========================================
-    # 1. Initialisering (Tidligere InitSpecific)
-    # ==========================================
+
     InitSpecific := proc()
         description "Deklarer globale variabler og oppsett for Fastener Pattern";        
         local var_calculations_FastenerPatterns, FastenerPatterns, var_numeric;
@@ -53,11 +51,26 @@ NODEStatics := module()
         end if;
     end proc:
 
-    # ==========================================
-    # 2. Nullstilling (Tidligere ResetSpecific)
-    # ==========================================
-    ResetSpecific := proc(WhateverYouNeed::table)
-        description "Nullstill GUI-komponenter til standardverdier";
+
+    Main := proc(action::string)        
+        if MASTERALARM(WhateverYouNeed["warnings"]) = false then
+            if action = "calculation" or WhateverYouNeed["calculations"]["autocalc"] then
+                NODEFastenerPattern:-CalculateForcesInConnection(WhateverYouNeed);
+                if WhateverYouNeed["calculations"]["calculatingAllLoadcases"] = false then
+                    NODEFastenerPattern:-PlotResults(WhateverYouNeed)
+                end if;	
+            end if;
+        end if;
+    end proc:
+
+
+    ReadComponentsSpecific := proc(TypeOfAction::string)
+        NODEFastenerPattern:-ModifyFastenerPattern("AddFastenerPattern", WhateverYouNeed);
+    end proc:
+
+
+    ResetSpecific := proc()
+        description "reset GUI components to standardvalues";
         DocumentTools:-SetProperty("ComboBox_FastenerPatternType1", 'selectedindex', 1); 
         DocumentTools:-SetProperty("TextArea_center_x1", 'value', "0"); 
         DocumentTools:-SetProperty("TextArea_center_y1", 'value', "0"); 
@@ -77,7 +90,7 @@ NODEStatics := module()
     end proc:
 
    
-    runAfterXMLImportLocal := proc(WhateverYouNeed::table, i::string)
+    runAfterXMLImportLocal := proc(i::string)
         description "Procedure run after import of XML file, called in NODEXML:-runAfterXMLImport";
         local warnings;
 
@@ -88,35 +101,6 @@ NODEStatics := module()
         else
             Alert(cat("runAfterXMLUImportLocal: unhandled command ", i), warnings, 2);
         end if;
-    end proc:
-
-
-    # # wrapper for running main calculation routine
-    # MainWrapper := proc(action::string)
-    #     description "Run main calculation";
-
-    #     # start calculation if either required by command or autoloadsave true
-    #     if action = "calculation" or WhateverYouNeed["calculations"]["autocalc"] then
-    #         Main(WhateverYouNeed);
-    #     end if;
-    # end proc:
-
-
-    Main := proc(action::string)
-        
-        if MASTERALARM(WhateverYouNeed["warnings"]) = false then
-            if action = "calculation" or WhateverYouNeed["calculations"]["autocalc"] then
-                NODEFastenerPattern:-CalculateForcesInConnection(WhateverYouNeed);
-                if WhateverYouNeed["calculations"]["calculatingAllLoadcases"] = false then
-                    NODEFastenerPattern:-PlotResults(WhateverYouNeed)
-                end if;	
-            end if;
-        end if;
-    end proc:
-
-
-    ReadComponentsSpecific := proc(TypeOfAction::string, WhateverYouNeed::table)
-        NODEFastenerPattern:-ModifyFastenerPattern("AddFastenerPattern", WhateverYouNeed);
     end proc:
 
 end module:

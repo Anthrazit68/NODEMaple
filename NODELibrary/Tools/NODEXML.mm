@@ -224,7 +224,7 @@ NODEXML := module()
 
 				else
 					XMLImportlog := cat(XMLImportlog, "...", i, " \n");
-					runAfterXMLImportLocal(WhateverYouNeed, i);
+					NODEDocumentCommon:-RunXMLHandlers(i); # replaces runAfterXMLImportLocal(WhateverYouNeed, i);
 					# Alert(cat("Unknown variable ", i, " in runAfterXMLImport."), warnings, 1)
 					
 				end if;
