@@ -1460,7 +1460,7 @@ SetLoadExcentricity := proc(WhateverYouNeed::table, createnewloadcase::boolean)
 
 	WriteValueToComponent("loadcenter_x", round(dummy), {"nocheck"});
 	if createnewloadcase then		
-		MainCommon("NewLoadcase");
+		NODEDocumentCommon:-MainCommon("NewLoadcase");
 	else
 		WhateverYouNeed["calculations"]["loadcases"][activeloadcase]["loadcenter_x"] := dummy
 	end if;

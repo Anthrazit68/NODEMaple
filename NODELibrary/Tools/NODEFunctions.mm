@@ -267,7 +267,7 @@ NODEFunctions := module()
 		WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"] := activeloadcase;
 		WhateverYouNeed["calculations"]["suppress_gui"] := false;
 		WriteValueToComponent("loadcases", activeloadcase, {"nocheck"});
-		MainCommon("calculateAllLoadcasesCleanup");
+		NODEDocumentCommon:-MainCommon("calculateAllLoadcasesCleanup");
 		# Main(WhateverYouNeed, "calculateAllLoadcasesCleanup");
 
 	end proc:
@@ -600,7 +600,7 @@ NODEFunctions := module()
 			end do;
 
 			if upperbound(loaddata)[1] > 1 then
-				MainCommon("ResetLoadcase")
+				NODEDocumentCommon:-MainCommon("ResetLoadcase")
 			end if;
 
 			for i from 2 to upperbound(loaddata)[1] do
@@ -646,7 +646,7 @@ NODEFunctions := module()
 
 						end if;					
 					end do;
-					MainCommon("NewLoadcase")
+					NODEDocumentCommon:-MainCommon("NewLoadcase")
 				end if;
 			
 			end do;
@@ -780,7 +780,7 @@ NODEFunctions := module()
 		var_calculationdata := {"positionnumber", "positiontitle", "calculationtype", "calculationtype_short"};
 		var_storeitems := {"projectdata", "materials", "sections", "calculations/calculationtype", "calculations/positionnumber",
 			"calculations/positiontitle", "calculations/loadcases", "calculations/structure", "calculations/activesettings"};
-		var_ComboBox := {"loadcases", "materials", "sections"};
+		var_ComboBox := {"loadcases", "materials", "sections"};		
 		
 		#initialize var_units
 		var_units := table();
@@ -808,6 +808,8 @@ NODEFunctions := module()
 		componentvariables["var_storeitems"] := eval(var_storeitems);
 		componentvariables["var_ComboBox"] := eval(var_ComboBox);
 		componentvariables["var_units"] := var_units;				# store default units for textfield input
+
+		componentvariables["var_numeric"] := {};
 
 		# other local variables
 		autoloadsave := true;			# automatic save of load definition changes
@@ -1187,8 +1189,8 @@ NODEFunctions := module()
 	end proc:
 
 
-	ReadComponentsCommon := proc(action::string, WhateverYouNeed::table)
-		description "Read values from common components in worksheet";
+	ReadComponentsCommon := proc(action::string, WhateverYouNeed::table, readList::list)
+		description "Read values from common components in worksheet, trigger specific readins";
 
 		local activeloadcase, loadcases, loadvariables, autoloadsave, autocalc, componentvariables, activesettings;
 		local material, materials, materialdata, materialdataAll, projectdata, calculations;
@@ -1723,8 +1725,15 @@ NODEFunctions := module()
 				activesettings["activesection"] := evaln(activesettings["activesection"])
 			end if;
 		end if;
-			
-		ReadComponentsSpecific(action, WhateverYouNeed);		# call specific part of ReadSystemSection'
+
+		# ReadComponentsSpecific(action, WhateverYouNeed);		# call specific part of ReadSystemSection'
+		# replaced with more refined code 
+		local p;
+    	if nops(readList) > 0 then
+			for p in readList do 
+				p(action);
+			end do;
+    	end if;
 
 		# check if we need to store settings
 		if member(action, {"autocalc", "autoloadsave", "calculateAllLoadcases"}) then
@@ -2452,7 +2461,7 @@ NODEFunctions := module()
 	#	description "Reset document as far as possible";
 			
 	#	InitCommon();
-	#	MainCommon("ResetLoadcase")	
+	#	NODEDocumentCommon:-MainCommon("ResetLoadcase")	
 	# end proc:
 
 end module:

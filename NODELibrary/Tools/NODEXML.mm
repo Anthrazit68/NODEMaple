@@ -232,10 +232,9 @@ NODEXML := module()
 			end do;
 
 			WhateverYouNeed["logs"]["XMLImport"] := XMLImportlog;
-
-			RunAfterRestoresettings(WhateverYouNeed);		# local procedures after restore
-			MainCommon("all");							# run calculation after import
-			# MainCommon("calculation");					# run calculation after import
+			NODEDocumentCommon:-RunRestoreHandlers(); 	# replaces RunAfterRestoresettings(WhateverYouNeed); # local procedures after restore
+			NODEDocumentCommon:-MainCommon("all");							# run calculation after import
+			# NODEDocumentCommon:-MainCommon("calculation");					# run calculation after import
 			
 		end if;
 	end proc:

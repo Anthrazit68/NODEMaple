@@ -14,24 +14,27 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+    # 4. Definer trigger-funksjonen nederst i modulen
+
+
 
 NODEDocumentCommon := module()
     description "Universal control and interface routines shared across all material documents";
     option package;
     uses DocumentTools, StringTools, NODEFunctions;
 
-    export RegisterHandlers, startupcheck, Reset, InitCommon, MainCommon, StoresettingsLocal, RestoresettingsLocal, RunXMLHandlers;
+    export RegisterHandlers, startupcheck, Reset, InitCommon, MainCommon, StoresettingsLocal, RestoresettingsLocal, RunXMLHandlers, RunRestoreHandlers;
 
     global WhateverYouNeed;
     
-    local initList, mainList, resetList, xmlList, readList, storesettings, loadvariables, loadcases, warnings, var, startupStatus;
+    local initList, mainList, resetList, xmlList, readList, restoreList, storesettings, loadvariables, loadcases, warnings, var, startupStatus;
 
     initList := [];
     mainList := [];
     resetList := [];
     xmlList := [];
     readList := [];
-
+    restoreList := [];
 
     InitCommon := proc(materialType::string, calculationtype::string)
         description "Initialize common data structures and store the active material type";
@@ -71,7 +74,8 @@ NODEDocumentCommon := module()
         end if;
         
         ResetWarnings(WhateverYouNeed);
-        ReadComponentsCommon(action, WhateverYouNeed);
+        
+        ReadComponentsCommon(action, WhateverYouNeed, readList);
         
         if MASTERALARM(WhateverYouNeed["warnings"]) = false and 
            (action = "calculation" or WhateverYouNeed["calculations"]["autocalc"]) then
@@ -85,17 +89,15 @@ NODEDocumentCommon := module()
     end proc:
 
 
-    RegisterHandlers := proc({initProc::procedure := NULL}, {mainProc::procedure := NULL}, {resetProc::procedure := NULL}, {xmlProc::procedure := NULL}, {readProc::procedure := NULL})
+    RegisterHandlers := proc({initProc::procedure := NULL}, {mainProc::procedure := NULL}, {resetProc::procedure := NULL}, {xmlProc::procedure := NULL}, {readProc::procedure := NULL}, {restoreProc::procedure := NULL})
         description "Register other initialization procedures using keyword-arguments";
 
-        # Eksisterende registrering
         if initProc <> NULL then initList := [op(initList), eval(initProc)]; end if;
         if mainProc <> NULL then mainList := [op(mainList), eval(mainProc)]; end if;
-        
-        # NYTT: Registrering av de tre nye prosedyrene
         if resetProc <> NULL then resetList := [op(resetList), eval(resetProc)]; end if;
         if xmlProc <> NULL then xmlList := [op(xmlList), eval(xmlProc)]; end if;
         if readProc <> NULL then readList := [op(readList), eval(readProc)]; end if;
+        if restoreProc <> NULL then restoreList := [op(restoreList), eval(restoreProc)]; end if;
     end proc:
 
 
@@ -110,7 +112,18 @@ NODEDocumentCommon := module()
             for p in resetList do p(); end do;
         end if;
 
-        MainCommon("reset");
+        NODEDocumentCommon:-MainCommon("reset");
+    end proc:
+
+
+    RunRestoreHandlers := proc()
+        description "Running all specific procedures after restore";
+        local p;
+        if nops(restoreList) > 0 then
+            for p in restoreList do 
+                p(); # running without parameters as WhateverYouNeed is global in specific module
+            end do;
+        end if;
     end proc:
 
 

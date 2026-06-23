@@ -20,12 +20,11 @@ NODEStatics := module()
     option package;
     
     global WhateverYouNeed; 
-    export InitSpecific, ResetSpecific, runAfterXMLImportLocal, Main, ReadComponentsSpecific;
+    export InitSpecific, ResetSpecific, RunAfterRestoresettingsLocal, runAfterXMLImportLocal, Main, ReadComponentsSpecific;
     uses DocumentTools, NODEFunctions, NODEFastenerPattern;
 
 
-    InitSpecific := proc()
-        description "Deklarer globale variabler og oppsett for Fastener Pattern";        
+    InitSpecific := proc()        
         local var_calculations_FastenerPatterns, FastenerPatterns, var_numeric;
 
         WhateverYouNeed["calculations"]["calculationtype_short"] := "Fastener Group";
@@ -41,7 +40,7 @@ NODEStatics := module()
         var_numeric := {"center_", "radial_", "loadcenter_"}; 
                         
         WhateverYouNeed["componentvariables"]["var_calculations"] := WhateverYouNeed["componentvariables"]["var_calculations"] union var_calculations_FastenerPatterns;
-        WhateverYouNeed["componentvariables"]["var_numeric"] := eval(var_numeric);
+        WhateverYouNeed["componentvariables"]["var_numeric"] := WhateverYouNeed["componentvariables"]["var_numeric"] union var_numeric;
         WhateverYouNeed["componentvariables"]["var_ComboBox"] := eval(WhateverYouNeed["componentvariables"]["var_ComboBox"] union {"FastenerPatterns"});
         
         # need to setup variable for storing values, but only if missing
@@ -89,7 +88,13 @@ NODEStatics := module()
         NODEFastenerPattern:-ModifyFastenerPattern("AddFastenerPattern", WhateverYouNeed);
     end proc:
 
-   
+
+    RunAfterRestoresettingsLocal := proc()
+        description "Lokal logikk som kjøres etter gjenoppretting av innstillinger";
+        # missing code
+    end proc:
+
+
     runAfterXMLImportLocal := proc(i::string)
         description "Procedure run after import of XML file, called in NODEXML:-runAfterXMLImport";
         local warnings;
