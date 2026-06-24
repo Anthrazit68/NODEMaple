@@ -1742,6 +1742,7 @@ NODEFunctions := module()
 		end if;
 	end proc:
 
+
 	ResetComponent := proc(var::set)
 		description "Delete results in combobox";
 		local i;
@@ -1759,6 +1760,7 @@ NODEFunctions := module()
 			end if;
 		end do;
 	end proc:
+
 
 	ResetWarnings := proc(WhateverYouNeed::table)
 		description "reset warnings and errors";
@@ -1940,10 +1942,11 @@ NODEFunctions := module()
 		local activated;
 
 		if ComponentExists(cat("TextArea_", loadvar, "d")) then
-			if length(GetProperty(cat("TextArea_", loadvar, "d"), value)) = 0 then	# reset of design values, needs to be calculated
+			if length(GetProperty(cat("TextArea_", loadvar, "d"), value)) = 0 or parse(GetProperty(cat("TextArea_", loadvar, "d"), value)) = 0	then	# reset of design values, needs to be calculated
 				SetProperty(cat("TextArea_", loadvar, "Gk"), 'enabled', true);
 				SetProperty(cat("TextArea_", loadvar, "Qk"), 'enabled', true);
 				activated := true
+
 			else
 				# SetProperty(cat("TextArea_", loadvar, "_Gk"), 'value', "0");
 				# SetProperty(cat("TextArea_", loadvar, "_Qk"), 'value', "0");
@@ -2289,12 +2292,17 @@ NODEFunctions := module()
 	end proc:
 
 
-	WriteLoadsToDocument := proc(loadcase, WhateverYouNeed::table)
+	WriteLoadsToDocument := proc(loadcase::string, WhateverYouNeed::table)
 		description "Get loadcases and write to document";
 		local i, dummy, loadvariables, loadcases;
 
 		loadvariables := WhateverYouNeed["calculations"]["loadvariables"];
 		loadcases := WhateverYouNeed["calculations"]["loadcases"];
+
+		if numelems(loadcases) = 0 then
+			Alert("WriteLoadsToDocument: no loadcases defined", WhateverYouNeed["warnings"], 3);
+			return
+		end if;
 
 		SetProperty("TextArea_activeloadcase", 'value', loadcase);
 

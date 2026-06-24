@@ -14,10 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-    # 4. Definer trigger-funksjonen nederst i modulen
-
-
-
 NODEDocumentCommon := module()
     description "Universal control and interface routines shared across all material documents";
     option package;
@@ -25,7 +21,7 @@ NODEDocumentCommon := module()
 
     export RegisterHandlers, startupcheck, Reset, InitCommon, MainCommon, StoresettingsLocal, RestoresettingsLocal, RunXMLHandlers, RunRestoreHandlers;
 
-    global WhateverYouNeed;
+    global WhateverYouNeed, calculationtype, materialtype;
     
     local initList, mainList, resetList, xmlList, readList, restoreList, storesettings, loadvariables, loadcases, warnings, var, startupStatus;
 
@@ -36,7 +32,7 @@ NODEDocumentCommon := module()
     readList := [];
     restoreList := [];
 
-    InitCommon := proc(materialType::string, calculationtype::string)
+    InitCommon := proc(materialtype::string, calculationtype::string)
         description "Initialize common data structures and store the active material type";
         uses NODEFunctions;
         local p;
@@ -46,7 +42,7 @@ NODEDocumentCommon := module()
         # Initialize generic library definitions using the shared global calculationtype
         LibInitCommon(WhateverYouNeed, calculationtype);
 
-        WhateverYouNeed["material"] := materialType;
+        WhateverYouNeed["material"] := materialtype;
 
         # run InitSpecific's
         if nops(initList) > 0 then
@@ -105,14 +101,14 @@ NODEDocumentCommon := module()
         description "Reset the active calculation document";
         local p;
         storesettings := Matrix(1,1);
-        InitCommon();
+        InitCommon(materialtype, calculationtype);
         
         # run specific reset procedures
         if nops(resetList) > 0 then
             for p in resetList do p(); end do;
         end if;
 
-        NODEDocumentCommon:-MainCommon("reset");
+        NODEDocumentCommon:-MainCommon("ResetLoadcase");
     end proc:
 
 
