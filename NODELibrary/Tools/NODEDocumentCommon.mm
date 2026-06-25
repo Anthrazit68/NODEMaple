@@ -21,9 +21,9 @@ NODEDocumentCommon := module()
 
     export RegisterHandlers, startupcheck, Reset, InitCommon, MainCommon, StoresettingsLocal, RestoresettingsLocal, RunXMLHandlers, RunRestoreHandlers;
 
-    global WhateverYouNeed, calculationtype, materialtype;
+    global WhateverYouNeed, calculationtype, materialtype, storesettings;
     
-    local initList, mainList, resetList, xmlList, readList, restoreList, storesettings, loadvariables, loadcases, warnings, var, startupStatus;
+    local initList, mainList, resetList, xmlList, readList, restoreList, loadvariables, loadcases, warnings, var, startupStatus;
 
     initList := [];
     mainList := [];
@@ -48,6 +48,10 @@ NODEDocumentCommon := module()
         if nops(initList) > 0 then
             for p in initList do p(); end do;
         end if;             
+
+        if startupStatus = true then        # should not be run during Reset for example
+            RestoresettingsLocal();
+        end if;
 
         # Mark startup as completed so it doesn't re-run configuration on every manual execution
         startupStatus := false;
@@ -125,8 +129,9 @@ NODEDocumentCommon := module()
 
     RestoresettingsLocal := proc()
         description "Restore settings matrix from module memory back to active UI components";
-        Restoresettings(storesettings, WhateverYouNeed);
+        Restoresettings(storesettings, WhateverYouNeed);        # restore values from "storedsettings" matrix to WhateverYouNeed
         StoredsettingsToComponents(WhateverYouNeed);
+        # RunAfterRestoresettings(WhateverYouNeed);	# local procedures to define secondary necessary settings
     end proc:
 
 

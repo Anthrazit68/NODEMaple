@@ -1773,11 +1773,11 @@ NODEFunctions := module()
 	end proc:
 
 
-	Restoresettings := proc(storedsettings::Matrix, WhateverYouNeed::table)
+	Restoresettings := proc(storesettings::Matrix, WhateverYouNeed::table)
 		description "Restoring settings from file";
 		local temp, dummy, dummy1;
 
-		temp := table(storedsettings[1,1]);
+		temp := table(storesettings[1,1]);
 
 		for dummy in indices(temp, 'nolist') do		# "calculations", "sections", "projectdata", "materials"
 			if type(temp[dummy], table) then			
@@ -2119,7 +2119,7 @@ NODEFunctions := module()
 			end if;
 		end do;
 
-		StoresettingsLocal(temp)		# save local using global variable
+		NODEDocumentCommon:-StoresettingsLocal(temp)		# save local using global variable
 	end proc:
 
 	SyncSliderWithTextArea := proc(i::string)
