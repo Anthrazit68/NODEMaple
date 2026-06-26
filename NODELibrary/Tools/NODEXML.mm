@@ -389,6 +389,7 @@ NODEXML := module()
 			end if;
 					
 		elif action = "import" then
+			NODEDocumentCommon:-Reset();		# clean sheet before import
 			successful := XMLImport(items, WhateverYouNeed);
 			runAfterXMLImport(successful, WhateverYouNeed);	# local routines to be run after XMLImport
 			
@@ -1339,7 +1340,7 @@ NODEXML := module()
 							end do;
 						end if;
 					else
-						xmlmaterials := AddChild(xmlmaterials, xmlMaterial, ContentModelCount(xmlmaterials))		# legg til material p� slutten av listen
+						xmlmaterials := AddChild(xmlmaterials, xmlMaterial, ContentModelCount(xmlmaterials))		# add material at end of list
 					end if;
 					xmltree := ReplaceChild(writeposition = xmlmaterials, xmltree);							# deretter m� ogs� xmlmaterials erstattes/oppdateres i xmltree, material i 1. posisjon
 					

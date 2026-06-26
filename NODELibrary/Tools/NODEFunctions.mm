@@ -2137,13 +2137,17 @@ NODEFunctions := module()
 	UnpackTable := proc(t::table, checkvar::set, WhateverYouNeed::table)
 		description "Recursive solution for StoredSettingsToComponents";
 		local idx, upd_check, warnings;
-		
+
 		upd_check := checkvar;
 		warnings := WhateverYouNeed["warnings"];
 		
 		for idx in indices(t, 'nolist') do
 
-			if type(t[idx], table) then            
+			# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
+			if member(idx, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		
+				ModifyComboVariables(cat("ComboBox_", idx), "Write", t[idx], table());	# write new values to combobox
+
+			elif type(t[idx], table) then            
 				upd_check := UnpackTable(t[idx], upd_check, WhateverYouNeed);
 
 			elif type(t[idx], string) or type(t[idx], numeric) or type(t[idx], boolean) then
@@ -2154,10 +2158,6 @@ NODEFunctions := module()
 
 			elif member(cat("-",idx), WhateverYouNeed["componentvariables"]["var_ComboBox"]) then
 				# "-variable" will be ignored
-
-			# tables, where contents need to be stored into ComboBoxes, e.g. loadcases, materials, sections
-			elif member(idx, WhateverYouNeed["componentvariables"]["var_ComboBox"]) then		
-				ModifyComboVariables(cat("ComboBox_", idx), "Write", t[idx], table());	# write new values to combobox
 
 			else
 				Alert(cat("Missing implementation in UnpackTable: ", idx, " = ", t[idx], " type ", whattype(t[idx])), warnings, 1);

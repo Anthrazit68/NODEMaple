@@ -95,17 +95,17 @@ NODEStatics := module()
     end proc:
 
 
-    runAfterXMLImportLocal := proc(i::string)
-        description "Procedure run after import of XML file, called in NODEXML:-runAfterXMLImport";
-        local warnings;
+    # runAfterXMLImportLocal := proc(i::string)
+    #     description "Procedure run after import of XML file, called in NODEXML:-runAfterXMLImport";
+    #     local warnings;
 
-        warnings := WhateverYouNeed["warnings"];
+    #     warnings := WhateverYouNeed["warnings"];
 
-        if i = "fastener" then
-            SetComboFastenersAfterXMLImport(WhateverYouNeed);		# EC5_8_SetVisibilityCombobox
-        else
-            Alert(cat("runAfterXMLUImportLocal: unhandled command ", i), warnings, 2);
-        end if;
-    end proc:
+    #     if i = "fastener" then
+    #         SetComboFastenersAfterXMLImport(WhateverYouNeed);		# EC5_8_SetVisibilityCombobox
+    #     else
+    #         Alert(cat("runAfterXMLUImportLocal: unhandled command ", i), warnings, 2);
+    #     end if;
+    # end proc:
 
 end module:
