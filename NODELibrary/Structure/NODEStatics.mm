@@ -20,8 +20,69 @@ NODEStatics := module()
     option package;
     
     global WhateverYouNeed; 
-    export InitSpecific, ResetSpecific, RunAfterRestoresettingsLocal, runAfterXMLImportLocal, Main, ReadComponentsSpecific;
+    export ExcelFileInOutLocal, InitSpecific, ResetSpecific, RunAfterRestoresettingsLocal, runAfterXMLImportLocal, Main, ReadComponentsSpecific;
     uses DocumentTools, NODEFunctions, NODEFastenerPattern;
+
+
+    ExcelFileInOutLocal := proc(action::string)
+        description "Call Excel read and write operations";
+        local filename, loadcase, loadcases, activeloadcase, cellvalue, node, pointList, ForcesInConnection;
+        
+        filename := ExcelFileInOut(action, WhateverYouNeed);
+        
+        if action = "template" or action = "import" then
+
+            return
+
+        elif action = "export" then
+
+            WhateverYouNeed["calculations"]["calculatingAllLoadcases"]:= true;		# running calculation of all loadcases at the moment
+            WhateverYouNeed["calculations"]["suppress_gui"] := true;
+            activeloadcase := WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"];
+            loadcases := WhateverYouNeed["calculations"]["loadcases"];
+            pointList := WhateverYouNeed["results"]["FastenerGroup"]["Fasteners"];
+
+            # Headers
+            cellvalue := Array(1..numelems(pointList) + 1, 1..5);
+            cellvalue[1,1] := "(Id)";
+            cellvalue[1,2] := "Fx [kN]";
+            cellvalue[1,3] := "Fy [kN]";
+            cellvalue[1,4] := "F [kN]";
+            cellvalue[1,5] := "alpha [deg]";
+
+            for loadcase in indices(loadcases, 'nolist', 'indexorder') do
+                WriteLoadsToDocument(loadcase, WhateverYouNeed);
+                WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"] := loadcase;
+                
+                # Calling the main calculation routine of the specific program
+                NODEDocumentCommon:-MainCommon("calculation");
+                ForcesInConnection := WhateverYouNeed["results"]["FastenerGroup"]["ForcesInConnection"];
+                
+                for node from 1 to numelems(pointList) do
+                    cellvalue[node+1, 1] := node;
+                    cellvalue[node+1, 2] := ConvertUnitfree("F_x", ForcesInConnection[node][1], WhateverYouNeed);
+                    cellvalue[node+1, 3] := ConvertUnitfree("F_y", ForcesInConnection[node][2], WhateverYouNeed);
+                    cellvalue[node+1, 4] := ConvertUnitfree("F_", ForcesInConnection[node][3], WhateverYouNeed);
+                    cellvalue[node+1, 5] := ConvertUnitfree("alpha", ForcesInConnection[node][4], WhateverYouNeed);
+                end do;		
+                    
+                ExcelTools:-Export(cellvalue, filename, loadcase);
+            end do;
+            
+            if hasindex(WhateverYouNeed["results"], "FastenerGroup") then
+                NODEFastenerPattern:-SetComponentsCriticalLoadcase("activate", WhateverYouNeed)
+            end if;
+
+            # reset values to active loadcase	
+            WhateverYouNeed["calculations"]["calculatingAllLoadcases"]:= false;		# running calculation of all loadcases at the moment
+            WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"] := activeloadcase;
+            WhateverYouNeed["calculations"]["suppress_gui"] := false;
+            WriteValueToComponent("loadcases", activeloadcase, {"nocheck"});
+            NODEDocumentCommon:-MainCommon("calculateAllLoadcasesCleanup");
+
+        end if;
+
+    end proc:
 
 
     InitSpecific := proc()        

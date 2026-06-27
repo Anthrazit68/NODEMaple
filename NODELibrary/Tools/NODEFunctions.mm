@@ -121,7 +121,7 @@ NODEFunctions := module()
 
 		maxloadedFastener := table();
 
-		for loadcase in indices(loadcases, 'nolist') do
+		for loadcase in indices(loadcases, 'nolist', 'indexorder') do
 			
 	#		if loadcase <> "activeloadcase" then
 				WriteLoadsToDocument(loadcase, WhateverYouNeed);
@@ -131,7 +131,7 @@ NODEFunctions := module()
 		#			if WhateverYouNeed["calculations"]["calculationtype"] = "NS-EN 1995-1-1, Section 8: Fasteners" then
 		#				NODEFastenerPattern:-CalculateForcesInConnection(WhateverYouNeed)	# just want to calculate forces in the connection, not check the capacity
 		#			else
-					Main(WhateverYouNeed, "CalculateAllLoadcases");
+					NODEDocumentCommon:-MainCommon("calculation");
 		#			end if;
 			
 				# calculation with eta values
