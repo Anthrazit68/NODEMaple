@@ -1,55 +1,76 @@
-# Create_NODETimberSections
-# v 0.2
-# 2020-04-13
-# Andreas Zieritz
+# Create_NODETimberSections.mm : process timber section cross-sections
+# Copyright (C) 2026  Andreas Zieritz
 
-# - Programmet leser tverrsnittsdatabasen (Excel fil) og skriver en Maple library som andre Maple programmer kan bruke senere.
-# - NODETre.mla må kopieres fra NODE_Development til NODE_Library
-# Importing and Parsing Data
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
 
-with(ArrayTools):
-data:=convert(ExcelTools:-Import("Data/TimberDimensions.xlsx","Timber","A2:C92"), Matrix):
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 
-# This is the metadata from the spreadsheet
-# - ingen punkter i variabelnavn!
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-metadata:=[ 
- [A, "Typ", 1, "Solid timber, Glued laminated timber eller CLT"]
-,[B, "b", (mm), "bredde"]
-,[C, "h", (mm), "høyde"]]:
+proc()
+    local rawData, metadata, i, outputFile, outputFilename, timberTypeKey, widthKey,
+          tretype_set, profil_b, profil_h;
+    uses ExcelTools, ListTools, NODEFunctions;
 
-# Lag en liste over hvilke tretyper vi har i regnearket (f. eks. solidtimber og glulam)
+    # 1. Import data matrix from Excel (Columns A to C, row 2 down to the end of the data layout)
+    rawData := convert(ExcelTools:-Import("Data/TimberDimensions.xlsx", "Timber", "A2:C"), Matrix):
+    rawData := subs("&ndash;" = NULL, rawData):
 
-tretype := {}:
-for ind,val in data do	     # loop over tverrsnittsdata
-	if ind[2]= 1 then   # ind returnerer linje, rad (f. eks. 54.,3.), vi trenger bare det som står i rad 1
-		tretype:=tretype union {val}
-	end if
-end do;
+    # 2. Metadata definitions describing properties and default target units
+    metadata := [ 
+         [A, "Typ", 1, "Timber profile type (Solid timber, Glued laminated timber, or CLT)"]
+        ,[B, "b", (mm), "Cross-section width"]
+        ,[C, "h", (mm), "Cross-section height"]
+    ]:
 
-# Hent hvilken bredder vi har for de enkelte tretypene
+    # 3. Initialize lookup sets and configuration index tables
+    tretype_set := {};
+    profil_b := table();
+    profil_h := table();
 
-profil_b:=table():          # initialisering av variablen som lagrer bredder
+    # 4. Parse the raw tracking data in a single pass to map profile layouts
+    for i from 1 to numelems(rawData[..,1]) do
+        # Protect logic from failing on unexpected whitespace rows at the bottom of the worksheet
+        if rawData[i,1] <> NULL and rawData[i,1] <> "" then
+            
+            # Extract names and round out data-entry float decimal points (e.g., converting 90.0 to 90)
+            timberTypeKey := rawData[i,1];
+            widthKey      := round(rawData[i,2]);
 
-for ind,val in tretype do
-	profil_b[val]:={}   # initialisering av indeksvariablen for tretypene lagres i en liste
-end do:
+            # Store the unique structural category types
+            tretype_set := tretype_set union {timberTypeKey};
 
-for i from 1 to upperbound(data)[1] do      # nå fyller vi listen av bredder for de tretypene
-	profil_b[data[i,1]] := profil_b[data[i,1]] union {round(data[i,2])}
-end do:
+            # Hierarchy Level 1: Timber Category Type -> Width Set
+            if not assigned(profil_b[timberTypeKey]) then 
+                profil_b[timberTypeKey] := {}; 
+            end if;
+            profil_b[timberTypeKey] := profil_b[timberTypeKey] union {widthKey * Unit('mm')};
 
-# OBS! Data som er lest inn har en komma etter tallet. Dette lager litt utfordring for table index etterpå, ettersom de blir behandlet alfanumerisk. 90 er ulik 90.0.
+            # Hierarchy Level 2: [Timber Category Type, Width (unit-free for lookup matching)] -> Height Set
+            if not assigned(profil_h[timberTypeKey, widthKey]) then 
+                profil_h[timberTypeKey, widthKey] := {}; 
+            end if;
+            profil_h[timberTypeKey, widthKey] := profil_h[timberTypeKey, widthKey] union {round(rawData[i,3]) * Unit('mm')};
 
-# Lag liste over hvilke høyder vi har for de enkelte tretypene og breddene
-profil_h:=table():		# initialisering av varialen som lagrer høyder
+        end if;
+    end do:
 
-for ind,val in tretype do			# loop over tretyper
-	for ind1,val1 in profil_b[val] do	# loop over profilbredder
-		profil_h[val, val1]:={}	# høyder for de tretypene og bredder lagres i en liste
-	end do;
-end do:
+    # 5. Output file generation, compiling cleanly structured text code expressions (%a)
+    outputFilename := "Timber/Data_NODETimberSections.mm";
+    outputFile := FileTools[Text][Open](outputFilename, create=true, overwrite=true);
 
-for i from 1 to upperbound(data)[1] do       # nå fyller vi listen av bredder for de tretypene
-	profil_h[data[i,1], round(data[i,2])] := profil_h[data[i,1], round(data[i,2])] union {round(data[i,3])}
-end do:
+    FileTools[Text][WriteString](outputFile, sprintf("metadata := %a:\n", eval(metadata)));
+    FileTools[Text][WriteString](outputFile, sprintf("tretype := %a:\n", eval(tretype_set)));
+    FileTools[Text][WriteString](outputFile, sprintf("profil_b := %a:\n", eval(profil_b)));
+    FileTools[Text][WriteString](outputFile, sprintf("profil_h := %a:\n", eval(profil_h)));
+
+    FileTools[Text][Close](outputFile);
+
+end proc(): # Compiled immediately when called via $include paths

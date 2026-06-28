@@ -129,9 +129,15 @@ NODEDocumentCommon := module()
 
     RestoresettingsLocal := proc()
         description "Restore settings matrix from module memory back to active UI components";
-        Restoresettings(storesettings, WhateverYouNeed);        # restore values from "storedsettings" matrix to WhateverYouNeed
-        StoredsettingsToComponents(WhateverYouNeed);
-        # RunAfterRestoresettings(WhateverYouNeed);	# local procedures to define secondary necessary settings
+        if assigned(storesettings) and type(storesettings, Matrix) then
+            if storesettings[1,1] = 0 then
+                return  # storesettings initialized, but has no content (e.g. pure material information)
+            else
+                Restoresettings(storesettings, WhateverYouNeed);        # restore values from "storedsettings" matrix to WhateverYouNeed
+                StoredsettingsToComponents(WhateverYouNeed);
+                # RunAfterRestoresettings(WhateverYouNeed);	# local procedures to define secondary necessary settings
+            end if;
+        end if;
     end proc:
 
 

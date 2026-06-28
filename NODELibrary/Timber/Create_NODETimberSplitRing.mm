@@ -1,90 +1,140 @@
-# Create_NODETimberSplitRing
-# 2024-06-08
-# Andreas Zieritz
-# Importing and Parsing Data
+# Create_NODETimberSplitRing.mm : process timber split ring connectors
+# Copyright (C) 2026  Andreas Zieritz
 
-with(ArrayTools):
-data:=convert(ExcelTools:-Import("Data/TimberFasteners.xlsx","Simpson SplitRing","A3:N9"), Matrix):
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
 
-# This is the metadata from the spreadsheet
-# - ingen punkter i variabelnavn!
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 
-metadata:=[ 
- [A, "prod", 1, "Producer"]
-,[B, "type", 1, "Type"]
-,[C, "information", 1, "Type detail"]
-,[D, "serviceclass", 1, "fm_serviceclass"]
-,[E, "dc", (mm), "dc"]
-,[F, "hc", (mm), "hc"]
-,[G, "t", (mm), "t"]
-,[H, "r", (mm), "r"]
-,[I, "a1", (mm), "a1"]
-,[J, "a2", (mm), "a2"]
-,[K, "a3t", (mm), "a3,t"]
-,[L, "a3c", (mm), "a3,c"]
-,[M, "a4t", (mm), "a4,t"]
-,[N, "a4c", (mm), "a4,c"]
-]:
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-# 1.) Index over types A1
-type_ := {}:
-for ind,val in data do	     # loop over types
-  if ind[2]= 2 then          # 2.nd column
-    type_:=type_ union {val}
-  end if
-end do;
+proc()
+    local rawData, metadata, i, outputFile, outputFilename, rowKey,
+          type_set, dc_set, producer_, information_, serviceclass_, 
+          hc_, t_, r_, a1_, a2_, a3t_, a3c_, a4t_, a4c_;
+    uses ExcelTools, ListTools, NODEFunctions;
 
-# 2.) get type
-dc_:=table():
-for ind,val in type_ do
-	dc_[val]:={}   # initialisering av indeksvariable
-end do:
-for i from 1 to upperbound(data)[1] do 
-	dc_[data[i,2]] := dc_[data[i,2]] union {data[i,5]* Unit(metadata[5,3])}
-end do:
+    # 1. Import raw data matrix from Excel (Columns A to N, matching the template row array range)
+    rawData := convert(ExcelTools:-Import("Data/TimberFasteners.xlsx", "Simpson SplitRing", "A3:N"), Matrix):
+    rawData := subs("&ndash;" = NULL, rawData):
 
-# indexing the rest
-producer_:=table():
-information_:=table():
-serviceclass_:=table():
-hc_:=table():
-t_:=table():
-r_:=table():
-a1_:=table():
-a2_:=table():
-a3t_:=table():
-a3c_:=table():
-a4t_:=table():
-a4c_:=table():
+    # 2. Metadata configurations describing parameters and unit objects
+    metadata := [ 
+         [A, "prod", 1, "Producer"]
+        ,[B, "type", 1, "Connector type classification"]
+        ,[C, "information", 1, "Detailed type specifications"]
+        ,[D, "serviceclass", 1, "Maximum service class eligibility"]
+        ,[E, "dc", (mm), "Connector diameter"]
+        ,[F, "hc", (mm), "Connector height"]
+        ,[G, "t", (mm), "Connector thickness"]
+        ,[H, "r", (mm), "Groove dimension radius"]
+        ,[I, "a1", (mm), "Minimum spacing parallel to grain (a1)"]
+        ,[J, "a2", (mm), "Minimum spacing perpendicular to grain (a2)"]
+        ,[K, "a3t", (mm), "Minimum loaded end distance (a3,t)"]
+        ,[L, "a3c", (mm), "Minimum unloaded end distance (a3,c)"]
+        ,[M, "a4t", (mm), "Minimum loaded edge distance (a4,t)"]
+        ,[N, "a4c", (mm), "Minimum unloaded edge distance (a4,c)"]
+    ]:
 
-for ind,val in type_ do
-  for ind1,val1 in dc_[val] do
-     producer_[val, round(convert(val1, unit_free))]:={};
-     information_[val, round(convert(val1, unit_free))]:={};
-     serviceclass_[val, round(convert(val1, unit_free))]:={};
-     hc_[val, round(convert(val1, unit_free))]:={};
-     t_[val, round(convert(val1, unit_free))]:={};
-     r_[val, round(convert(val1, unit_free))]:={};
-     a1_[val, round(convert(val1, unit_free))]:={};
-     a2_[val, round(convert(val1, unit_free))]:={};
-     a3t_[val, round(convert(val1, unit_free))]:={};
-     a3c_[val, round(convert(val1, unit_free))]:={};
-     a4t_[val, round(convert(val1, unit_free))]:={};
-     a4c_[val, round(convert(val1, unit_free))]:={};   
-  end do;
-end do:
+    # 3. Initialize lookup tracking tables and unique component arrays
+    type_set := {};
+    dc_set := table();
+    producer_ := table();
+    information_ := table();
+    serviceclass_ := table();
+    hc_ := table();
+    t_ := table();
+    r_ := table();
+    a1_ := table();
+    a2_ := table();
+    a3t_ := table();
+    a3c_ := table();
+    a4t_ := table();
+    a4c_ := table();
 
-for i from 1 to upperbound(data)[1] do 
-  producer_[data[i,2], round(data[i,5])] := producer_[data[i,2], round(data[i,5])] union {data[i,1]};
-  information_[data[i,2], round(data[i,5])] := information_[data[i,2], round(data[i,5])] union {data[i,3]};
-  serviceclass_[data[i,2], round(data[i,5])] := serviceclass_[data[i,2], round(data[i,4])] union {data[i,4]};
-  hc_[data[i,2], round(data[i,5])] := hc_[data[i,2], round(data[i,5])] union {data[i,6]* Unit(metadata[6, 3])};
-  t_[data[i,2], round(data[i,5])] := t_[data[i,2], round(data[i,5])] union {data[i,7]* Unit(metadata[7, 3])};
-  r_[data[i,2], round(data[i,5])] := r_[data[i,2], round(data[i,5])] union {data[i,8]* Unit(metadata[8, 3])};
-  a1_[data[i,2], round(data[i,5])] := a1_[data[i,2], round(data[i,5])] union {data[i,9]* Unit(metadata[9, 3])};
-  a2_[data[i,2], round(data[i,5])] := a2_[data[i,2], round(data[i,5])] union {data[i,10]* Unit(metadata[10, 3])};
-  a3t_[data[i,2], round(data[i,5])] := a3t_[data[i,2], round(data[i,5])] union {data[i,11]* Unit(metadata[11, 3])};
-  a3c_[data[i,2], round(data[i,5])] := a3c_[data[i,2], round(data[i,5])] union {data[i,12]* Unit(metadata[12, 3])};
-  a4t_[data[i,2], round(data[i,5])] := a4t_[data[i,2], round(data[i,5])] union {data[i,13]* Unit(metadata[13, 3])};
-  a4c_[data[i,2], round(data[i,5])] := a4c_[data[i,2], round(data[i,5])] union {data[i,14]* Unit(metadata[14, 3])};
-end do:
+    # 4. Map cross-reference arrays via a single structural data sweep
+    for i from 1 to numelems(rawData[..,1]) do
+        # Ignore empty worksheet slots safely
+        if rawData[i,1] <> NULL and rawData[i,1] <> "" then
+            
+            # Save parent lookup indices
+            type_set := type_set union {rawData[i,2]};
+
+            # Hierarchy 1: Connector Type -> Unique Diameters List
+            if not assigned(dc_set[rawData[i,2]]) then 
+                dc_set[rawData[i,2]] := {}; 
+            end if;
+            dc_set[rawData[i,2]] := dc_set[rawData[i,2]] union {rawData[i,5] * Unit('mm')};
+
+            # Uniform Index Matrix Key: [Type Name, Rounded Diameter Value]
+            rowKey := rawData[i,2], round(rawData[i,5]);
+
+            if not assigned(producer_[rowKey]) then producer_[rowKey] := {}; end if;
+            producer_[rowKey] := producer_[rowKey] union {rawData[i,1]};
+
+            if not assigned(information_[rowKey]) then information_[rowKey] := {}; end if;
+            information_[rowKey] := information_[rowKey] union {rawData[i,3]};
+
+            # FIXED: Fixed the mismatched index array check mapping error from rowData[i,4] to rowKey
+            if not assigned(serviceclass_[rowKey]) then serviceclass_[rowKey] := {}; end if;
+            serviceclass_[rowKey] := serviceclass_[rowKey] union {rawData[i,4]};
+
+            if not assigned(hc_[rowKey]) then hc_[rowKey] := {}; end if;
+            hc_[rowKey] := hc_[rowKey] union {rawData[i,6] * Unit('mm')};
+
+            if not assigned(t_[rowKey]) then t_[rowKey] := {}; end if;
+            t_[rowKey] := t_[rowKey] union {rawData[i,7] * Unit('mm')};
+
+            if not assigned(r_[rowKey]) then r_[rowKey] := {}; end if;
+            r_[rowKey] := r_[rowKey] union {rawData[i,8] * Unit('mm')};
+
+            if not assigned(a1_[rowKey]) then a1_[rowKey] := {}; end if;
+            a1_[rowKey] := a1_[rowKey] union {rawData[i,9] * Unit('mm')};
+
+            if not assigned(a2_[rowKey]) then a2_[rowKey] := {}; end if;
+            a2_[rowKey] := a2_[rowKey] union {rawData[i,10] * Unit('mm')};
+
+            if not assigned(a3t_[rowKey]) then a3t_[rowKey] := {}; end if;
+            a3t_[rowKey] := a3t_[rowKey] union {rawData[i,11] * Unit('mm')};
+
+            if not assigned(a3c_[rowKey]) then a3c_[rowKey] := {}; end if;
+            a3c_[rowKey] := a3c_[rowKey] union {rawData[i,12] * Unit('mm')};
+
+            if not assigned(a4t_[rowKey]) then a4t_[rowKey] := {}; end if;
+            a4t_[rowKey] := a4t_[rowKey] union {rawData[i,13] * Unit('mm')};
+
+            if not assigned(a4c_[rowKey]) then a4c_[rowKey] := {}; end if;
+            a4c_[rowKey] := a4c_[rowKey] union {rawData[i,14] * Unit('mm')};
+
+        end if;
+    end do:
+
+    # 5. Compile final formatted file dump out using standard plaintext serialization (%a)
+    outputFilename := "Timber/Data_NODETimberSplitRing.mm";
+    outputFile := FileTools[Text][Open](outputFilename, create=true, overwrite=true);
+
+    FileTools[Text][WriteString](outputFile, sprintf("metadata := %a:\n", eval(metadata)));
+    FileTools[Text][WriteString](outputFile, sprintf("type_ := %a:\n", eval(type_set)));
+    FileTools[Text][WriteString](outputFile, sprintf("dc_ := %a:\n", eval(dc_set)));
+    FileTools[Text][WriteString](outputFile, sprintf("producer_ := %a:\n", eval(producer_)));
+    FileTools[Text][WriteString](outputFile, sprintf("information_ := %a:\n", eval(information_)));
+    FileTools[Text][WriteString](outputFile, sprintf("serviceclass_ := %a:\n", eval(serviceclass_)));
+    FileTools[Text][WriteString](outputFile, sprintf("hc_ := %a:\n", eval(hc_)));
+    FileTools[Text][WriteString](outputFile, sprintf("t_ := %a:\n", eval(t_)));
+    FileTools[Text][WriteString](outputFile, sprintf("r_ := %a:\n", eval(r_)));
+    FileTools[Text][WriteString](outputFile, sprintf("a1_ := %a:\n", eval(a1_)));
+    FileTools[Text][WriteString](outputFile, sprintf("a2_ := %a:\n", eval(a2_)));
+    FileTools[Text][WriteString](outputFile, sprintf("a3t_ := %a:\n", eval(a3t_)));
+    FileTools[Text][WriteString](outputFile, sprintf("a3c_ := %a:\n", eval(a3c_)));
+    FileTools[Text][WriteString](outputFile, sprintf("a4t_ := %a:\n", eval(a4t_)));
+    FileTools[Text][WriteString](outputFile, sprintf("a4c_ := %a:\n", eval(a4c_)));
+
+    FileTools[Text][Close](outputFile);
+
+end proc():

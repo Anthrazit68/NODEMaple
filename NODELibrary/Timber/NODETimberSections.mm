@@ -1,5 +1,5 @@
-# NODETimberSections : timber section properties
-# Copyright (C) 2024  Andreas Zieritz
+# NODETimberSections.mm : timber section properties tracking API
+# Copyright (C) 2026  Andreas Zieritz
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,17 +14,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-NODETimberSections:= module()
-	export timbertype, section_b, section_h:
-	option package;
+NODETimberSections := module()
+    description "Data API providing engineering profile cross-section tracking maps for structural wood layouts";
+    option package;
 
-	global tretype, profil_h, profil_b;
-	
-	timbertype := tretype;
+    # Public API tracking structures exposed directly to worksheet selectors and checking scripts
+    export timbertype, section_b, section_h;
 
-	# https://www.mapleprimes.com/questions/229310-Variable-From-Library-Different-Than
-	# m� bruke eval() for tables, se ogs�
-	# https://www.maplesoft.com/support/help/Maple/view.aspx?path=last_name_eval&term=last_name_eval
-	section_b := eval(profil_b);
-	section_h := eval(profil_h);
+    # Encapsulated module-level configurations - zero global execution leaking
+    local metadata, tretype, profil_b, profil_h;
+
+# $include MUST sit at the absolute start of the file line (column 1) to build correctly
+$include "Timber/Data_NODETimberSections.mm"
+
+    # Safely evaluate, copy, and bind local variable layouts into public tracking handles
+    timbertype := eval(tretype);
+    section_b  := eval(profil_b);
+    section_h  := eval(profil_h);
+
 end module:

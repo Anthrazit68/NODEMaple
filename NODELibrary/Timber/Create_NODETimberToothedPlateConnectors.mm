@@ -1,135 +1,196 @@
-# Create_NODETimberToothedPlateConnectors
-# 2024-06-08
-# Andreas Zieritz
-# Importing and Parsing Data
+# Create_NODETimberToothedPlateConnectors.mm : process toothed plate connector database
+# Copyright (C) 2026  Andreas Zieritz
 
-with(ArrayTools):
-data:=convert(ExcelTools:-Import("Data/TimberFasteners.xlsx","ToothedPlateConnectors","A3:W79"), Matrix):
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
 
-# This is the metadata from the spreadsheet
-# - ingen punkter i variabelnavn!
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 
-metadata:=[ 
- [A, "prod", 1, "Producer"]
-,[B, "type", 1, "Type"]
-,[C, "sides", 1, "1 or 2-sided"]
-,[D, "information", 1, "Type detail"]
-,[E, "serviceclass", 1, "fm_serviceclass"]
-,[F, "dc", (mm), "dc"]
-,[F, "d1", (mm), "d1"]
-,[H, "h1", (mm), "h1"]
-,[I, "hc", (mm), "hc"]
-,[J, "t", (mm), "t"]
-,[K, "d2", (mm), "d2"]
-,[L, "la1", (mm), "a1"]
-,[M, "la2", (mm), "a2"]
-,[N, "t1", (mm), "t1"]
-,[O, "t2", (mm), "t2"]
-,[P, "a1", (mm), "a1"]
-,[Q, "a2", (mm), "a2"]
-,[R, "a3t", (mm), "a3,t"]
-,[S, "a3c", (mm), "a3,c"]
-,[T, "a4t", (mm), "a4,t"]
-,[U, "a4c", (mm), "a4,c"]
-,[V, "Rvk", (kN), "Rf,uk"]
-]:
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-# 1.) Index over types C1...C7
-sides_ := {}:
-for ind,val in data do	     # loop over types
-  if ind[2]= 3 then          # 3.nd column
-    sides_:=sides_ union {convert(round(val), string)}
-  end if
-end do;
+proc()
+    local rawData, metadata, i, outputFile, outputFilename, rowKey,
+          sides_set, type_set, dc_set, producer_, information_, serviceclass_,
+          d1_, h1_, hc_, t_, d2_, la1_, la2_, t1_, t2_, a1_, a2_, a3t_, a3c_, a4t_, a4c_, Rvk_;
+    uses ExcelTools, ListTools, NODEFunctions;
 
-# 2.) get type
-type_:=table():
-for ind,val in sides_ do
-	type_[val]:={}   # initialisering av indeksvariable
-end do:
-for i from 1 to upperbound(data)[1] do 
-	type_[convert(round(data[i,3]), string)] := type_[convert(round(data[i,3]), string)] union {data[i,2]}
-end do:
+    # 1. Import raw data matrix from Excel (Columns A to W, row 3 down to the end of data layout)
+    rawData := convert(ExcelTools:-Import("Data/TimberFasteners.xlsx", "ToothedPlateConnectors", "A3:W"), Matrix):
+    rawData := subs("&ndash;" = NULL, rawData):
 
-# Need to rewrite that, indexing over db gives no meaning
-# db should be removed from the list, d1 is the only thing that is important.
+    # 2. Metadata definitions describing parameters and engineering units
+    metadata := [ 
+         [A, "prod", 1, "Producer"]
+        ,[B, "type", 1, "Connector type classification"]
+        ,[C, "sides", 1, "Connector interface configuration (1 or 2-sided)"]
+        ,[D, "information", 1, "Detailed structural specifications"]
+        ,[E, "serviceclass", 1, "Maximum service class eligibility"]
+        ,[F, "dc", (mm), "External connector diameter (dc)"]
+        ,[G, "d1", (mm), "Internal bolt hole diameter (d1)"] # Fixed column key indexing label duplication
+        ,[H, "h1", (mm), "Tooth depth height (h1)"]
+        ,[I, "hc", (mm), "Flange height depth (hc)"]
+        ,[J, "t", (mm), "Plate core base thickness (t)"]
+        ,[K, "d2", (mm), "Alternative internal hole diameter (d2)"]
+        ,[L, "la1", (mm), "Inherent spacing component parallel (a1)"]
+        ,[M, "la2", (mm), "Inherent spacing component normal (a2)"]
+        ,[N, "t1", (mm), "Minimum timber thickness element 1 (t1)"]
+        ,[O, "t2", (mm), "Minimum timber thickness element 2 (t2)"]
+        ,[P, "a1", (mm), "Minimum spacing limit parallel to grain (a1)"]
+        ,[Q, "a2", (mm), "Minimum spacing limit normal to grain (a2)"]
+        ,[R, "a3t", (mm), "Minimum loaded end distance boundary (a3,t)"]
+        ,[S, "a3c", (mm), "Minimum unloaded end distance boundary (a3,c)"]
+        ,[T, "a4t", (mm), "Minimum loaded edge distance boundary (a4,t)"]
+        ,[U, "a4c", (mm), "Minimum unloaded edge distance boundary (a4,c)"]
+        ,[V, "Rvk", (kN), "Characteristic shear capacity check value (R_v_k)"]
+    ]:
 
-# 3.) get diameter
-dc_:=table():
-for ind,val in sides_ do
-  for ind1, val1 in type_[val] do
-	dc_[val, val1]:={}   # initialisering av indeksvariable
-  end do;
-end do:
-for i from 1 to upperbound(data)[1] do 
-  dc_[convert(round(data[i,3]), string), data[i, 2]] := dc_[convert(round(data[i,3]), string), data[i, 2]] union {data[i,6] * Unit(metadata[6,3])}
-end do:
+    # 3. Initialize lookup tracking tables and unique component arrays
+    sides_set := {};
+    type_set := table();
+    dc_set := table();
+    producer_ := table();
+    information_ := table();
+    serviceclass_ := table();
+    d1_ := table();
+    h1_ := table();
+    hc_ := table();
+    t_ := table();
+    d2_ := table();
+    la1_ := table();
+    la2_ := table();
+    t1_ := table();
+    t2_ := table();
+    a1_ := table();
+    a2_ := table();
+    a3t_ := table();
+    a3c_ := table();
+    a4t_ := table();
+    a4c_ := table();
+    Rvk_ := table();
 
-# indexing the rest
+    # 4. Map cross-reference tracking objects using a single matrix loop pass
+    for i from 1 to numelems(rawData[..,1]) do
+        # Guard mapping engine against blank cell lines at the base of the file
+        if rawData[i,1] <> NULL and rawData[i,1] <> "" then
+            
+            # Stringify integer keys to clear float decimal points (e.g. converting 1.0 to "1")
+            local activeSides, activeType, activeDc;
+            activeSides := convert(round(rawData[i,3]), string);
+            activeType  := rawData[i,2];
+            activeDc    := round(rawData[i,6]);
 
-producer_:=table():
-information_:=table():
-serviceclass_:=table():
-d1_:=table():
-h1_:=table():
-hc_:=table():
-t_:=table():
-d2_:=table():
-la1_:=table():
-la2_:=table():
-t1_:=table():
-t2_:=table():
-a1_:=table():
-a2_:=table():
-a3t_:=table():
-a3c_:=table():
-a4t_:=table():
-a4c_:=table():
-Rvk_:=table():
-for ind,val in sides_ do
-  for ind1,val1 in type_[val] do
-    for ind2,val2 in dc_[val, val1] do
-       producer_[val, val1, round(convert(val2, unit_free))]:={};
-       information_[val, val1, round(convert(val2, unit_free))]:={};
-       serviceclass_[val, val1, round(convert(val2, unit_free))]:={};
-       d1_[val, val1, round(convert(val2, unit_free))]:={};
-       h1_[val, val1, round(convert(val2, unit_free))]:={};
-       hc_[val, val1, round(convert(val2, unit_free))]:={};
-       t_[val, val1, round(convert(val2, unit_free))]:={};
-       d2_[val, val1, round(convert(val2, unit_free))]:={};
-       la1_[val, val1, round(convert(val2, unit_free))]:={};
-       la2_[val, val1, round(convert(val2, unit_free))]:={};
-       t1_[val, val1, round(convert(val2, unit_free))]:={};
-       t2_[val, val1, round(convert(val2, unit_free))]:={};
-       a1_[val, val1, round(convert(val2, unit_free))]:={};
-       a2_[val, val1, round(convert(val2, unit_free))]:={};
-       a3t_[val, val1, round(convert(val2, unit_free))]:={};
-       a3c_[val, val1, round(convert(val2, unit_free))]:={};
-       a4t_[val, val1, round(convert(val2, unit_free))]:={};
-       a4c_[val, val1, round(convert(val2, unit_free))]:={};
-       Rvk_[val, val1, round(convert(val2, unit_free))]:={};
-    end do;
-  end do;
-end do:
+            # Assemble parent selection listings
+            sides_set := sides_set union {activeSides};
 
-for i from 1 to upperbound(data)[1] do 
-  producer_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] := producer_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] union {data[i,1]};
-  information_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] := information_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] union {data[i,4]};
-  serviceclass_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] := serviceclass_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] union {data[i,5]};
-  d1_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] := d1_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] union {data[i,7]* Unit(metadata[7, 3])};
-  h1_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] := h1_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] union {data[i,8]* Unit(metadata[8, 3])};
-  hc_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] := hc_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] union {data[i,9]* Unit(metadata[9, 3])};
-  t_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] := t_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] union {data[i,10]* Unit(metadata[10, 3])};
-  d2_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] := d2_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] union {data[i,11]* Unit(metadata[11, 3])};
-  la1_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] := la1_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] union {data[i,12]* Unit(metadata[12, 3])};
-  la2_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] := la2_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] union {data[i,13]* Unit(metadata[13, 3])};
-  t1_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] := t1_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] union {data[i,14]* Unit(metadata[14, 3])};
-  t2_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] := t2_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] union {data[i,15]* Unit(metadata[15, 3])};
-  a1_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] := a1_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] union {data[i,16]* Unit(metadata[16, 3])};
-  a2_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] := a2_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] union {data[i,17]* Unit(metadata[17, 3])};
-  a3t_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] := a3t_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] union {data[i,18]* Unit(metadata[18, 3])};
-  a3c_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] := a3c_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] union {data[i,19]* Unit(metadata[19, 3])};
-  a4t_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] := a4t_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] union {data[i,20]* Unit(metadata[20, 3])};
-  a4c_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] := a4c_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] union {data[i,21]* Unit(metadata[21, 3])};
-  Rvk_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] := Rvk_[convert(round(data[i,3]), string), data[i,2], round(data[i,6])] union {data[i,22]* Unit(metadata[22, 3])};
-end do:
+            # Hierarchy Level 1: Interface Type (Sides) -> Product Types
+            if not assigned(type_set[activeSides]) then 
+                type_set[activeSides] := {}; 
+            end if;
+            type_set[activeSides] := type_set[activeSides] union {activeType};
+
+            # Hierarchy Level 2: [Interface Type, Product Type] -> Diameter Set
+            if not assigned(dc_set[activeSides, activeType]) then 
+                dc_set[activeSides, activeType] := {}; 
+            end if;
+            dc_set[activeSides, activeType] := dc_set[activeSides, activeType] union {rawData[i,6] * Unit('mm')};
+
+            # Uniform Compound Reference Multi-Key Index Array: [Sides, Type, Diameter]
+            rowKey := activeSides, activeType, activeDc;
+
+            if not assigned(producer_[rowKey]) then producer_[rowKey] := {}; end if;
+            producer_[rowKey] := producer_[rowKey] union {rawData[i,1]};
+
+            if not assigned(information_[rowKey]) then information_[rowKey] := {}; end if;
+            information_[rowKey] := information_[rowKey] union {rawData[i,4]};
+
+            if not assigned(serviceclass_[rowKey]) then serviceclass_[rowKey] := {}; end if;
+            serviceclass_[rowKey] := serviceclass_[rowKey] union {rawData[i,5]};
+
+            if not assigned(d1_[rowKey]) then d1_[rowKey] := {}; end if;
+            d1_[rowKey] := d1_[rowKey] union {rawData[i,7] * Unit('mm')};
+
+            if not assigned(h1_[rowKey]) then h1_[rowKey] := {}; end if;
+            h1_[rowKey] := h1_[rowKey] union {rawData[i,8] * Unit('mm')};
+
+            if not assigned(hc_[rowKey]) then hc_[rowKey] := {}; end if;
+            hc_[rowKey] := hc_[rowKey] union {rawData[i,9] * Unit('mm')};
+
+            if not assigned(t_[rowKey]) then t_[rowKey] := {}; end if;
+            t_[rowKey] := t_[rowKey] union {rawData[i,10] * Unit('mm')};
+
+            if not assigned(d2_[rowKey]) then d2_[rowKey] := {}; end if;
+            d2_[rowKey] := d2_[rowKey] union {rawData[i,11] * Unit('mm')};
+
+            if not assigned(la1_[rowKey]) then la1_[rowKey] := {}; end if;
+            la1_[rowKey] := la1_[rowKey] union {rawData[i,12] * Unit('mm')};
+
+            if not assigned(la2_[rowKey]) then la2_[rowKey] := {}; end if;
+            la2_[rowKey] := la2_[rowKey] union {rawData[i,13] * Unit('mm')};
+
+            if not assigned(t1_[rowKey]) then t1_[rowKey] := {}; end if;
+            t1_[rowKey] := t1_[rowKey] union {rawData[i,14] * Unit('mm')};
+
+            if not assigned(t2_[rowKey]) then t2_[rowKey] := {}; end if;
+            t2_[rowKey] := t2_[rowKey] union {rawData[i,15] * Unit('mm')};
+
+            if not assigned(a1_[rowKey]) then a1_[rowKey] := {}; end if;
+            a1_[rowKey] := a1_[rowKey] union {rawData[i,16] * Unit('mm')};
+
+            if not assigned(a2_[rowKey]) then a2_[rowKey] := {}; end if;
+            a2_[rowKey] := a2_[rowKey] union {rawData[i,17] * Unit('mm')};
+
+            if not assigned(a3t_[rowKey]) then a3t_[rowKey] := {}; end if;
+            a3t_[rowKey] := a3t_[rowKey] union {rawData[i,18] * Unit('mm')};
+
+            if not assigned(a3c_[rowKey]) then a3c_[rowKey] := {}; end if;
+            a3c_[rowKey] := a3c_[rowKey] union {rawData[i,19] * Unit('mm')};
+
+            if not assigned(a4t_[rowKey]) then a4t_[rowKey] := {}; end if;
+            a4t_[rowKey] := a4t_[rowKey] union {rawData[i,20] * Unit('mm')};
+
+            if not assigned(a4c_[rowKey]) then a4c_[rowKey] := {}; end if;
+            a4c_[rowKey] := a4c_[rowKey] union {rawData[i,21] * Unit('mm')};
+
+            if not assigned(Rvk_[rowKey]) then Rvk_[rowKey] := {}; end if;
+            Rvk_[rowKey] := Rvk_[rowKey] union {rawData[i,22] * Unit('kN')};
+
+        end if;
+    end do:
+
+    # 5. Serialize processing layout maps directly into high-performance plain code lines (%a)
+    outputFilename := "Timber/Data_NODETimberToothedPlateConnectors.mm";
+    outputFile := FileTools[Text][Open](outputFilename, create=true, overwrite=true);
+
+    FileTools[Text][WriteString](outputFile, sprintf("metadata := %a:\n", eval(metadata)));
+    FileTools[Text][WriteString](outputFile, sprintf("sides_ := %a:\n", eval(sides_set)));
+    FileTools[Text][WriteString](outputFile, sprintf("type_ := %a:\n", eval(type_set)));
+    FileTools[Text][WriteString](outputFile, sprintf("dc_ := %a:\n", eval(dc_set)));
+    FileTools[Text][WriteString](outputFile, sprintf("producer_ := %a:\n", eval(producer_)));
+    FileTools[Text][WriteString](outputFile, sprintf("information_ := %a:\n", eval(information_)));
+    FileTools[Text][WriteString](outputFile, sprintf("serviceclass_ := %a:\n", eval(serviceclass_)));
+    FileTools[Text][WriteString](outputFile, sprintf("d1_ := %a:\n", eval(d1_)));
+    FileTools[Text][WriteString](outputFile, sprintf("h1_ := %a:\n", eval(h1_)));
+    FileTools[Text][WriteString](outputFile, sprintf("hc_ := %a:\n", eval(hc_)));
+    FileTools[Text][WriteString](outputFile, sprintf("t_ := %a:\n", eval(t_)));
+    FileTools[Text][WriteString](outputFile, sprintf("d2_ := %a:\n", eval(d2_)));
+    FileTools[Text][WriteString](outputFile, sprintf("la1_ := %a:\n", eval(la1_)));
+    FileTools[Text][WriteString](outputFile, sprintf("la2_ := %a:\n", eval(la2_)));
+    FileTools[Text][WriteString](outputFile, sprintf("t1_ := %a:\n", eval(t1_)));
+    FileTools[Text][WriteString](outputFile, sprintf("t2_ := %a:\n", eval(t2_)));
+    FileTools[Text][WriteString](outputFile, sprintf("a1_ := %a:\n", eval(a1_)));
+    FileTools[Text][WriteString](outputFile, sprintf("a2_ := %a:\n", eval(a2_)));
+    FileTools[Text][WriteString](outputFile, sprintf("a3t_ := %a:\n", eval(a3t_)));
+    FileTools[Text][WriteString](outputFile, sprintf("a3c_ := %a:\n", eval(a3c_)));
+    FileTools[Text][WriteString](outputFile, sprintf("a4t_ := %a:\n", eval(a4t_)));
+    FileTools[Text][WriteString](outputFile, sprintf("a4c_ := %a:\n", eval(a4c_)));
+    FileTools[Text][WriteString](outputFile, sprintf("Rvk_ := %a:\n", eval(Rvk_)));
+
+    FileTools[Text][Close](outputFile);
+
+end proc():
