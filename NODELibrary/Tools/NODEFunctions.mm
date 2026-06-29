@@ -778,7 +778,7 @@ NODEFunctions := module()
 		var_calculations := {"positionnumber", "positiontitle", "activeloadcase", "activematerial", "activesection"};
 
 		var_calculationdata := {"positionnumber", "positiontitle", "calculationtype", "calculationtype_short"};
-		var_storeitems := {"projectdata", "materials", "sections", "calculations/calculationtype", "calculations/positionnumber",
+		var_storeitems := {"material", "projectdata", "materials", "sections", "calculations/calculationtype", "calculations/positionnumber",
 			"calculations/positiontitle", "calculations/loadcases", "calculations/structure", "calculations/activesettings"};
 		var_ComboBox := {"loadcases", "materials", "sections"};		
 		
@@ -1284,7 +1284,6 @@ NODEFunctions := module()
 				end if;
 			end do
 		end if;
-
 
 		# Readmaterials
 		# this one reads strengthclass, serviceclass and loaddurationclass, but just for section 6 calculations where there is a materials

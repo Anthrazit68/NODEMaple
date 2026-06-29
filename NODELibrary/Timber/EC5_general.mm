@@ -319,7 +319,7 @@ GetMaterialdata := proc(activematerial::string, WhateverYouNeed::table)		# "GL 3
 	local f_mk, f_t0k, f_t90k, f_c0k, f_c90k, f_vk, f_rk, E_m0mean, E_m0k, E_m90mean, E_9005, G_mean, G_005, G_rmean, G_r05, rho_k, rho_mean, gamma_M;
 	local f_md, f_t0d, f_t90d, f_c0d, f_c90d, f_vd, f_rd;
 	local k_mod;
-	
+
 	firstpos := searchtext(" / Service class ", activematerial);					# posisjon for f�rste begrensning
 	secondpos := searchtext(" / ", activematerial, firstpos + 1 .. -1) + firstpos;	# https://www.mapleprimes.com/questions/230804-Searchtext-Result-Position?sq=230804
 

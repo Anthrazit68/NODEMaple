@@ -22,21 +22,18 @@ NODETimberMaterial := module()
     export Property, Strengthclasses;
 
     # Encapsulated module-level local tables - zero global contamination
-    local metadata, dataTable, parNames, memberNamesRaw;
+    local metadata, dataTable, parNames, memberNames;
 
 # $include MUST sit at the absolute start of the file line (column 1) to build correctly
 $include "Timber/Data_TimberMaterial.mm"
 
-    # Initialize raw data structures from the included database files at load-time
-    parNames       := convert(metadata[2.., 2], list);
-    memberNamesRaw := [indices(dataTable, 'nolist')];
+    # Initialize tracking names using 'indexorder' to get naturally ordered string keys directly
+    parNames    := convert(metadata[2.., 2], list);
+    memberNames := select(type, [indices(dataTable, 'nolist', 'indexorder')], string);
 
     Property := proc(requiredMember::string, requiredPar::string)
-        local parPos, memberNames;
+        local parPos;
         uses ListTools;
-
-        # Sort the members dynamically at runtime to satisfy compiler verification
-        memberNames := sort(memberNamesRaw, (a,b) -> NODEFunctions:-SortStructuralnames(a,b));
 
         if _npassed = 2 then   
             if member(requiredMember, memberNames) and member(requiredPar, parNames) then
@@ -68,11 +65,8 @@ $include "Timber/Data_TimberMaterial.mm"
     end proc:
 
     Strengthclasses := proc(timbertype::string)
-        description "Return sorted structural timber strength classes filtered by category";
-        local val, glulam, solidtimber, CLT, memberNames;
-
-        # Sort the members dynamically at runtime
-        memberNames := sort(memberNamesRaw, (a,b) -> NODEFunctions:-SortStructuralnames(a,b));
+        description "Return naturally ordered structural timber strength classes filtered by category";
+        local val, glulam, solidtimber, CLT;
 
         glulam      := [];
         solidtimber := [];
