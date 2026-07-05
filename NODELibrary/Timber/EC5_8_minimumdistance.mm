@@ -24,7 +24,7 @@
 # 8.5.1.1(3) Minimumsavstander
 
 # this one is not really useful at the moment, as we do assume alpha = 0
-calculateMinimumdistances := proc(WhateverYouNeed::table)
+calculateMinimumdistances := proc()
 	local part, structure;
 
 	structure := WhateverYouNeed["calculations"]["structure"];	
@@ -32,16 +32,16 @@ calculateMinimumdistances := proc(WhateverYouNeed::table)
 
 	for part in {"1", "2"} do	
 		if structure["connection"][cat("connection", part)] = "Timber" then			
-			calculate_amin_alpha(part, WhateverYouNeed);			
-			PrintMinimumdistance(part, WhateverYouNeed);
+			calculate_amin_alpha(part);			
+			PrintMinimumdistance(part);
 		else
-			PrintMinimumdistance("steel", WhateverYouNeed);
+			PrintMinimumdistance("steel");
 		end if;		
 	end do;
 end proc:
 
 
-calculate_amin_alpha := proc(part::string, WhateverYouNeed::table)
+calculate_amin_alpha := proc(part::string)
 	local calculatedFastener, chosenFastener, calculateAsNail, a1_min, a2_min, a3_min, a3t_min, a3c_min, a4t_min, a4c_min, predrilled, d, rho_k, axiallyLoaded, 
 		j, variables, red_steel, t, h, structure, materialdataAll, sectiondataAll, warnings, comments, distance, alphaBeam, CosMax, SinMax, alpha, ForcesInConnection,
 		i, ShearConnector, dc;
@@ -429,7 +429,7 @@ calculate_amin_alpha := proc(part::string, WhateverYouNeed::table)
 end proc:
 
 
-calculate_amin_max := proc(WhateverYouNeed::table)
+calculate_amin_max := proc()
 	description "calculates minimum distances regardless of alpha value";
 	local calculatedFastener, chosenFastener, calculateAsNail, predrilled, d, rho_k;
 	local a1_min_max, a1_min_min, a2_min_max, a2_min_min, a3_min_max, a3t_min_max, a3c_min_max, a4_min_max, a4t_min_max, a4c_min_max, t, h;
@@ -761,13 +761,13 @@ calculate_amin_max := proc(WhateverYouNeed::table)
 			serviceclass := WhateverYouNeed["materialdataAll"]["2"]["serviceclass"]
 		end if;
 
-		calculate_amin_steel(serviceclass, WhateverYouNeed);
+		calculate_amin_steel(serviceclass);
 	end if;
 
 end proc:
 
 
-PrintMinimumdistance := proc(part, WhateverYouNeed::table)
+PrintMinimumdistance := proc(part)
 	description "Write minimumdistance to document";
 	local j, variables, warnings, var, varmin, varmin_max, distance;
 
@@ -825,7 +825,7 @@ PrintMinimumdistance := proc(part, WhateverYouNeed::table)
 end proc:
 
 
-calculate_amin_steel := proc(serviceclass::string, WhateverYouNeed::table)
+calculate_amin_steel := proc(serviceclass::string)
 	local steelcode, warnings, distance, t, d, d0, tolerance;
 
 	warnings := WhateverYouNeed["warnings"];

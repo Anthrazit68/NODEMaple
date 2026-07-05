@@ -63,7 +63,7 @@
 
 # 8.5.1.1(2)
 # calculates f_h0k and f_hak values
-calculate_f_hk := proc(WhateverYouNeed::table, part::string, alpha)
+calculate_f_hk := proc(part::string, alpha)
 	local fastenervalues, f_hk, k90, calculatedFastener, d, f_h0k, f_h0k_table, f_hk_table, dummy;
 
 	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];

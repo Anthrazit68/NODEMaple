@@ -16,7 +16,7 @@
 
 # 8.2.2
 # F_vR is calculated for each fastener and each loadcase with angle alpha, between force and grain direction, called by EC5_812
-calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
+calculate_F_vR := proc(alpha::table)
 	description "Calculate Fv,R according to 8.2.2";
 
 	local f_hk, t_eff, t_steel, d, F_axRk, M_yRk, shearplanes, F_vRk, F_vRd, beta, dummy, F_vRkmin, alpha_rope, gamma_M, k_mod, structure,
@@ -44,7 +44,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 	bout1 := connection["bout1"];
 	connectionInsideLayers := connection["connectionInsideLayers"];
 		
-	alpha_rope := calculate_alpha_rope(WhateverYouNeed);
+	alpha_rope := calculate_alpha_rope();
 
 	f_hk := table();
 	F_vRkmin := table();		# stores groups of combinable shear failure modes
@@ -65,8 +65,8 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 	# 8.2.2 timber - timber connection
 	if connection["connection1"] = "Timber" and connection["connection2"] = "Timber" then
 
-		f_hk["1"] := calculate_f_hk(WhateverYouNeed, "1", alpha["1"]);
-		f_hk["2"] := calculate_f_hk(WhateverYouNeed, "2", alpha["2"]);
+		f_hk["1"] := calculate_f_hk("1", alpha["1"]);
+		f_hk["2"] := calculate_f_hk("2", alpha["2"]);
 		beta := f_hk["2"] / f_hk["1"];			# this will change for each fastener if alpha is different
 
 		# reduced thickness of outer layer will be allowed
@@ -179,7 +179,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 			
 	else	# (8.2.3) Steel - Timber connections
 
-		f_hk["1"] := calculate_f_hk(WhateverYouNeed, "1", alpha["1"]);		# only used if timber is outside
+		f_hk["1"] := calculate_f_hk("1", alpha["1"]);		# only used if timber is outside
 
 		t_eff["1o"] := fastenervalues["t_eff"]["1"];
 
@@ -274,7 +274,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 
 		if connection["connection1"] = "Steel" and connection["connection2"] = "Timber" then
 
-			f_hk["2"] := calculate_f_hk(WhateverYouNeed, "2", alpha["2"]);
+			f_hk["2"] := calculate_f_hk("2", alpha["2"]);
 
 			if fastenervalues["doublesided"] = true and fastenervalues["SingleShearplane"] = true then	# nail or screw, calculate 2x single connection
 
@@ -550,7 +550,7 @@ calculate_F_vR := proc(WhateverYouNeed::table, alpha::table)
 end proc:
 
 
-calculate_alpha_rope := proc(WhateverYouNeed::table)
+calculate_alpha_rope := proc()
 	description "calculate alpha rope effect";
 	local chosenFastener, alpha_rope;
 

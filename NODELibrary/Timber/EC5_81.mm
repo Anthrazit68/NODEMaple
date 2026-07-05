@@ -23,7 +23,7 @@
 # EC5_814_NA_DE
 # EC5_62net
 
-calculateShearplanes := proc(WhateverYouNeed::table)
+calculateShearplanes := proc()
 	description "Calculate number of shearplanes in connection";
 	local structure, fastenervalues;
 
@@ -37,7 +37,7 @@ calculateShearplanes := proc(WhateverYouNeed::table)
 end proc:
 
 
-calculate_t_total := proc(WhateverYouNeed::table)
+calculate_t_total := proc()
 	description "Calculate total thickness";
 	local dummy, t, t_steel, t_total, numberOfLayers, eqnumberOfLayers, structure, sectiondataAll, plural, layer1, layer1out, layer2, layerSteel, tolerance,
 		shearplanes, layerTolerance, connection, part;
@@ -184,7 +184,7 @@ calculate_t_total := proc(WhateverYouNeed::table)
 end proc:
 
 
-calculate_F_90R := proc(WhateverYouNeed::table)
+calculate_F_90R := proc()
 	description "Calculate splitting capacity according to 8.1.4";
 
 	local warnings, F_90Rk, F_90Rd, part, dummy, t, t_, h, h_, h_e, gamma_M, k_mod, eqnumberOfLayers, w_, structure, materialdataAll,
@@ -385,7 +385,7 @@ end proc:
 
 
 # checking capacity of forces in grain direction
-EC5_812 := proc(WhateverYouNeed::table)
+EC5_812 := proc()
 	description "8.1.2 Multiple fastener connections";
 	local usedcode, comments, ForcesInConnection, part, alphaForce, alphaBeam, alpha, warnings, structure, k_n_ef0, F_vefRd, fastener, eta_n_ef, eta, etamax, 
 		F_vEd, ind, val, dummy, fastenervalues, i, k_n_efa, firstrun_FvR, firstrun_ShearConnector, ShearConnector;
@@ -459,7 +459,7 @@ EC5_812 := proc(WhateverYouNeed::table)
 					# no need to calculate F_vR again
 
 				else
-					calculate_F_vR(WhateverYouNeed, alpha);		# EC5_82, capacity of fasteners
+					calculate_F_vR(alpha);		# EC5_82, capacity of fasteners
 					firstrun_FvR := false
 				end if;
 
@@ -469,12 +469,12 @@ EC5_812 := proc(WhateverYouNeed::table)
 					# use stored values
 
 				elif ShearConnector = "Toothed-plate" and firstrun_ShearConnector = true then
-					calculate_F_vR_89_810(WhateverYouNeed, alpha[part]);
+					calculate_F_vR_89_810(alpha[part]);
 					firstrun_ShearConnector := false
 
 				# 8.9 	Split ring and plate connector: capacity of fastener not taken into account, capacity alpha dependent
 				elif ShearConnector = "Split ring" then					
-					calculate_F_vR_89_810(WhateverYouNeed, alpha[part]);
+					calculate_F_vR_89_810(alpha[part]);
 					fastenervalues["F_vRk"] := 0;
 					fastenervalues["F_vRd"] := 0;
 
@@ -612,7 +612,7 @@ end proc:
 
 
 
-EC5_814 := proc(WhateverYouNeed::table)
+EC5_814 := proc()
 	description "8.1.4 Connection forces at an angle to the grain";
 	local F_90Rd, alpha, alphaForce, alphaBeam, F_hd, F_vd, F_Ed, F_vEd, activeloadcase, warnings,	part, eta, comments, usedcode, structure,
 		f_814, eta_814_NA_DE, usedcode_NA_DE, comments_NA_DE, h_e, a_r, i, calculate_814_NA_DE;
@@ -624,7 +624,7 @@ EC5_814 := proc(WhateverYouNeed::table)
 	F_vd := WhateverYouNeed["calculations"]["loadcases"][activeloadcase]["F_vd"];
 	f_814 := WhateverYouNeed["calculations"]["loadcases"][activeloadcase]["f_814"];		# reduction factor for force normal to grain (force to be split on two sides)
 
-	h_e, a_r := calculate_F_90R(WhateverYouNeed);		# EC5_81, splitting capacity
+	h_e, a_r := calculate_F_90R();		# EC5_81, splitting capacity
 	
 	if f_814 < 0.5 or f_814 > 1 then
 		Alert("wrong loadfactor f_8.1.4: 0,5 < f_8.1.4 < 1,0", warnings, 3);
@@ -667,7 +667,7 @@ EC5_814 := proc(WhateverYouNeed::table)
 	calculate_814_NA_DE := WhateverYouNeed["calculations"]["activesettings"]["calculate_814_NA_DE"];
 	if calculate_814_NA_DE = "true" then
 		
-		eta_814_NA_DE, usedcode_NA_DE, comments_NA_DE := EC5_814_NA_DE(WhateverYouNeed, h_e, a_r);
+		eta_814_NA_DE, usedcode_NA_DE, comments_NA_DE := EC5_814_NA_DE(h_e, a_r);
 		
 	else
 		
@@ -706,7 +706,7 @@ EC5_814 := proc(WhateverYouNeed::table)
 end proc:
 
 
-EC5_814_NA_DE := proc(WhateverYouNeed::table, h_e::table, a_r::table)
+EC5_814_NA_DE := proc(h_e::table, a_r::table)
 	description "8.1.4 Connection forces at an angle to the grain, NA DE (german annex), limtreboka p. 249";
 	local warnings, structure, activeloadcase, F_hd, F_vd, F_Ed, F_vEd, F_90Rd_NA_DE, f_814, part, alphaForce, alphaBeam, alpha, 
 		sectiondataAll, h, eta, comments, usedcode;
@@ -779,7 +779,7 @@ end proc:
 
 # section considered to be in tension
 # effect from kh not taken into account
-EC5_62net := proc(WhateverYouNeed::table)
+EC5_62net := proc()
 	description "Check net area of section, simplified";
 	local structure, sectiondataAll, d, bout1, Anet, part, eqnumberOfLayers, numberOfBolts, alphaBeam, activeloadcase, F_hd, F_vd, F_Ed, F_xEd, alphaForce,
 		alpha, eta, f_t0d, usedcode, comments, fastener, intPointL, intPointR, fastenerPointlist, b, h, distance, yi, ind, I_d, I_d_part, Inet, FastenerGroup,
@@ -1014,7 +1014,7 @@ end proc:
 
 
 # this one should be moved into the steel library
-BoltandSteelCapacity := proc(WhateverYouNeed::table)
+BoltandSteelCapacity := proc()
 	description "Bolt Shear capacity acc. NS-EN 1993-1-8:2005+NA:2009, table 3.4";
 	local fastenervalues, structure, F_vRd, F_bRd, alpha_v, f_ub, A, gamma_M2, d, eqnumberOfLayers, t, f_u, alpha_b, tolerance, d0, p1, p2, e1, e2, alpha_d, k1, calculatedvalues, usedcode, comments,
 		maxFindex, ForcesInConnection, F_vEd, eta;

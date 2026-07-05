@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-calculate_F_vR_89_810 := proc(WhateverYouNeed::table, alpha)
+calculate_F_vR_89_810 := proc(alpha)
 	description "Split Ring and Toothed Plate Connectors";
 	local structure, warnings, fastener, platesides, ShearConnector, connectortype, dc, dc_, he, he_, F_vRk, F_vRd, k1, k2, k3, k4, t, a3t, rho_k, rho_k_, k_mod, gamma_M,
 			fastenervalues, comments, d, shearplanes, F_vRkfin, F_v0Rk, nFasteners, ka, k90;

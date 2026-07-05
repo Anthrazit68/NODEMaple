@@ -17,6 +17,7 @@
 NODETimberEN1995 := module()
 	description "Dimensioning of timber structures according to EN1995-1-1";
 	option package;
+	global WhateverYouNeed;
 	uses Units[Simple], NODEFunctions, DocumentTools, StringTools;
 
 	export EC5_612, EC5_613, EC5_614, EC5_615, EC5_616, EC5_617, EC5_618, EC5_622, EC5_623, EC5_624, EC5_63, EC5_643,

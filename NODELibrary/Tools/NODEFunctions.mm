@@ -425,10 +425,16 @@ NODEFunctions := module()
 	end proc:
 
 
-	ConvertUnitfree := proc(varname::string, varvalue, WhateverYouNeed::table)::numeric;
-		description "Convert value to unit_free based on predefined unit";
+	ConvertUnitfree := proc(varname::string, varvalue, WhateverYouNeed::table)
+		description "Convert value or collection of values to unit_free based on predefined unit";
 		local i, j, var_units, warnings;
 
+		# run on every member for complex constructions		
+		if type(varvalue, {list, set, Matrix, Vector, Array}) then
+			return map(val -> NODEFunctions:-ConvertUnitfree(varname, val, WhateverYouNeed), varvalue);
+		end if;
+
+		# Standard logikk for enkeltverdier (skalarer)
 		var_units := WhateverYouNeed["componentvariables"]["var_units"];
 		warnings := WhateverYouNeed["warnings"];
 

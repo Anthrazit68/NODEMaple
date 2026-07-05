@@ -1614,7 +1614,7 @@ NODEFastenerPattern := module()
 					a := ConvertUnitfree("opening_a", opening["opening_a"], WhateverYouNeed);
 					e := ConvertUnitfree("opening_e", opening["opening_e"], WhateverYouNeed);
 					ls := ConvertUnitfree("fastener_ls", WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_ls"], WhateverYouNeed);
-					h_r := convert~(openingResult["h_r"], 'unit_free');		# distance from edge to crack, ConvertUnitFree: unable to use ~ for each element				
+					h_r := ConvertUnitfree("h_r", openingResult["h_r"], WhateverYouNeed);		# should work with tables, lists, set also now
 
 	#				lv := opening["opening_lv"];
 	#				lA := opening["opening_lA"];

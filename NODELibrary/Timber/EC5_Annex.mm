@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-AnnexA := proc(WhateverYouNeed::table)
+AnnexA := proc()
 	description "Block Shear check acc. Annex A";
 	local BlockShear, A_net_t, A_net_v, lvl, lvr, L_net_v, L_net_t, fastenervalues, structure, t_eff, bout1, connection, d, t_ef, M_yRk, f_hk, F_hd, F_vd, alphaForce,
 	 activeloadcase, dummy, dummy1, t_steel, sectiondataAll, shearplanes, timberlayers, t_1, i, usedcode, comments, warnings, F_bsRk, F_bsRd, f_t0k, f_vk, k_mod,

@@ -18,7 +18,7 @@
 # EC5_643
 
 # 6.4.2 check is already implemented in 6.1.6 (bending check)
-EC5_643 := proc(WhateverYouNeed::table)
+EC5_643 := proc()
 	description "Beregner utnyttelser i henhold til 6.4.3";
 	local timbertype, V_yd, V_zd, M_yd, A, W_y;
 	local tau_d_64, sigma_t90d_64, kcr, eta_643, usedcode, comments, f_t90d, f_vd, k_dis, k_p, k_vol, loadcase;

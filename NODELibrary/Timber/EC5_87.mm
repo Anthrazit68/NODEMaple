@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-GetCalculatedFastener := proc(WhateverYouNeed::table)
+GetCalculatedFastener := proc()
     description "check calculation type for metal fasteners";
     local fastener, chosenFastener, d, calculatedFastener, warnings, fastenervalues;
 
