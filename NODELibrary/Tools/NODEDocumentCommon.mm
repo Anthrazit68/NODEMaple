@@ -77,8 +77,11 @@ NODEDocumentCommon := module()
         
         ReadComponentsCommon(action, WhateverYouNeed, readList);
         
-        if MASTERALARM(WhateverYouNeed["warnings"]) = false and 
-           (action = "calculation" or WhateverYouNeed["calculations"]["autocalc"]) then
+        if action = "Reset" or MASTERALARM(WhateverYouNeed["warnings"]) = true then
+
+            return
+
+        elif action = "calculation" or WhateverYouNeed["calculations"]["autocalc"] then
 
             # Delegates core calculation execution to the sheet's global Main procedure
             if nops(mainList) > 0 then
@@ -86,6 +89,7 @@ NODEDocumentCommon := module()
             end if;   
 
         end if;
+
     end proc:
 
 
@@ -104,6 +108,7 @@ NODEDocumentCommon := module()
     Reset := proc()
         description "Reset the active calculation document";
         local p;
+
         storesettings := Matrix(1,1);
         InitCommon(materialtype, calculationtype);
         
@@ -112,7 +117,7 @@ NODEDocumentCommon := module()
             for p in resetList do p(); end do;
         end if;
 
-        NODEDocumentCommon:-MainCommon("ResetLoadcase");
+        NODEDocumentCommon:-MainCommon("Reset");
     end proc:
 
 

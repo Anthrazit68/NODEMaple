@@ -606,7 +606,7 @@ NODEFunctions := module()
 			end do;
 
 			if upperbound(loaddata)[1] > 1 then
-				NODEDocumentCommon:-MainCommon("ResetLoadcase")
+				NODEDocumentCommon:-MainCommon("Reset")
 			end if;
 
 			for i from 2 to upperbound(loaddata)[1] do
@@ -1671,7 +1671,7 @@ NODEFunctions := module()
 			activeloadcase := GetProperty("TextArea_activeloadcase", value);
 			WriteLoadsToDocument(activeloadcase, WhateverYouNeed);		# get stored load values and write values to document
 			
-		elif action = "ResetLoadcase" then
+		elif action = "ResetLoadcase" or action = "Reset" then
 			loadcases := table();
 			WhateverYouNeed["calculations"]["loadcases"] := eval(loadcases);	# https://www.mapleprimes.com/questions/235292-Store-Values-Between-Sessions-Including
 			activeloadcase := "1";
@@ -2469,12 +2469,5 @@ NODEFunctions := module()
 
 		return upd_check_calculations
 	end proc:
-
-	# ResetDocument := proc()
-	#	description "Reset document as far as possible";
-			
-	#	InitCommon();
-	#	NODEDocumentCommon:-MainCommon("ResetLoadcase")	
-	# end proc:
 
 end module:

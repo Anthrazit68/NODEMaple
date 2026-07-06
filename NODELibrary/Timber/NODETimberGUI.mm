@@ -43,7 +43,7 @@ NODETimberGUI := module()
     export runAfterXMLImportLocal, activateComponents_64, InitSpecific_EC5_6, Main_EC5_6, ReadComponentsSpecific_EC5_6, ResetSpecific_EC5_6, RunAfterRestoresettings_EC5_6,
             InitSpecific_EC5_8, Main_EC5_8, ReadComponentsSpecific_EC5_8, ResetSpecific_EC5_8, RunAfterRestoresettings_EC5_8,
             InitSpecific_Opening, Main_Opening, ReadComponentsSpecific_Opening, ResetSpecific_Opening, RunAfterRestoresettings_Opening;
-    uses DocumentTools, NODEFunctions, NODETimberEN1995;
+    uses DocumentTools, NODEFunctions, NODETimberEN1995, NODEDocumentCommon;
 
     runAfterXMLImportLocal := proc(i::string)
         description "Procedure run after import of XML file, called in NODEXML:-runAfterXMLImport";
@@ -155,7 +155,7 @@ NODETimberGUI := module()
 
     # Main calculation routine
     Main_EC5_6 := proc(action::string)
-        
+
         description "Beregner utnyttelsesgrader for dimensjonering";
         # uses NODETimberEN1995;	already loaded in GeneralStartup.mm
         local force, activeloadcase, eta, usedcode, comments, structure, warnings, maxindex, usedcodeDescription;
@@ -496,16 +496,45 @@ NODETimberGUI := module()
 
     ResetSpecific_EC5_6 := proc()
         description "Reset specific values for calculation";
+        local activematerial, sectionchanged, serviceclass, loaddurationclass, strengthclass;
 
         # resetting Combobox for materials and sections
-        SetProperty("ComboBox_timbertype", 'selectedindex', 0);			# Solid timber
-        MainCommon("timbertype");										# setting C14, 36x98
         SetProperty("ComboBox_serviceclass", 'selectedindex', 0);		# Service class 1
+        serviceclass := GetProperty("ComboBox_serviceclass", value);
+
         SetProperty("ComboBox_loaddurationclass", 'selectedindex', 0);	# Load-duration class Permanent
+        loaddurationclass := GetProperty("ComboBox_loaddurationclass", value);
+
+        SetProperty("ComboBox_timbertype", 'selectedindex', 0);			# Solid timber
+        if ComponentExists("ComboBox_timbertype") and GetProperty("ComboBox_timbertype", 'enabled') = "true" then
+            # set strengthclass
+            if GetProperty("ComboBox_timbertype", value) = "Solid timber" then					# set properties for strengthclass
+                SetProperty("ComboBox_strengthclass", 'itemlist', NODETimberMaterial:-Strengthclasses("Solid timber"));
+            
+            elif GetProperty("ComboBox_timbertype", value) = "Glued laminated timber" then
+                SetProperty("ComboBox_strengthclass", 'itemlist', NODETimberMaterial:-Strengthclasses("Glued laminated timber"));
+            
+            elif GetProperty("ComboBox_timbertype", value) = "CLT" then
+                SetProperty("ComboBox_strengthclass", 'itemlist', NODETimberMaterial:-Strengthclasses("CLT"));
+            
+            else
+                SetProperty("ComboBox_strengthclass", 'itemlist', NODETimberMaterial:-Strengthclasses("all"));
+            
+            end if;
+
+            strengthclass := GetProperty("ComboBox_strengthclass", value);
+
+            SetProperty("ComboBox_strengthclass", 'selectedindex', 0);		# pick first value
+            activematerial := cat(strengthclass," / Service class ", serviceclass," / ", loaddurationclass);
+            sectionchanged := MaterialChanged(WhateverYouNeed["material"], activematerial, WhateverYouNeed, true, "");
+        end if;
+
         SetProperty("ComboBox_materials", 'itemlist', [GetProperty("TextArea_activematerial", value)]);
         SetProperty("ComboBox_sections", 'itemlist', [GetProperty("TextArea_activesection", value)]);
+
         ModifyComboVariables("ComboBox_materials", "Add", WhateverYouNeed["materials"], WhateverYouNeed["materialdata"]);
         ModifyComboVariables("ComboBox_sections", "Add", WhateverYouNeed["sections"], WhateverYouNeed["sectiondata"]);
+
     end proc:
 
 
@@ -1001,7 +1030,7 @@ NODETimberGUI := module()
 
         # resetting Combobox for materials and sections
         SetProperty("ComboBox_timbertype", 'selectedindex', 0);			# Solid timber
-        MainCommon("timbertype");										# setting C14, 36x98
+        NODEDocumentCommon:-MainCommon("timbertype");										# setting C14, 36x98
         SetProperty("ComboBox_serviceclass", 'selectedindex', 0);		# Service class 1
         SetProperty("ComboBox_loaddurationclass", 'selectedindex', 0);	# Load-duration class Permanent
         SetProperty("ComboBox_materials", 'itemlist', [GetProperty("TextArea_activematerial", value)]);

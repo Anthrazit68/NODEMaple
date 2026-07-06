@@ -1149,7 +1149,7 @@ NODEXML := module()
 		
 		for ind in indices(sections, 'nolist', 'indexorder') do
 			section := sections[ind];
-			xmlitem := XMLElement("section", ["name" = section["name"], "sectiontype" = section["sectiontype"], "section" = section["section"], "code" = section["code"]]);
+			xmlitem := XMLElement("section", ["name" = section["name"], "sectiontype" = section["sectiontype"], "section" = section["section"], "steelcode" = section["steelcode"]]);
 			sectionvalues := [indices(section)[1..,1]];									# liste over hvilke parameter som er definert i profilen
 
 			xmlvalue := XMLElement("geometry");
