@@ -117,9 +117,9 @@ NODETimberGUI := module()
         description "Specific initialization values";        
         local var_calculations, var_numeric, var_resultdetails, var_units;
 
-        WhateverYouNeed["calculations"]["calculationtype_short"] := "Eurocode 5 part 1-1 ULS";		# for export to Excel
-        
-        var_calculations := {"positionnumber", "positiontitle", "activeloadcase", "activematerial", "activesection", "timbertype", "b", "h", "strengthclass", "serviceclass", "loaddurationclass", "l_ky", "l_kz", "l_efy", "l_efz",
+        WhateverYouNeed["calculations"]["calculationtype_short"] := "Eurocode 5 part 1-1 ULS";		# for export to Excel        
+
+        var_calculations := {"timbertype", "b", "h", "strengthclass", "serviceclass", "loaddurationclass", "l_ky", "l_kz", "l_efy", "l_efz",
                         "type_615", "a_615", "l_615", "l1_615", "h_622", "ConstructionType", "alpha_ap", "r_in", "l_curve", "t_lam", "tapered_N", "endnotched", "endnotchedType", "h_ef", "l_incl", "x_652"};
 
         # all variables starting with those values are numeric
@@ -155,9 +155,7 @@ NODETimberGUI := module()
 
     # Main calculation routine
     Main_EC5_6 := proc(action::string)
-
-        description "Beregner utnyttelsesgrader for dimensjonering";
-        # uses NODETimberEN1995;	already loaded in GeneralStartup.mm
+        description "Main calculation routine for EC5_6 calculations";        
         local force, activeloadcase, eta, usedcode, comments, structure, warnings, maxindex, usedcodeDescription;
         local alpha, F_xd, M_yd, M_zd, V_yd, V_zd, M_td;
 
@@ -492,42 +490,13 @@ NODETimberGUI := module()
         end if;
 
     end proc:
-
+    
 
     ResetSpecific_EC5_6 := proc()
         description "Reset specific values for calculation";
-        local activematerial, sectionchanged, serviceclass, loaddurationclass, strengthclass;
+        local sectionchanged;
 
-        # resetting Combobox for materials and sections
-        SetProperty("ComboBox_serviceclass", 'selectedindex', 0);		# Service class 1
-        serviceclass := GetProperty("ComboBox_serviceclass", value);
-
-        SetProperty("ComboBox_loaddurationclass", 'selectedindex', 0);	# Load-duration class Permanent
-        loaddurationclass := GetProperty("ComboBox_loaddurationclass", value);
-
-        SetProperty("ComboBox_timbertype", 'selectedindex', 0);			# Solid timber
-        if ComponentExists("ComboBox_timbertype") and GetProperty("ComboBox_timbertype", 'enabled') = "true" then
-            # set strengthclass
-            if GetProperty("ComboBox_timbertype", value) = "Solid timber" then					# set properties for strengthclass
-                SetProperty("ComboBox_strengthclass", 'itemlist', NODETimberMaterial:-Strengthclasses("Solid timber"));
-            
-            elif GetProperty("ComboBox_timbertype", value) = "Glued laminated timber" then
-                SetProperty("ComboBox_strengthclass", 'itemlist', NODETimberMaterial:-Strengthclasses("Glued laminated timber"));
-            
-            elif GetProperty("ComboBox_timbertype", value) = "CLT" then
-                SetProperty("ComboBox_strengthclass", 'itemlist', NODETimberMaterial:-Strengthclasses("CLT"));
-            
-            else
-                SetProperty("ComboBox_strengthclass", 'itemlist', NODETimberMaterial:-Strengthclasses("all"));
-            
-            end if;
-
-            strengthclass := GetProperty("ComboBox_strengthclass", value);
-
-            SetProperty("ComboBox_strengthclass", 'selectedindex', 0);		# pick first value
-            activematerial := cat(strengthclass," / Service class ", serviceclass," / ", loaddurationclass);
-            sectionchanged := MaterialChanged(WhateverYouNeed["material"], activematerial, WhateverYouNeed, true, "");
-        end if;
+        sectionchanged := ReadComponentsCommon_TimberGUI(WhateverYouNeed, {""}, "Reset");
 
         SetProperty("ComboBox_materials", 'itemlist', [GetProperty("TextArea_activematerial", value)]);
         SetProperty("ComboBox_sections", 'itemlist', [GetProperty("TextArea_activesection", value)]);
@@ -544,25 +513,20 @@ NODETimberGUI := module()
     end proc:
 
 
-
     # EC5_8
     InitSpecific_EC5_8 := proc()
-        description "Declare some global variables before use";
-        global WhateverYouNeed;
-        local var_calculations, var_calculations_FastenerPatterns, var_calculations_fasteners, FastenerPatterns, var_numeric, var_loadvariables, var_connection_cut, var_connection_angle, var_connection_length, var_units;
+        description "Specific initialization values";        
+        local var_numeric, var_loadvariables, var_connection_cut, var_connection_angle, var_connection_length, var_units, var_calculations_FastenerPatterns, FastenerPatterns, var_calculations_fasteners;
         
         WhateverYouNeed["calculations"]["calculationtype_short"] := "EC5 part 1-1 Connections";		# for export to Excel
-        
+
         # libFastenerPattern start
-        var_calculations_FastenerPatterns := {"positionnumber", "positiontitle",
-                        "activeFastenerPattern", "activeloadcase", "activematerial1", "activematerial2", "activesection1", "activesection2",
+        var_calculations_FastenerPatterns := {"activeFastenerPattern", "activematerial1", "activematerial2", "activesection1", "activesection2",
                         "FastenerPatternUnits", "reactionforces",
                         "FastenerPatternType1", "center_x1", "center_y1", "grid_x1", "grid_y1", "grid_alpha_11", "grid_alpha_21", "radial_diameter1", "radial_items1", "radial_alpha1",
                         "FastenerPatternType2", "center_x2", "center_y2", "grid_x2", "grid_y2", "grid_alpha_12", "grid_alpha_22", "radial_diameter2", "radial_items2", "radial_alpha2",
                         "FastenerPatternType3", "center_x3", "center_y3", "grid_x3", "grid_y3", "grid_alpha_13", "grid_alpha_23", "radial_diameter3", "radial_items3", "radial_alpha3",
                         "FastenerPatternCoordinates", "coordinates"};
-
-        var_loadvariables := {"f_814"};
 
         var_calculations_fasteners := {"connection1", "connection2", "connectionInsideLayers", "connectionInsideTolerance", "serviceclass", "loaddurationclass", "timbertype1", "strengthclass1", "b1", "bout1", "h1", "graindirection1",
                         "timbertype2", "strengthclass2", "b2", "h2", "graindirection2", "graindirectionsteel", "steeltype", "bsteel", "hsteel", "lengthleftsteel", "lengthrightsteel",
@@ -571,8 +535,6 @@ NODETimberGUI := module()
                         "predrilled", "ignoreReqPredrilled", "alphaScrew", "a11", "a12", "a21", "a22", "a31", "a32", "a41", "a42", "lengthleft1", "lengthright1", "lengthleft2", "lengthright2",
                         "ShearConnector", "SharpMetalProducer", "SharpMetalProduct", "SharpMetalStripes", "SharpMetalLength", "SplitRingtype", "SplitRingdc", 
                         "ToothedPlatesides", "ToothedPlatetype", "ToothedPlatedc"};
-
-        var_calculations := var_calculations_FastenerPatterns union var_calculations_fasteners;
 
         # all variables starting with those values are numeric, grid is NOT (2*70)
         var_numeric := {"graindirection", "alphaScrew", "center_", "radial_", "loadcenter_", "fastener_d", "fastener_ls", "fastener_dh", 
@@ -587,8 +549,8 @@ NODETimberGUI := module()
         var_connection_angle := {"angleleft1", "angleright1", "angleleft2", "angleright2", "angleleftsteel", "anglerightsteel"};
         var_connection_length := {"lengthleft1", "lengthright1", "lengthleft2", "lengthright2", "lengthleftsteel", "lengthrightsteel"};
 
-        WhateverYouNeed["componentvariables"]["var_calculations"] := WhateverYouNeed["componentvariables"]["var_calculations"] union var_calculations union {"graindirection1", "graindirection2", "graindirectionsteel"};
-        WhateverYouNeed["componentvariables"]["var_numeric"] := eval(var_numeric) union var_connection_angle union var_connection_length;
+        WhateverYouNeed["componentvariables"]["var_calculations"] := WhateverYouNeed["componentvariables"]["var_calculations"] union var_calculations_FastenerPatterns union var_calculations_fasteners;
+        WhateverYouNeed["componentvariables"]["var_numeric"] := WhateverYouNeed["componentvariables"]["var_numeric"] union var_numeric union var_connection_angle union var_connection_length;
         
         # WhateverYouNeed["componentvariables"]["var_calculationdata"] := eval(WhateverYouNeed["componentvariables"]["var_calculationdata"] union {"activeFastenerPattern", "activematerial1", "activematerial2", "activematerialsteel", 
         #				"activesection1", "activesection2", "activesectionsteel"});
@@ -597,8 +559,9 @@ NODETimberGUI := module()
 
         # Comboboxes where there are stored a list of settings
         # variables with - in front of the name are not going to be read by standard procedure, but deprecated to runAfterXMLImportLocal
-        WhateverYouNeed["componentvariables"]["var_ComboBox"] := eval(WhateverYouNeed["componentvariables"]["var_ComboBox"] union {"FastenerPatterns", "-connection", "-fastener"});
+        WhateverYouNeed["componentvariables"]["var_ComboBox"] := WhateverYouNeed["componentvariables"]["var_ComboBox"] union {"FastenerPatterns", "-connection", "-fastener"};
 
+        var_loadvariables := {"f_814"};
         WhateverYouNeed["calculations"]["loadvariables"] := WhateverYouNeed["calculations"]["loadvariables"] union var_loadvariables;
 
         WhateverYouNeed["componentvariables"]["var_connection_cut"] := var_connection_cut;
@@ -614,167 +577,8 @@ NODETimberGUI := module()
     end proc:
 
 
-    ResetSpecific_EC5_8 := proc()
-        description "Reset specific values for calculation";
-        
-        # reset Fasternpatterns, one bolt in origo
-        SetProperty("ComboBox_FastenerPatternType1", 'selectedindex', 1);
-        SetProperty("TextArea_center_x1", 'value', "0");
-        SetProperty("TextArea_center_y1", 'value', "0");
-        SetProperty("TextArea_grid_x1", 'value', "0");
-        SetProperty("TextArea_grid_y1", 'value', "0");
-        SetProperty("TextArea_grid_alpha_11", 'value', "0");
-        SetProperty("TextArea_grid_alpha_21", 'value', "0");
-        SetProperty("ComboBox_FastenerPatternType2", 'selectedindex', 0);
-        SetProperty("ComboBox_FastenerPatternType3", 'selectedindex', 0);
-        # SetProperty("CheckBox_FastenerPatternCoordinates", 'enabled', "false");
-        NODEFastenerPattern:-SetVisibilityFastenerPattern();
-        SetProperty("ComboBox_FastenerPatterns", 'itemlist', ["1"]);
-        SetProperty("TextArea_activeFastenerPattern", 'value', "1");
-        NODEFastenerPattern:-ModifyFastenerPattern("AddFastenerPattern", WhateverYouNeed)
-    end proc:
-
-
-    RunAfterRestoresettings_EC5_8 := proc()
-        description "Procedures defining settings after restore from storesettings";
-        local partsnumber, activematerial, activesection, materialdataAll, sectiondataAll, dummy, dummy1, pos;
-
-        materialdataAll := WhateverYouNeed["materialdataAll"];
-        sectiondataAll := WhateverYouNeed["sectiondataAll"];
-
-        # set Combobox values dependent on stored definitions
-        for partsnumber in {"1", "2"} do		
-            
-            if assigned(WhateverYouNeed["calculations"]["activesettings"][cat("activematerial", partsnumber)]) then
-                activematerial := WhateverYouNeed["calculations"]["activesettings"][cat("activematerial", partsnumber)];
-                NODETimberEN1995:-GetMaterialdata(activematerial, WhateverYouNeed);
-                materialdataAll[partsnumber] := eval(WhateverYouNeed["materialdata"]);
-                NODETimberEN1995:-SetComboBoxMaterial(WhateverYouNeed, false, partsnumber);			
-            end if;
-
-            if assigned(WhateverYouNeed["calculations"]["activesettings"][cat("activesection", partsnumber)]) then
-                activesection := WhateverYouNeed["calculations"]["activesettings"][cat("activesection", partsnumber)];
-                NODETimberEN1995:-GetSectiondata(activesection, WhateverYouNeed);			
-                sectiondataAll[partsnumber] := eval(WhateverYouNeed["sectiondata"]);
-                SetComboBoxSection(WhateverYouNeed, partsnumber);	# Set Combobox Section if possible		
-            end if;
-            
-        end do;
-
-        # steel
-        if assigned(WhateverYouNeed["calculations"]["activesettings"]["activematerialsteel"]) then
-            
-            activematerial := WhateverYouNeed["calculations"]["activesettings"]["activematerialsteel"];
-            NODESteelEN1993:-GetMaterialdata(activematerial, WhateverYouNeed);		
-            materialdataAll["steel"] := eval(WhateverYouNeed["materialdata"]);
-
-            dummy := GetProperty("ComboBox_steelgrade", 'itemlist');
-            dummy1 := WhateverYouNeed["materialdataAll"]["steel"]["steelgrade"];
-            if member(dummy1, dummy, 'pos') then
-                SetProperty("ComboBox_steelgrade", 'selectedindex', pos-1);			
-            end if;		
-            
-            activesection := WhateverYouNeed["calculations"]["activesettings"]["activesectionsteel"];
-            NODESteelEN1993:-GetSectiondata(activesection, WhateverYouNeed);
-            sectiondataAll["steel"] := eval(WhateverYouNeed["sectiondata"]);
-            SetProperty("TextArea_section_bsteel", 'value', convert(WhateverYouNeed["sectiondataAll"]["steel"]["b"], 'unit_free'));
-            SetProperty("TextArea_section_hsteel", 'value', convert(WhateverYouNeed["sectiondataAll"]["steel"]["h"], 'unit_free'));
-            
-        end if;
-
-    end proc:
-
-    # this one is started by ReadSystemSection
-    ReadComponentsSpecific_EC5_8 := proc(TypeOfAction::string)	
-        description "Read specific structure and section data";
-        local structure, connection, fastener, fastenervalues, dummy, dummy1, distance, activesettings, calculations, warnings;
-
-        calculations := WhateverYouNeed["calculations"];	
-        structure := calculations["structure"];
-        warnings := WhateverYouNeed["warnings"];	
-        activesettings := calculations["activesettings"];	
-
-        # define some more variables
-        # connection
-        if assigned(structure["connection"]) = false then
-            connection := table();
-            structure["connection"] := eval(connection)
-        else
-            connection := structure["connection"]
-        end if;
-
-        # fastener
-        if assigned(structure["fastener"]) = false then
-            fastener := table();			# input of fastener information, will be stored into structure variable and exported to xml file
-            structure["fastener"] := eval(fastener)
-        else
-            fastener := structure["fastener"]
-        end if;
-
-        # fastenervalues
-        if assigned(WhateverYouNeed["calculatedvalues"]["fastenervalues"]) = false then
-            fastenervalues := table();		# calculated or table values of fasteners, will not be stored in xml file
-            WhateverYouNeed["calculatedvalues"]["fastenervalues"] := fastenervalues;
-        else
-            fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"]
-        end if;
-
-        # when layout changes we must reset calculated values
-        distance := table();
-        WhateverYouNeed["calculatedvalues"]["distance"] := eval(distance);
-        NODEFastenerPattern:-ModifyFastenerPattern("AddFastenerPattern", WhateverYouNeed);
-        
-        # TypeOfAction
-        # ============
-        # all
-        # connection
-        # fastener
-        # layout
-        # distance
-
-        # structure subvalues
-        # ===================
-        # connection
-        # fastener
-        # layout
-        # distance
-        # calculatedvalues
-
-        if TypeOfAction = "all" or TypeOfAction = "connection" then	
-            SetComboConnection(WhateverYouNeed)					# EC5_8_SetVisibilityCombobox
-        end if;
-
-        if TypeOfAction = "all" or TypeOfAction = "fastener" then
-            ReadComponentsSpecific_fastener(fastener, fastenervalues)		# NODETimberLibary
-        end if;
-
-        if TypeOfAction = "all" or TypeOfAction = "layout" or TypeOfAction = "connection" then		
-            SetVisibilityTimberCut();
-            ReadComponentsSpecific_connection(WhateverYouNeed, connection);	# NODETimberLibary
-        end if;
-
-        # sections with special section name 71(40)x140 require additional care
-        # outer profile thickness is stored both in section name and connection definition
-        # invoked by MainCommon("section"), but to be certain also checked when called by "connection"
-        if TypeOfAction = "all" or TypeOfAction = "section" or TypeOfAction = "connection" then
-            if GetProperty("TextArea_section_bout1", 'enabled') = "true" then
-                connection["bout1"] := parse(GetProperty("TextArea_section_bout1", 'value')) * Unit('mm')
-            else
-                connection["bout1"] := "false"
-            end if;
-        end if;
-
-        activesettings["calculate_814_NA_DE"] := GetProperty("CheckBox_calculate_814_NA_DE", 'value');
-
-        # calculatedvalues
-        
-    end proc:
-
-
-    # in case of calculateAllLoadcases this routine is run partly, but at the end a full calculation with the active loadcase is run in addition
-    Main_EC5_8 := proc(action::string)
-        
-        description "Main calculation procedure, calculates values for each force";
+    Main_EC5_8 := proc(action::string)        
+        description "Main calculation routine for EC5_8 calculations";
         local calculations, activesettings, structure, comments, chosenFastener, fastener, calculatedFastener, d, warnings, fastenervalues, eta, usedcode, checkPassed,
                 force, maxindex, usedcodeDescription;
 
@@ -975,6 +779,163 @@ NODETimberGUI := module()
         if WhateverYouNeed["calculations"]["suppress_gui"] = false then
             Write_eta(eta, comments);
             PrintAlert(warnings);
+        end if;
+
+    end proc:
+
+
+    ReadComponentsSpecific_EC5_8 := proc(TypeOfAction::string)	
+        description "Read specific structure and section data";
+        local structure, connection, fastener, fastenervalues, dummy, dummy1, distance, activesettings, calculations, warnings;
+
+        calculations := WhateverYouNeed["calculations"];	
+        structure := calculations["structure"];
+        warnings := WhateverYouNeed["warnings"];	
+        activesettings := calculations["activesettings"];	
+
+        # define some more variables
+        # connection
+        if assigned(structure["connection"]) = false then
+            connection := table();
+            structure["connection"] := eval(connection)
+        else
+            connection := structure["connection"]
+        end if;
+
+        # fastener
+        if assigned(structure["fastener"]) = false then
+            fastener := table();			# input of fastener information, will be stored into structure variable and exported to xml file
+            structure["fastener"] := eval(fastener)
+        else
+            fastener := structure["fastener"]
+        end if;
+
+        # fastenervalues
+        if assigned(WhateverYouNeed["calculatedvalues"]["fastenervalues"]) = false then
+            fastenervalues := table();		# calculated or table values of fasteners, will not be stored in xml file
+            WhateverYouNeed["calculatedvalues"]["fastenervalues"] := fastenervalues;
+        else
+            fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"]
+        end if;
+
+        # when layout changes we must reset calculated values
+        distance := table();
+        WhateverYouNeed["calculatedvalues"]["distance"] := eval(distance);
+        NODEFastenerPattern:-ModifyFastenerPattern("AddFastenerPattern", WhateverYouNeed);
+        
+        # TypeOfAction
+        # ============
+        # all
+        # connection
+        # fastener
+        # layout
+        # distance
+
+        # structure subvalues
+        # ===================
+        # connection
+        # fastener
+        # layout
+        # distance
+        # calculatedvalues
+
+        if TypeOfAction = "all" or TypeOfAction = "connection" then	
+            SetComboConnection(WhateverYouNeed)					# EC5_8_SetVisibilityCombobox
+        end if;
+
+        if TypeOfAction = "all" or TypeOfAction = "fastener" then
+            ReadComponentsSpecific_fastener(fastener, fastenervalues)		# NODETimberLibary
+        end if;
+
+        if TypeOfAction = "all" or TypeOfAction = "layout" or TypeOfAction = "connection" then		
+            SetVisibilityTimberCut();
+            ReadComponentsSpecific_connection(WhateverYouNeed, connection);	# NODETimberLibary
+        end if;
+
+        # sections with special section name 71(40)x140 require additional care
+        # outer profile thickness is stored both in section name and connection definition
+        # invoked by MainCommon("section"), but to be certain also checked when called by "connection"
+        if TypeOfAction = "all" or TypeOfAction = "section" or TypeOfAction = "connection" then
+            if GetProperty("TextArea_section_bout1", 'enabled') = "true" then
+                connection["bout1"] := parse(GetProperty("TextArea_section_bout1", 'value')) * Unit('mm')
+            else
+                connection["bout1"] := "false"
+            end if;
+        end if;
+
+        activesettings["calculate_814_NA_DE"] := GetProperty("CheckBox_calculate_814_NA_DE", 'value');
+
+        # calculatedvalues
+        
+    end proc:
+
+
+    ResetSpecific_EC5_8 := proc()
+        description "Reset specific values for calculation";
+        
+        # reset Fasternpatterns, one bolt in origo
+        SetProperty("ComboBox_FastenerPatternType1", 'selectedindex', 1);
+        SetProperty("TextArea_center_x1", 'value', "0");
+        SetProperty("TextArea_center_y1", 'value', "0");
+        SetProperty("TextArea_grid_x1", 'value', "0");
+        SetProperty("TextArea_grid_y1", 'value', "0");
+        SetProperty("TextArea_grid_alpha_11", 'value', "0");
+        SetProperty("TextArea_grid_alpha_21", 'value', "0");
+        SetProperty("ComboBox_FastenerPatternType2", 'selectedindex', 0);
+        SetProperty("ComboBox_FastenerPatternType3", 'selectedindex', 0);
+        # SetProperty("CheckBox_FastenerPatternCoordinates", 'enabled', "false");
+        NODEFastenerPattern:-SetVisibilityFastenerPattern();
+        SetProperty("ComboBox_FastenerPatterns", 'itemlist', ["1"]);
+        SetProperty("TextArea_activeFastenerPattern", 'value', "1");
+        NODEFastenerPattern:-ModifyFastenerPattern("AddFastenerPattern", WhateverYouNeed)
+    end proc:
+
+
+    RunAfterRestoresettings_EC5_8 := proc()
+        description "Procedures defining settings after restore from storesettings";
+        local partsnumber, activematerial, activesection, materialdataAll, sectiondataAll, dummy, dummy1, pos;
+
+        materialdataAll := WhateverYouNeed["materialdataAll"];
+        sectiondataAll := WhateverYouNeed["sectiondataAll"];
+
+        # set Combobox values dependent on stored definitions
+        for partsnumber in {"1", "2"} do		
+            
+            if assigned(WhateverYouNeed["calculations"]["activesettings"][cat("activematerial", partsnumber)]) then
+                activematerial := WhateverYouNeed["calculations"]["activesettings"][cat("activematerial", partsnumber)];
+                NODETimberEN1995:-GetMaterialdata(activematerial, WhateverYouNeed);
+                materialdataAll[partsnumber] := eval(WhateverYouNeed["materialdata"]);
+                NODETimberEN1995:-SetComboBoxMaterial(WhateverYouNeed, false, partsnumber);			
+            end if;
+
+            if assigned(WhateverYouNeed["calculations"]["activesettings"][cat("activesection", partsnumber)]) then
+                activesection := WhateverYouNeed["calculations"]["activesettings"][cat("activesection", partsnumber)];
+                NODETimberEN1995:-GetSectiondata(activesection, WhateverYouNeed);			
+                sectiondataAll[partsnumber] := eval(WhateverYouNeed["sectiondata"]);
+                SetComboBoxSection(WhateverYouNeed, partsnumber);	# Set Combobox Section if possible		
+            end if;
+            
+        end do;
+
+        # steel
+        if assigned(WhateverYouNeed["calculations"]["activesettings"]["activematerialsteel"]) then
+            
+            activematerial := WhateverYouNeed["calculations"]["activesettings"]["activematerialsteel"];
+            NODESteelEN1993:-GetMaterialdata(activematerial, WhateverYouNeed);		
+            materialdataAll["steel"] := eval(WhateverYouNeed["materialdata"]);
+
+            dummy := GetProperty("ComboBox_steelgrade", 'itemlist');
+            dummy1 := WhateverYouNeed["materialdataAll"]["steel"]["steelgrade"];
+            if member(dummy1, dummy, 'pos') then
+                SetProperty("ComboBox_steelgrade", 'selectedindex', pos-1);			
+            end if;		
+            
+            activesection := WhateverYouNeed["calculations"]["activesettings"]["activesectionsteel"];
+            NODESteelEN1993:-GetSectiondata(activesection, WhateverYouNeed);
+            sectiondataAll["steel"] := eval(WhateverYouNeed["sectiondata"]);
+            SetProperty("TextArea_section_bsteel", 'value', convert(WhateverYouNeed["sectiondataAll"]["steel"]["b"], 'unit_free'));
+            SetProperty("TextArea_section_hsteel", 'value', convert(WhateverYouNeed["sectiondataAll"]["steel"]["h"], 'unit_free'));
+            
         end if;
 
     end proc:

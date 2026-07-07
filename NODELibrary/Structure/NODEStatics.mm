@@ -90,7 +90,7 @@ NODEStatics := module()
 
         WhateverYouNeed["calculations"]["calculationtype_short"] := "Fastener Group";
 
-        var_calculations_FastenerPatterns := {
+        var_calculations_FastenerPatterns := {"activeFastenerPattern",
             "FastenerPatternUnits", "FastenerPatternCoordinates",
             "FastenerPatternType1", "center_x1", "center_y1", "grid_x1", "grid_y1", "grid_alpha_11", "grid_alpha_21", "radial_diameter1", "radial_items1", "radial_alpha1",
             "FastenerPatternType2", "center_x2", "center_y2", "grid_x2", "grid_y2", "grid_alpha_12", "grid_alpha_22", "radial_diameter2", "radial_items2", "radial_alpha2",
@@ -102,7 +102,7 @@ NODEStatics := module()
                         
         WhateverYouNeed["componentvariables"]["var_calculations"] := WhateverYouNeed["componentvariables"]["var_calculations"] union var_calculations_FastenerPatterns;
         WhateverYouNeed["componentvariables"]["var_numeric"] := WhateverYouNeed["componentvariables"]["var_numeric"] union var_numeric;
-        WhateverYouNeed["componentvariables"]["var_ComboBox"] := eval(WhateverYouNeed["componentvariables"]["var_ComboBox"] union {"FastenerPatterns"});
+        WhateverYouNeed["componentvariables"]["var_ComboBox"] := WhateverYouNeed["componentvariables"]["var_ComboBox"] union {"FastenerPatterns"};
         
         # need to setup variable for storing values, but only if missing
         if assigned(WhateverYouNeed["calculations"]["structure"]["FastenerPatterns"]) = false then

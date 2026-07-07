@@ -20,8 +20,8 @@ NODEFunctions := module()
 	uses Units[Simple], DocumentTools;
 	
 	export Alert, CalculateAllLoadcases, ComponentExists, ConvertUnitfree, disableTextAreaEtaMax, ExcelFileInOut, HighlightResults, isNumericVariable, isNumericValue, LibInitCommon, MASTERALARM, MaterialChanged, maxIndexTable,
-			  ModifyComboVariables, ModifyLoadcases, PrintAlert, ProcessLoadcasesFromFile, ReadComponentsCommon, ResetComponent, ResetWarnings, Restoresettings, round2, SectionChanged, SetComboBoxValues, Storesettings,
-			  SetVisibilityTextAreaLoads, SortStructuralnames, StoredsettingsToComponents, SyncSliderWithTextArea, WriteLoadsToDocument, Segment2Arrow, Write_eta, Write_eta2, WriteValueToComponent;
+			  ModifyComboVariables, ModifyLoadcases, PrintAlert, ProcessLoadcasesFromFile, ReadComponentsCommon, ReadComponentsCommon_TimberGUI, ResetComponent, ResetWarnings, Restoresettings, round2, SectionChanged,
+			  SetComboBoxValues, Storesettings, SetVisibilityTextAreaLoads, SortStructuralnames, StoredsettingsToComponents, SyncSliderWithTextArea, WriteLoadsToDocument, Segment2Arrow, Write_eta, Write_eta2, WriteValueToComponent;
 
 	local rnd2, updateResults, CalculateLoads, UnpackTable;
 
@@ -911,7 +911,7 @@ NODEFunctions := module()
 	end proc:
 
 
-	MaterialChanged := proc(material::string, activematerial::string, WhateverYouNeed::table, forceSectionUpdate, partsnumber::string)
+	MaterialChanged := proc(material::string, activematerial::string, WhateverYouNeed::table, forceSectionUpdate, partsnumber::string)::boolean;
 		uses DocumentTools;
 		description "Routines after material has changed";
 		local sectionchanged, warnings, activesection, activesettings, XMLImport;
@@ -1383,49 +1383,7 @@ NODEFunctions := module()
 				dummy := {substring(action, -1..-1)}	# get number timber item
 			end if;
 
-			for i in dummy do
-				if i = "" then
-					materialdata := WhateverYouNeed["materialdata"]
-				else
-					materialdata := WhateverYouNeed["materialdataAll"][i]
-				end if;
-				# timbertype := materialdata["timbertype"];
-				serviceclass := GetProperty("ComboBox_serviceclass", value);
-				loaddurationclass := GetProperty("ComboBox_loaddurationclass", value);
-
-				if ComponentExists(cat("ComboBox_timbertype", i)) then
-					if GetProperty(cat("ComboBox_timbertype", i), 'enabled') = "true" then
-						if materialdata["timbertype"] <> GetProperty(cat("ComboBox_timbertype", i), value) then					
-
-							# set strengthclass
-							if GetProperty(cat("ComboBox_timbertype", i), value) = "Solid timber" then					# set properties for strengthclass
-								SetProperty(cat("ComboBox_strengthclass", i), 'itemlist', NODETimberMaterial:-Strengthclasses("Solid timber"));
-							
-							elif GetProperty(cat("ComboBox_timbertype", i), value) = "Glued laminated timber" then
-								SetProperty(cat("ComboBox_strengthclass", i), 'itemlist', NODETimberMaterial:-Strengthclasses("Glued laminated timber"));
-							
-							elif GetProperty(cat("ComboBox_timbertype", i), value) = "CLT" then
-								SetProperty(cat("ComboBox_strengthclass", i), 'itemlist', NODETimberMaterial:-Strengthclasses("CLT"));
-							
-							else
-								SetProperty(cat("ComboBox_strengthclass", i), 'itemlist', NODETimberMaterial:-Strengthclasses("all"));
-							
-							end if;
-
-							SetProperty(cat("ComboBox_strengthclass", i), 'selectedindex', 0);		# pick first value
-							activematerial := cat(GetProperty(cat("ComboBox_strengthclass", i), value)," / Service class ", serviceclass," / ", loaddurationclass);
-							sectionchanged := MaterialChanged(material, activematerial, WhateverYouNeed, forceSectionUpdate, i);
-							
-						end if;
-						
-					else	
-						if assigned(materialdataAll[i]) then
-							materialdataAll[i] := evaln(materialdataAll[i]);
-							sectiondataAll[i] := evaln(sectiondataAll[i])
-						end if;	
-					end if;
-				end if;
-			end do;
+			sectionchanged := ReadComponentsCommon_TimberGUI(WhateverYouNeed, dummy, "Read");
 		end if;
 
 		# material data from specific definitions
@@ -1746,6 +1704,83 @@ NODEFunctions := module()
 			Storesettings(WhateverYouNeed);	# write values to storesettings variable
 		end if;
 	end proc:
+
+
+	ReadComponentsCommon_TimberGUI := proc(WhateverYouNeed::table, dummy::set, action::string)::boolean;
+        description "Set / Reset timber GUI components";
+        local i, material, materialdata, materialdataAll, sectiondataAll, activematerial, sectionchanged, strengthclass, serviceclass, loaddurationclass, warnings, forceSectionUpdate;
+
+        warnings := WhateverYouNeed["warnings"];
+        material := WhateverYouNeed["material"];
+        materialdataAll := WhateverYouNeed["materialdataAll"];
+        sectiondataAll := WhateverYouNeed["sectiondataAll"];
+        forceSectionUpdate := true;
+        sectionchanged := false;
+
+        for i in dummy do       # dummy = {""}, {"1", "2"}, ...
+            if i = "" then
+                materialdata := WhateverYouNeed["materialdata"]
+            else
+                materialdata := WhateverYouNeed["materialdataAll"][i]
+            end if;
+            
+            # timbertype := materialdata["timbertype"];
+            if ComponentExists("ComboBox_serviceclass") then
+				if action = "Reset" then
+					SetProperty("ComboBox_serviceclass", 'selectedindex', 0);		# Service class 1	
+				end if;
+                serviceclass := GetProperty("ComboBox_serviceclass", value)
+            end if;
+
+            if ComponentExists("ComboBox_loaddurationclass") then
+				if action = "Reset" then
+					SetProperty("ComboBox_loaddurationclass", 'selectedindex', 0);	# Load-duration class Permanent
+				end if;
+                loaddurationclass := GetProperty("ComboBox_loaddurationclass", value)
+            end if;
+
+            if ComponentExists(cat("ComboBox_timbertype", i)) then
+                if GetProperty(cat("ComboBox_timbertype", i), 'enabled') = "true" then
+					if action = "Reset" then
+						SetProperty(cat("ComboBox_timbertype", i), 'selectedindex', 0)		# Solid timber
+					end if;
+
+                    if materialdata["timbertype"] <> GetProperty(cat("ComboBox_timbertype", i), value) then					
+
+                        # set strengthclass
+                        if GetProperty(cat("ComboBox_timbertype", i), value) = "Solid timber" then					# set properties for strengthclass
+                            SetProperty(cat("ComboBox_strengthclass", i), 'itemlist', NODETimberMaterial:-Strengthclasses("Solid timber"));
+                        
+                        elif GetProperty(cat("ComboBox_timbertype", i), value) = "Glued laminated timber" then
+                            SetProperty(cat("ComboBox_strengthclass", i), 'itemlist', NODETimberMaterial:-Strengthclasses("Glued laminated timber"));
+                        
+                        elif GetProperty(cat("ComboBox_timbertype", i), value) = "CLT" then
+                            SetProperty(cat("ComboBox_strengthclass", i), 'itemlist', NODETimberMaterial:-Strengthclasses("CLT"));
+                        
+                        else
+                            SetProperty(cat("ComboBox_strengthclass", i), 'itemlist', NODETimberMaterial:-Strengthclasses("all"));
+                        
+                        end if;
+
+                        SetProperty(cat("ComboBox_strengthclass", i), 'selectedindex', 0);		# pick first value
+                        strengthclass := GetProperty(cat("ComboBox_strengthclass", i), value);
+                        activematerial := cat(strengthclass," / Service class ", serviceclass," / ", loaddurationclass);
+                        sectionchanged := MaterialChanged(material, activematerial, WhateverYouNeed, forceSectionUpdate, i);
+                        
+                    end if;
+                    
+                else	
+                    if assigned(materialdataAll[i]) then
+                        materialdataAll[i] := evaln(materialdataAll[i]);        # erase values
+                        sectiondataAll[i] := evaln(sectiondataAll[i])           # erase values
+                    end if;	
+                end if;
+            end if;
+        end do;
+
+        return sectionchanged;
+
+    end proc:
 
 
 	ResetComponent := proc(var::set)
