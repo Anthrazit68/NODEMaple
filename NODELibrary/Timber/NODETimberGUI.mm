@@ -542,7 +542,7 @@ NODETimberGUI := module()
 
         # define default units for unit checks
         var_units := WhateverYouNeed["componentvariables"]["var_units"];	
-        var_units["mm"] := var_units["mm"] union {"fastener_d", "fastener_ls", "fastener_dh", "connectionInsideTolerance", "SharpMetalLength", "SplitRingdc", "ToothedPlate", "length"};
+        var_units["mm"] := var_units["mm"] union {"bout", "fastener_d", "fastener_ls", "fastener_dh", "connectionInsideTolerance", "SharpMetalLength", "SplitRingdc", "ToothedPlate", "length"};
         var_units["arcdeg"] := var_units["arcdeg"] union {"graindirection", "alphaScrew", "radial_", "angle"};
 
         var_connection_cut := {"cutleft1", "cutleft2", "cutright1", "cutright2", "cutleftsteel", "cutrightsteel"};

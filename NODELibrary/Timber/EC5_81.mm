@@ -635,7 +635,7 @@ EC5_814 := proc()
 	if F_hd = 0 and F_vd = 0 then		# special case where either everything is zero, or we just have moments on the connection
 		alphaForce := 0;
 	else
-		alphaForce := arctan(convert(F_vd, 'unit_free'), convert(F_hd, 'unit_free')) * Unit('rad');
+		alphaForce := arctan(ConvertUnitfree("F_vd", F_vd, WhateverYouNeed), ConvertUnitfree("F_hd", F_hd, WhateverYouNeed)) * Unit('rad');
 	end if;
 	
 	F_90Rd := WhateverYouNeed["calculatedvalues"]["fastenervalues"]["F_90Rd"];
@@ -725,7 +725,7 @@ EC5_814_NA_DE := proc(h_e::table, a_r::table)
 	if F_hd = 0 and F_vd = 0 then		# special case where either everything is zero, or we just have moments on the connection
 		alphaForce := 0;
 	else
-		alphaForce := arctan(convert(F_vd, 'unit_free'), convert(F_hd, 'unit_free')) * Unit('rad');
+		alphaForce := arctan(ConvertUnitfree("F_vd", F_vd, WhateverYouNeed), ConvertUnitfree("F_hd", F_hd, WhateverYouNeed)) * Unit('rad');
 	end if;
 
 	F_Ed := sqrt(F_vd ^ 2 + F_hd ^ 2) * f_814;
@@ -811,7 +811,7 @@ EC5_62net := proc()
 	if F_hd = 0 and F_vd = 0 then		# special case where either everything is zero, or we just have moments on the connection
 		alphaForce := 0;
 	else
-		alphaForce := evalf(arctan(convert(F_vd, 'unit_free'), convert(F_hd, 'unit_free')) * Unit('rad'));
+		alphaForce := evalf(arctan(ConvertUnitfree("F_vd", F_vd, WhateverYouNeed), ConvertUnitfree("F_hd", F_hd, WhateverYouNeed)) * Unit('rad'));
 	end if;
 
 	F_Ed := sqrt(F_vd ^ 2 + F_hd ^ 2);

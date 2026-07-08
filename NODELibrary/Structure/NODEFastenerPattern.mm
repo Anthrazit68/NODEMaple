@@ -328,7 +328,8 @@ NODEFastenerPattern := module()
 			
 			# do not use ConvertUnitfree, as alpha_ is assumed to be arcdeg. We need to convert value to radians, and drop the unit.
 			# textplot rotation = r where r must evaluate to a real number that is assumed to be in radians
-			alpha_ := convert(evalf(convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", beamindex)], 'rad')), 'unit_free');		
+			alpha_ := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", beamindex)], 'units', 'rad');
+			alpha_ := convert(evalf(alpha_), 'unit_free');
 
 			# a4: checking left and right sides
 			if beamside = "L" then			
@@ -452,8 +453,9 @@ NODEFastenerPattern := module()
 			end if;
 			
 			# do not use ConvertUnitfree, as alpha_ is assumed to be arcdeg. We need to convert value to radians, and drop the unit.
-			# textplot rotation = r where r must evaluate to a real number that is assumed to be in radians			
-			alpha_ := convert(evalf(convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", beamindex)], 'rad')), 'unit_free');			
+			# textplot rotation = r where r must evaluate to a real number that is assumed to be in radians
+			alpha_ := convert(WhateverYouNeed["calculations"]["structure"]["connection"][cat("graindirection", beamindex)], 'units', 'rad');
+			alpha_ := convert(evalf(alpha_), 'unit_free');			
 			
 			if beamside = "L" then			# run each beam just once				
 

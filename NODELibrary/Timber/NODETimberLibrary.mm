@@ -1434,6 +1434,11 @@ SetLoadExcentricity := proc(WhateverYouNeed::table, createnewloadcase::boolean)
 	warnings := WhateverYouNeed["warnings"];
 	activeloadcase := WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"];
 
+	if activeloadcase = "" or numelems(WhateverYouNeed["calculations"]["loadcases"]) = 0 then
+		# most likely during reset, defer checks
+		return
+	end if;
+
 	if createnewloadcase then
 		if searchtext("left", GetProperty("TextArea_activeloadcase", 'value')) > 0 then
 			side := "left";

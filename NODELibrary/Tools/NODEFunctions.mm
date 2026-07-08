@@ -426,15 +426,23 @@ NODEFunctions := module()
 
 
 	ConvertUnitfree := proc(varname::string, varvalue, WhateverYouNeed::table)
-		description "Convert value or collection of values to unit_free based on predefined unit";
-		local i, j, var_units, warnings;
+		description "Convert value or collection of values to unit_free based on predefined unit with strict check";
+		local i, j, var_units, warnings, idx, newTable;
 
-		# run on every member for complex constructions		
-		if type(varvalue, {list, set, Matrix, Vector, Array}) then
+		# 1. Sikker håndtering av tabeller (table)
+		if type(varvalue, table) then
+			newTable := table();
+			for idx in indices(varvalue, 'nolist') do
+				newTable[idx] := NODEFunctions:-ConvertUnitfree(varname, varvalue[idx], WhateverYouNeed);
+			end do;
+			return eval(newTable);
+		
+		# 2. Sikker håndtering av lister, mengder, matriser og vektorer
+		elif type(varvalue, {list, set, Matrix, Vector, Array}) then
 			return map(val -> NODEFunctions:-ConvertUnitfree(varname, val, WhateverYouNeed), varvalue);
 		end if;
 
-		# Standard logikk for enkeltverdier (skalarer)
+		# 3. Standard streng logikk og enhetsverifisering for enkeltverdier (skalarer)
 		var_units := WhateverYouNeed["componentvariables"]["var_units"];
 		warnings := WhateverYouNeed["warnings"];
 
@@ -1632,7 +1640,12 @@ NODEFunctions := module()
 		elif action = "ResetLoadcase" or action = "Reset" then
 			loadcases := table();
 			WhateverYouNeed["calculations"]["loadcases"] := eval(loadcases);	# https://www.mapleprimes.com/questions/235292-Store-Values-Between-Sessions-Including
-			activeloadcase := "1";
+
+			if WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" then
+				activeloadcase := "left";
+			else
+				activeloadcase := "1";
+			end if;
 
 			if ComponentExists("ComboBox_loadcases") then
 				SetProperty("ComboBox_loadcases", 'itemList', [activeloadcase]);
@@ -1906,7 +1919,7 @@ NODEFunctions := module()
 			updateResults(WhateverYouNeed["sectiondata"]);
 			
 		elif material = "timber" then
-			
+
 			if partsnumber <> "steel" then
 				NODETimberEN1995:-GetSectiondata(activesection, WhateverYouNeed);				
 			else

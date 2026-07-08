@@ -230,8 +230,8 @@ NODESteelEN1993 := module()
 		section := StringTools:-Trim(parts[2]);
 
 		parts := StringTools:-Split(section, "x");
-		b_ := StringTools:-Trim(parts[1]);
-		h_ := StringTools:-Trim(parts[2]);
+		b_ := parse(StringTools:-Trim(parts[1]));
+		h_ := parse(StringTools:-Trim(parts[2]));
 
 		b := b_*Unit('mm');
 		h := h_*Unit('mm');

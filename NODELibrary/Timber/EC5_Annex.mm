@@ -266,7 +266,6 @@ checkServiceclass := proc(WhateverYouNeed::table)
 	warnings := WhateverYouNeed["warnings"];
 	
 	if WhateverYouNeed["calculations"]["calculationtype"] = "NS-EN 1995-1-1, Section 8: Fasteners" then
-
 		if WhateverYouNeed["calculations"]["structure"]["connection"]["connection1"] = "Timber" then
 			timber := "1"
 		elif WhateverYouNeed["calculations"]["structure"]["connection"]["connection2"] = "Timber" then
@@ -276,14 +275,21 @@ checkServiceclass := proc(WhateverYouNeed::table)
 		serviceclass := WhateverYouNeed["materialdataAll"][timber]["serviceclass"];
 
 	elif WhateverYouNeed["calculations"]["calculationtype"] = "Timber beam with opening" then
-
 		serviceclass := WhateverYouNeed["materialdata"]["serviceclass"];
 
+	else
+		Alert(cat("checkServiceclass: calculationtype ", WhateverYouNeed["calculations"]["calculationtype"], " not recognized"), warnings, 2);
+		return
+
 	end if;
 
-	if parse(serviceclass) > WhateverYouNeed["calculatedvalues"]["fastenervalues"]["serviceclass"] then
-		Alert("Fastener Service Class lower than required", warnings, 2)
-	end if;
+	if assigned(WhateverYouNeed["calculatedvalues"]["fastenervalues"]["serviceclass"]) then
+		if parse(serviceclass) > WhateverYouNeed["calculatedvalues"]["fastenervalues"]["serviceclass"] then
+			Alert("Fastener Service Class lower than required", warnings, 2)
+		end if;
+	else
+		Alert("fastenervalues - serviceclass unassigned", warnings, 2)
+	end if
 		
 end proc:
 
@@ -317,8 +323,8 @@ checkOpeningGeometry := proc(WhateverYouNeed::table)
 	
 	# hd is defined for both rectangular and circular openings	
 	h_r := table();		# distance between crack to nearest beam edge, normal to grain direction	
-	h_ro := h / 2 - hd / 2 - e;		
-	h_ru := h / 2 - hd / 2 + e;
+	h_ro := evalf(h / 2 - hd / 2 - e);
+	h_ru := evalf(h / 2 - hd / 2 + e);
 
 	# reduction factor mentioned in limtreboka for circular openings is not used in Holzbau Taschenbuch Example A.4.2
 	#	if openingtype = "circular" then
