@@ -16,7 +16,7 @@ NODE rådgivende ingeniører AS does neither own this software nor is legally re
 
 # Installation
 - A valid license of Maple (see https://www.maplesoft.com/products/Maple/) is required to run this software. Usually the latest release of the program is required.
-- The software can be downloaded on GitHub: https://github.com/Anthrazit68/NODEMaple
+- The software can be downloaded from Codeberg https://codeberg.org/Anthrazit68/NODEMaple or GitHub https://github.com/Anthrazit68/NODEMaple
 - Before running the workbooks, NODElibrary needs to be installed or updated. This is done by running "Install NODELibrary.mw" once.
 - After installing the library, it is recommended to exit Maple and start the program again.
 
