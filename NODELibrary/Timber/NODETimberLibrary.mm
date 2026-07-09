@@ -17,8 +17,95 @@
 # 2025-10-20: adding version numbering
 # version := "1.0.0";
 
+CheckLoadExcentricity := proc(WhateverYouNeed::table)
+	description "Check if load excentricity is compatible with opening width";
+	local opening_a, activeloadcase, loadcenter_x, tolerance, warnings;
+
+	tolerance := 1 * Unit('mm');
+	opening_a := WhateverYouNeed["calculations"]["structure"]["opening"]["opening_a"];
+	activeloadcase := WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"];
+	loadcenter_x := WhateverYouNeed["calculations"]["loadcases"][activeloadcase]["loadcenter_x"];
+	warnings := WhateverYouNeed["warnings"];
+	
+	if type(loadcenter_x, 'with_unit') = false or evalf(abs(loadcenter_x) - opening_a / 2) > tolerance  then
+	
+		Alert(cat("loadcase ", activeloadcase, ": load excentricity wrong, calculating new value"), warnings, 1);
+		SetLoadExcentricity(WhateverYouNeed, false);
+	end if;
+
+end proc:
+
+
+ReadComponentsSpecific_connection := proc(WhateverYouNeed::table, connection::table)
+	description "Subroutine for ReadeComponentsSpecific, EC5_8, connection";
+	local dummy, dummy1, activesettings;
+
+	activesettings := WhateverYouNeed["calculations"]["activesettings"];
+
+	for dummy in {"activematerial", "activesection"} do
+		for dummy1 in {"", "1", "2", "steel"} do
+			if ComponentExists(cat("TextArea_", dummy, dummy1)) and GetProperty(cat("TextArea_", dummy, dummy1), 'enabled') = "true" then
+				activesettings[cat(dummy, dummy1)] := GetProperty(cat("TextArea_", dummy, dummy1), value)
+			else
+				if assigned(activesettings[cat(dummy, dummy1)]) then
+					activesettings[cat(dummy, dummy1)] := evaln(activesettings[cat(dummy, dummy1)])
+				end if;
+			end if;
+		end do;
+	end do;
+	
+	# WhateverYouNeed["calculations"]["activesettings"]["activesection"] := GetProperty("TextArea_activesection", value);
+	# fibre angles of timber parts, zero angle 3 o'clock counterclockwise
+
+	# for dummy in {"timbertype1", "timbertype2", "strengthclass1", "strengthclass2", "steelcode", "steelgrade", "thicknessclass"} do
+	#	if GetProperty(cat("ComboBox_", dummy), 'enabled') = "true" then
+	#		connection[dummy] := GetProperty(cat("ComboBox_", dummy), 'value')
+	#	else
+	#		connection[dummy] := "false"
+	#	end if;
+	# end do;		
+	
+	for dummy in WhateverYouNeed["componentvariables"]["var_connection_graindirection"] do
+		if GetProperty(cat("TextArea_", dummy), 'enabled') = "true" then
+			connection[dummy] := parse(GetProperty(cat("TextArea_", dummy), 'value')) * Unit('degree')
+		else
+			connection[dummy] := "false"
+		end if;
+	end do;
+
+	for dummy in WhateverYouNeed["componentvariables"]["var_connection_cut"] do
+#			if GetProperty(cat("CheckBox_", dummy), 'enabled') = "true" then
+#				connection[dummy] := GetProperty(cat("CheckBox_", dummy), 'value')
+		if GetProperty(cat("ComboBox_", dummy), 'enabled') = "true" then
+			connection[dummy] := GetProperty(cat("ComboBox_", dummy), 'value')
+		end if;
+	end do;
+
+	for dummy in WhateverYouNeed["componentvariables"]["var_connection_angle"] do
+		if GetProperty(cat("TextArea_", dummy), 'enabled') = "true" then
+			connection[dummy] := parse(GetProperty(cat("TextArea_", dummy), 'value')) * Unit('degree')
+		else
+			connection[dummy] := "false"
+		end if;
+	end do;		
+	
+	for dummy in WhateverYouNeed["componentvariables"]["var_connection_length"] do
+		if GetProperty(cat("TextArea_", dummy), 'enabled') = "true" then
+			connection[dummy] := parse(GetProperty(cat("TextArea_", dummy), 'value')) * Unit('mm')
+		else
+			connection[dummy] := "false"
+		end if;
+	end do;		
+
+end proc:
+
+
 ReadComponentsSpecific_fastener := proc(fastener::table, fastenervalues::table)
 	description "Subroutine for ReadeComponentsSpecific, EC5_8, fasteners";
+	local d_, ls_;
+	# no unit check possible, as we do not have access to WhateverYouNeed, assumed ok (checked everywhere else)
+	d_ := convert(fastener["fastener_d"], 'unit_free');		# [mm]
+	ls_ := convert(fastener["fastener_ls"], 'unit_free');	# [mm]
 
 	if ComponentExists("TextArea_numberOfFasteners") then
 		fastener["numberOfFasteners"] := parse(GetProperty("TextArea_numberOfFasteners", 'value'))
@@ -48,26 +135,26 @@ ReadComponentsSpecific_fastener := proc(fastener::table, fastenervalues::table)
 		fastener["boltgrade"] := evaln(fastener["boltgrade"])
 	end if;
 
-	fastenervalues["M_yRk"] := eval(NODETimberFasteners:-M_yRk[fastener["fastenerProducer"], fastener["fastenerProduct"], convert(fastener["fastener_d"], 'unit_free')][1]);
-	fastenervalues["f_axk"] := eval(NODETimberFasteners:-f_axk[fastener["fastenerProducer"], fastener["fastenerProduct"], convert(fastener["fastener_d"], 'unit_free')][1]);
-	fastenervalues["f_headk"] := eval(NODETimberFasteners:-f_headk[fastener["fastenerProducer"], fastener["fastenerProduct"], convert(fastener["fastener_d"], 'unit_free')][1]);
-	fastenervalues["f_tensk"] := eval(NODETimberFasteners:-f_tensk[fastener["fastenerProducer"], fastener["fastenerProduct"], convert(fastener["fastener_d"], 'unit_free')][1]);
-	fastenervalues["l1"] := eval(NODETimberFasteners:-l1[fastener["fastenerProducer"], fastener["fastenerProduct"], convert(fastener["fastener_d"], 'unit_free'), convert(fastener["fastener_ls"], 'unit_free')][1]);
-	fastenervalues["l2"] := eval(NODETimberFasteners:-l2[fastener["fastenerProducer"], fastener["fastenerProduct"], convert(fastener["fastener_d"], 'unit_free'), convert(fastener["fastener_ls"], 'unit_free')][1]);
-	fastenervalues["f_uk"] := eval(NODETimberFasteners:-f_uk[fastener["fastenerProducer"], fastener["fastenerProduct"], convert(fastener["fastener_d"], 'unit_free'), convert(fastener["fastener_ls"], 'unit_free')][1]);
-	fastenervalues["b_max"] := eval(NODETimberFasteners:-b_max[fastener["fastenerProducer"], fastener["fastenerProduct"], convert(fastener["fastener_d"], 'unit_free'), convert(fastener["fastener_ls"], 'unit_free')][1]);
+	fastenervalues["M_yRk"] := eval(NODETimberFasteners:-M_yRk[fastener["fastenerProducer"], fastener["fastenerProduct"], d_][1]);
+	fastenervalues["f_axk"] := eval(NODETimberFasteners:-f_axk[fastener["fastenerProducer"], fastener["fastenerProduct"], d_][1]);
+	fastenervalues["f_headk"] := eval(NODETimberFasteners:-f_headk[fastener["fastenerProducer"], fastener["fastenerProduct"], d_][1]);
+	fastenervalues["f_tensk"] := eval(NODETimberFasteners:-f_tensk[fastener["fastenerProducer"], fastener["fastenerProduct"], d_][1]);
+	fastenervalues["l1"] := eval(NODETimberFasteners:-l1[fastener["fastenerProducer"], fastener["fastenerProduct"], d_, ls_][1]);
+	fastenervalues["l2"] := eval(NODETimberFasteners:-l2[fastener["fastenerProducer"], fastener["fastenerProduct"], d_, ls_][1]);
+	fastenervalues["f_uk"] := eval(NODETimberFasteners:-f_uk[fastener["fastenerProducer"], fastener["fastenerProduct"], d_, ls_][1]);
+	fastenervalues["b_max"] := eval(NODETimberFasteners:-b_max[fastener["fastenerProducer"], fastener["fastenerProduct"], d_, ls_][1]);
 
 	if GetProperty("ComboBox_washerProducer", 'enabled') = "true" then
 
 		fastener["washerProducer"] := GetProperty("ComboBox_washerProducer", 'value');
 		fastener["washerProduct"] := GetProperty("ComboBox_washerProduct", 'value');
 		
-		fastenervalues["washerInfo"] := NODETimberFastenersWashers:-detailinformation[convert(fastener["fastener_d"], 'unit_free'), fastener["washerProducer"], fastener["washerProduct"]][1];
-		fastenervalues["washer_dint"] := eval(NODETimberFastenersWashers:-dint[convert(fastener["fastener_d"], 'unit_free'), fastener["washerProducer"], fastener["washerProduct"]][1]);
-		fastenervalues["washer_dext"] := eval(NODETimberFastenersWashers:-dext[convert(fastener["fastener_d"], 'unit_free'), fastener["washerProducer"], fastener["washerProduct"]][1]);
-		fastenervalues["washer_s"] := eval(NODETimberFastenersWashers:-s[convert(fastener["fastener_d"], 'unit_free'), fastener["washerProducer"], fastener["washerProduct"]][1]);
-		fastenervalues["washer_A_ef"] := eval(NODETimberFastenersWashers:-A_ef(convert(fastener["fastener_d"], 'unit_free'), fastener["washerProducer"], fastener["washerProduct"]));
-		fastenervalues["washer_N_axk"] := eval(NODETimberFastenersWashers:-N_axk(convert(fastener["fastener_d"], 'unit_free'), fastener["washerProducer"], fastener["washerProduct"]));
+		fastenervalues["washerInfo"] := NODETimberFastenersWashers:-detailinformation[d_, fastener["washerProducer"], fastener["washerProduct"]][1];
+		fastenervalues["washer_dint"] := eval(NODETimberFastenersWashers:-dint[d_, fastener["washerProducer"], fastener["washerProduct"]][1]);
+		fastenervalues["washer_dext"] := eval(NODETimberFastenersWashers:-dext[d_, fastener["washerProducer"], fastener["washerProduct"]][1]);
+		fastenervalues["washer_s"] := eval(NODETimberFastenersWashers:-s[d_, fastener["washerProducer"], fastener["washerProduct"]][1]);
+		fastenervalues["washer_A_ef"] := eval(NODETimberFastenersWashers:-A_ef(d_, fastener["washerProducer"], fastener["washerProduct"]));
+		fastenervalues["washer_N_axk"] := eval(NODETimberFastenersWashers:-N_axk(d_, fastener["washerProducer"], fastener["washerProduct"]));
 
 		WriteValueToComponent("washerInfo", fastenervalues["washerInfo"], {"nocheck"});
 		WriteValueToComponent("washer_dint", round2(fastenervalues["washer_dint"],1), {"nocheck"});
@@ -174,66 +261,277 @@ ReadComponentsSpecific_fastener := proc(fastener::table, fastenervalues::table)
 end proc:
 
 
-ReadComponentsSpecific_connection := proc(WhateverYouNeed::table, connection::table)
-	description "Subroutine for ReadeComponentsSpecific, EC5_8, connection";
-	local dummy, dummy1, activesettings;
+SetComboConnection := proc(WhateverYouNeed::table)
+	description "Setting Combobox after changing of connection";
+	local connection;
 
-	activesettings := WhateverYouNeed["calculations"]["activesettings"];
+	connection := WhateverYouNeed["calculations"]["structure"]["connection"];
 
-	for dummy in {"activematerial", "activesection"} do
-		for dummy1 in {"", "1", "2", "steel"} do
-			if ComponentExists(cat("TextArea_", dummy, dummy1)) and GetProperty(cat("TextArea_", dummy, dummy1), 'enabled') = "true" then
-				activesettings[cat(dummy, dummy1)] := GetProperty(cat("TextArea_", dummy, dummy1), value)
-			else
-				if assigned(activesettings[cat(dummy, dummy1)]) then
-					activesettings[cat(dummy, dummy1)] := evaln(activesettings[cat(dummy, dummy1)])
+	connection["connection1"] := GetProperty("ComboBox_connection1", 'value');
+	connection["connection2"] := GetProperty("ComboBox_connection2", 'value');	
+	connection["connectionInsideLayers"] := parse(GetProperty("ComboBox_connectionInsideLayers", 'value'));
+	connection["connectionInsideTolerance"] := parse(GetProperty("TextArea_connectionInsideTolerance", 'value')) * Unit('mm');
+	SetVisibilityComboboxConnection(WhateverYouNeed);		# EC5_8_SetVisibilityCombobox
+end proc:
+
+
+SetComboConnectionAfterXMLImport := proc(WhateverYouNeed::table)
+	description "Setting Combobox after XML readin";
+	local warnings, connection, i, dummy, pos, material, activematerial, forceSectionUpdate, activesection;
+
+	warnings := WhateverYouNeed["warnings"];
+	connection := WhateverYouNeed["calculations"]["structure"]["connection"];
+	material := "timber";
+	forceSectionUpdate := false;
+	WhateverYouNeed["calculations"]["XMLImport"] := true;		# MaterialChanged must not call SectionChanged as we overwrite activesettings
+
+	for i in {"connection1", "connection2", "connectionInsideLayers"} do
+		dummy := GetProperty(cat("ComboBox_", i), 'itemlist');
+		if member(convert(connection[i], string), dummy, 'pos') then			# connectionInsideLayers is numeric, must be converted to string
+			SetProperty(cat("ComboBox_", i), 'selectedindex', pos-1)
+		else
+			Alert(cat("SetComboConnectionAfterXMLImport: ", cat("ComboBox_", i), ": entry ", connection[i], " not found"), warnings, 3)
+		end if;
+	end do;
+
+	SetProperty("TextArea_connectionInsideTolerance", 'value', convert(connection["connectionInsideTolerance"], 'unit_free'));
+
+	# setting dialogue boxes for material and section
+	for i in {"1", "2", "steel"} do
+		if assigned(WhateverYouNeed["calculations"]["activesettings"][cat("activematerial", i)]) then
+			activematerial := WhateverYouNeed["calculations"]["activesettings"][cat("activematerial", i)];
+			MaterialChanged(material, activematerial, WhateverYouNeed, forceSectionUpdate, i);
+		end if;
+		if assigned(WhateverYouNeed["calculations"]["activesettings"][cat("activesection", i)]) then
+			activesection := WhateverYouNeed["calculations"]["activesettings"][cat("activesection", i)];
+			SectionChanged(material, activesection, WhateverYouNeed, i)
+		end if;
+	end do;
+
+	for i in WhateverYouNeed["componentvariables"]["var_connection_graindirection"] do
+		WriteValueToComponent(i, WhateverYouNeed["calculations"]["structure"]["connection"][i], {"nocheck"});	
+	end do;
+
+	for i in WhateverYouNeed["componentvariables"]["var_connection_cut"] do
+		WriteValueToComponent(i, WhateverYouNeed["calculations"]["structure"]["connection"][i], {"nocheck"});	
+	end do;
+
+	for i in WhateverYouNeed["componentvariables"]["var_connection_angle"] do
+		WriteValueToComponent(i, WhateverYouNeed["calculations"]["structure"]["connection"][i], {"nocheck"});	
+	end do;
+
+	for i in WhateverYouNeed["componentvariables"]["var_connection_length"] do
+		WriteValueToComponent(i, WhateverYouNeed["calculations"]["structure"]["connection"][i], {"nocheck"});
+	end do;
+
+	SetVisibilityComboboxConnection(WhateverYouNeed);	
+	
+	# SetComboConnection(WhateverYouNeed);	
+end proc:
+
+
+SetComboFasteners := proc(n::integer)
+	description "Setting Combobox after change of fasteners";
+	# n	
+	# 0...changed fastener type
+	# 1...changed diameter
+
+	local fastenerProducer, fastenerProduct, dummy, dummy1, d, d_, ls_, dh_, washerProducer, chosenFastener, ind, val, foundvalue, items;
+
+	dummy := n;
+
+	# get fastener type
+	chosenFastener := GetProperty("ComboBox_chosenFastener", 'value');
+	
+	# changed fastener
+	# https://www.mapleprimes.com/questions/231924-Which-Set-Sort-Order
+	if dummy = 0 then
+		# structure := SetVisibilityComboboxConnection(structure);
+
+		# general settings
+		SetProperty("ComboBox_nailForm", 'enabled', "false");
+		SetProperty("ComboBox_nailSurface", 'enabled', "false");			
+		SetProperty("ComboBox_fastener_dh", 'enabled', "true");
+		SetProperty("TextArea_fastener_dh", 'enabled', "true");
+
+		SetProperty("CheckBox_calculateAsNail", value, "false");
+		SetProperty("CheckBox_calculateAsNail", 'enabled', "false");
+
+		SetProperty("Slider_alphaScrew", value, 90);
+		# assign('alphaScrew', GetProperty("Slider_alphaScrew", 'value') * Unit('degree'));
+		# SetProperty("Slider_alphaScrew", 'enabled', "false");
+
+		SetVisibilityWasher("deactivate");
+			
+		if chosenFastener = "Nail" then
+			SetProperty("ComboBox_nailForm", 'enabled', "true");
+			SetProperty("ComboBox_nailSurface", 'enabled', "true");
+			SetProperty("CheckBox_calculateAsNail", 'enabled', "true");
+			# SetProperty("Slider_alphaScrew", 'enabled', "true");
+			
+		elif chosenFastener = "Screw" then
+			SetProperty("CheckBox_calculateAsNail", 'enabled', "true");
+			# SetProperty("Slider_alphaScrew", 'enabled', "true");
+			
+		elif chosenFastener = "Bolt" then
+			# SetProperty("ComboBox_fastener_dh", 'enabled', "false");
+			# SetProperty("TextArea_fastener_dh", 'enabled', "false");
+			SetVisibilityWasher("activate")
+
+		elif chosenFastener = "Dowel" then
+			SetProperty("ComboBox_fastener_dh", 'enabled', "false");
+			SetProperty("TextArea_fastener_dh", 'enabled', "false");
+			#
+	
+		end if;	
+		items := convert~(NODETimberFasteners:-fasteners_d[chosenFastener], 'unit_free');
+		SetProperty("ComboBox_fastener_d", 'itemList', items);
+		SetProperty("ComboBox_fastener_d", 'selectedIndex', 0);
+		dummy := 1;
+	end if;
+	
+	if dummy = 1 then
+		d_ := parse(GetProperty("ComboBox_fastener_d", 'value'));
+		SetProperty("TextArea_fastener_d", value, d_);
+	else
+		d_ := parse(GetProperty("TextArea_fastener_d", 'value'));
+	end if;
+	d := d_ * Unit('mm');	
+	
+	# changed diameter
+	if dummy = 1 or dummy = 11 then
+		dummy := 2;
+		items := sort(convert(NODETimberFasteners:-fasteners_producers[chosenFastener, convert(d, 'unit_free')], list), lexorder);
+		SetProperty("ComboBox_fastenerProducer", 'itemList', items);
+		SetProperty("ComboBox_fastenerProducer", 'selectedIndex', 0);
+	end if;
+
+	assign('fastenerProducer', GetProperty("ComboBox_fastenerProducer", 'value'));
+	# changed fastener producer
+	if dummy = 2 then
+		items := sort(convert(NODETimberFasteners:-fasteners_products[chosenFastener, convert(d, 'unit_free'), fastenerProducer], list), lexorder);
+		SetProperty("ComboBox_fastenerProduct", 'itemList', items);
+		SetProperty("ComboBox_fastenerProduct", 'selectedIndex', 0);
+		if fastenerProducer = "ISO 4014" then
+			SetProperty("ComboBox_boltgrade", 'enabled', "true");			
+		else
+			SetProperty("ComboBox_boltgrade", 'enabled', "false")
+		end if;
+		dummy := 3;
+	end if;	
+
+	assign('fastenerProduct', GetProperty("ComboBox_fastenerProduct", 'value'));
+	# changed product
+	if dummy = 3 then
+		dummy1 := NODETimberFasteners:-detailinformation[fastenerProducer, fastenerProduct][1];
+		if whattype(dummy1) = float then	# no text, probably empty field that has been converted to 0 in the list
+			dummy1 := ""
+		end if;
+		dummy1 := cat(dummy1, ", usable for serviceclass ", round(NODETimberFasteners:-serviceclass[fastenerProducer, fastenerProduct][1]));
+		SetProperty("TextArea_detailinformation", value, dummy1);
+		items := round~(convert~(NODETimberFasteners:-l[fastenerProducer, fastenerProduct, convert(d, 'unit_free')], 'unit_free'));
+		SetProperty("ComboBox_fastener_ls", 'itemList', items);
+		SetProperty("ComboBox_fastener_ls", 'selectedIndex', 0);
+
+		dummy := 45;		# changed diameter or product -> ls og dh need to be changed, washer needs to be checked and probably changed
+	end if;
+
+	# changed ls
+	if dummy = 4 or dummy = 41 or dummy = 45 then
+		if dummy = 4 or dummy = 45 then
+			ls_ := parse(GetProperty("ComboBox_fastener_ls", 'value'));
+			SetProperty("TextArea_fastener_ls", value, ls_);
+			items := round~(convert~(NODETimberFasteners:-dh[fastenerProducer, fastenerProduct, convert(d, 'unit_free'), round(ls_)], 'unit_free'));
+			SetProperty("ComboBox_fastener_dh", 'itemList', items);
+			SetProperty("ComboBox_fastener_dh", 'selectedIndex', 0);						
+			
+		elif dummy = 41 then # ls chosen manually
+			assign('ls_', parse(GetProperty("TextArea_fastener_ls", 'value')));
+		end if;	
+
+		dummy := 55;
+
+	end if;
+	
+	# dh
+	if chosenFastener <> "Dowel" and (dummy = 5 or dummy = 51 or dummy = 55) then
+		if dummy = 5 or dummy = 55 then
+			dh_ := parse(GetProperty("ComboBox_fastener_dh", 'value'));
+			SetProperty("TextArea_fastener_dh", value, dh_);
+				
+		elif dummy = 51 then 	# dh manuelt
+			dh_ := parse(GetProperty("TextArea_fastener_dh", 'value'));
+		end if;
+	end if;
+
+	# check if we need washers
+	SetProperty("CheckBox_screwWithWasher", 'enabled', "false");
+	if chosenFastener = "Bolt" then
+		if dummy = 55 then	# change from fastener, diameter or something else
+			items := sort(convert(NODETimberFastenersWashers:-producers[convert(d, 'unit_free')], list), lexorder);
+			SetProperty("ComboBox_washerProducer", 'itemList', items);
+			SetProperty("ComboBox_washerProducer", 'selectedIndex', 0);
+			dummy := 6
+		end if;
+
+		washerProducer := GetProperty("ComboBox_washerProducer", 'value');
+		# changed washer producer
+		if dummy = 6 then	
+			items := sort(convert(NODETimberFastenersWashers:-producer_products[convert(d, 'unit_free'), washerProducer], list), lexorder);
+			SetProperty("ComboBox_washerProduct", 'itemList', items);
+			SetProperty("ComboBox_washerProduct", 'selectedIndex', 0);
+			dummy := 61
+		end if;
+
+		# changed washer product
+		# washerProduct := GetProperty("ComboBox_washerProduct", 'value');		no need for that one, as it will be read by ReadComponentsSpecific
+		
+	elif chosenFastener = "Screw" then
+		# assign('washerProducer', GetProperty("ComboBox_washerProducer", 'value'));
+
+		if assigned(NODETimberFastenersWashers:-producer_products[convert(d, 'unit_free'), fastenerProducer]) then
+
+			foundvalue := "";
+			for val in NODETimberFastenersWashers:-producer_products[convert(d, 'unit_free'), fastenerProducer] do
+				
+				# type of screw must match text in detailinformation of washer
+				if member(fastenerProduct, NODETimberFastenersWashers:-detailinformation[convert(d, 'unit_free'), fastenerProducer, val]) = true then
+					foundvalue := val;
+				end if;		
+				
+			end do;
+			
+			if foundvalue <> "" then
+				SetProperty("CheckBox_screwWithWasher", 'enabled', "true");
+				
+				if GetProperty("CheckBox_screwWithWasher", 'value') = "true" then
+					SetVisibilityWasher("activate");
+
+					# find Washer Producer
+					for ind, val in GetProperty("ComboBox_washerProducer", 'itemList') do
+						if val = fastenerProducer then
+							SetProperty("ComboBox_washerProducer", 'selectedIndex', ind-1)
+						end if;
+					end do;
+					
+					# find matching Washer Product
+					for ind, val in GetProperty("ComboBox_washerProduct", 'itemList') do
+						if val = foundvalue then
+							SetProperty("ComboBox_washerProduct", 'selectedIndex', ind-1)
+						end if;
+					end do;
+				else
+					SetVisibilityWasher("deactivate")
 				end if;
-			end if;
-		end do;
-	end do;
-	
-	# WhateverYouNeed["calculations"]["activesettings"]["activesection"] := GetProperty("TextArea_activesection", value);
-	# fibre angles of timber parts, zero angle 3 o'clock counterclockwise
-
-	# for dummy in {"timbertype1", "timbertype2", "strengthclass1", "strengthclass2", "steelcode", "steelgrade", "thicknessclass"} do
-	#	if GetProperty(cat("ComboBox_", dummy), 'enabled') = "true" then
-	#		connection[dummy] := GetProperty(cat("ComboBox_", dummy), 'value')
-	#	else
-	#		connection[dummy] := "false"
-	#	end if;
-	# end do;		
-	
-	for dummy in WhateverYouNeed["componentvariables"]["var_connection_graindirection"] do
-		if GetProperty(cat("TextArea_", dummy), 'enabled') = "true" then
-			connection[dummy] := parse(GetProperty(cat("TextArea_", dummy), 'value')) * Unit('degree')
+			else
+				SetProperty("CheckBox_screwWithWasher", 'enabled', "false");
+				SetVisibilityWasher("deactivate")
+			end if;	
 		else
-			connection[dummy] := "false"
+			SetProperty("CheckBox_screwWithWasher", 'enabled', "false")
 		end if;
-	end do;
-
-	for dummy in WhateverYouNeed["componentvariables"]["var_connection_cut"] do
-#			if GetProperty(cat("CheckBox_", dummy), 'enabled') = "true" then
-#				connection[dummy] := GetProperty(cat("CheckBox_", dummy), 'value')
-		if GetProperty(cat("ComboBox_", dummy), 'enabled') = "true" then
-			connection[dummy] := GetProperty(cat("ComboBox_", dummy), 'value')
-		end if;
-	end do;
-
-	for dummy in WhateverYouNeed["componentvariables"]["var_connection_angle"] do
-		if GetProperty(cat("TextArea_", dummy), 'enabled') = "true" then
-			connection[dummy] := parse(GetProperty(cat("TextArea_", dummy), 'value')) * Unit('degree')
-		else
-			connection[dummy] := "false"
-		end if;
-	end do;		
-	
-	for dummy in WhateverYouNeed["componentvariables"]["var_connection_length"] do
-		if GetProperty(cat("TextArea_", dummy), 'enabled') = "true" then
-			connection[dummy] := parse(GetProperty(cat("TextArea_", dummy), 'value')) * Unit('mm')
-		else
-			connection[dummy] := "false"
-		end if;
-	end do;		
+		
+	end if;
 
 end proc:
 
@@ -319,7 +617,7 @@ SetComboFastenersAfterXMLImport := proc(WhateverYouNeed::table)
 	SetProperty("ComboBox_fastener_d", 'itemList', convert~(NODETimberFasteners:-fasteners_d[chosenFastener], 'unit_free'));
 	
 	d := fastener["fastener_d"];
-	d_ := convert(d, 'unit_free');
+	d_ := ConvertUnitfree("fastener_d", d, WhateverYouNeed);
 	
 	dummy := GetProperty("ComboBox_fastener_d", 'itemlist');
 
@@ -612,61 +910,6 @@ SetComboFastenersAfterXMLImport := proc(WhateverYouNeed::table)
 end proc:
 
 
-SetComboConnectionAfterXMLImport := proc(WhateverYouNeed::table)
-	description "Setting Combobox after XML readin";
-	local warnings, connection, i, dummy, pos, material, activematerial, forceSectionUpdate, activesection;
-
-	warnings := WhateverYouNeed["warnings"];
-	connection := WhateverYouNeed["calculations"]["structure"]["connection"];
-	material := "timber";
-	forceSectionUpdate := false;
-	WhateverYouNeed["calculations"]["XMLImport"] := true;		# MaterialChanged must not call SectionChanged as we overwrite activesettings
-
-	for i in {"connection1", "connection2", "connectionInsideLayers"} do
-		dummy := GetProperty(cat("ComboBox_", i), 'itemlist');
-		if member(convert(connection[i], string), dummy, 'pos') then			# connectionInsideLayers is numeric, must be converted to string
-			SetProperty(cat("ComboBox_", i), 'selectedindex', pos-1)
-		else
-			Alert(cat("SetComboConnectionAfterXMLImport: ", cat("ComboBox_", i), ": entry ", connection[i], " not found"), warnings, 3)
-		end if;
-	end do;
-
-	SetProperty("TextArea_connectionInsideTolerance", 'value', convert(connection["connectionInsideTolerance"], 'unit_free'));
-
-	# setting dialogue boxes for material and section
-	for i in {"1", "2", "steel"} do
-		if assigned(WhateverYouNeed["calculations"]["activesettings"][cat("activematerial", i)]) then
-			activematerial := WhateverYouNeed["calculations"]["activesettings"][cat("activematerial", i)];
-			MaterialChanged(material, activematerial, WhateverYouNeed, forceSectionUpdate, i);
-		end if;
-		if assigned(WhateverYouNeed["calculations"]["activesettings"][cat("activesection", i)]) then
-			activesection := WhateverYouNeed["calculations"]["activesettings"][cat("activesection", i)];
-			SectionChanged(material, activesection, WhateverYouNeed, i)
-		end if;
-	end do;
-
-	for i in WhateverYouNeed["componentvariables"]["var_connection_graindirection"] do
-		WriteValueToComponent(i, WhateverYouNeed["calculations"]["structure"]["connection"][i], {"nocheck"});	
-	end do;
-
-	for i in WhateverYouNeed["componentvariables"]["var_connection_cut"] do
-		WriteValueToComponent(i, WhateverYouNeed["calculations"]["structure"]["connection"][i], {"nocheck"});	
-	end do;
-
-	for i in WhateverYouNeed["componentvariables"]["var_connection_angle"] do
-		WriteValueToComponent(i, WhateverYouNeed["calculations"]["structure"]["connection"][i], {"nocheck"});	
-	end do;
-
-	for i in WhateverYouNeed["componentvariables"]["var_connection_length"] do
-		WriteValueToComponent(i, WhateverYouNeed["calculations"]["structure"]["connection"][i], {"nocheck"});
-	end do;
-
-	SetVisibilityComboboxConnection(WhateverYouNeed);	
-	
-	# SetComboConnection(WhateverYouNeed);	
-end proc:
-
-
 SetVisibilityComboboxConnection := proc(WhateverYouNeed::table)
 	description "Set visibility of combobox according to type of connection";
 	local structure, i, components;
@@ -674,17 +917,17 @@ SetVisibilityComboboxConnection := proc(WhateverYouNeed::table)
 	structure := WhateverYouNeed["calculations"]["structure"];
 	components := table();
 
-	components["steel"] := {"ComboBox_steelgrade", "TextArea_graindirectionsteel", "TextArea_bsteel", "TextArea_hsteel", "TextArea_lengthleftsteel", "TextArea_lengthrightsteel",
+	components["steel"] := {"ComboBox_steelgrade", "TextArea_graindirectionsteel", "TextArea_section_bsteel", "TextArea_section_hsteel", "TextArea_lengthleftsteel", "TextArea_lengthrightsteel",
 			"TextArea_angleleftsteel", "TextArea_anglerightsteel", "ComboBox_cutleftsteel", "ComboBox_cutrightsteel", "TextArea_activematerialsteel", "TextArea_activesectionsteel",
 			"TextArea_a1_minsteel", "TextArea_a2_minsteel", "TextArea_a3_minsteel", "TextArea_a4_minsteel", "TextArea_a1steel", "TextArea_a2steel", "TextArea_a3steel", "TextArea_a4steel",
 			"TextArea_etaBoltSteel_active", "MathContainer_N_plRd", "MathContainer_N_uRd", "MathContainer_F_vRd_bolt", "MathContainer_F_bRd_steel"};
 
 	components["timber"] := {"ComboBox_timbertype",
-				"ComboBox_b",
-				"ComboBox_h",
+				"ComboBox_section_b",
+				"ComboBox_section_h",
 				"Button_th",
-				"TextArea_b",
-				"TextArea_h",
+				"TextArea_section_b",
+				"TextArea_section_h",
 				"TextArea_graindirection",
 				"ComboBox_strengthclass",
 				"ComboBox_cutleft",
@@ -717,7 +960,7 @@ SetVisibilityComboboxConnection := proc(WhateverYouNeed::table)
 		for i in components["timber"] do
 			SetProperty(cat(i, "1"), 'enabled', "false");
 		end do;
-		SetProperty("TextArea_bout1", 'enabled', "false");
+		SetProperty("TextArea_section_bout1", 'enabled', "false");
 		
 		HighlightResults(cat~(components["results"], "1"), "deactivate");
 				
@@ -746,9 +989,9 @@ SetVisibilityComboboxConnection := proc(WhateverYouNeed::table)
 		end do;	
 
 		if structure["connection"]["connectionInsideLayers"] > 1 then
-			SetProperty("TextArea_bout1", 'enabled', "true");
+			SetProperty("TextArea_section_bout1", 'enabled', "true");
 		else
-			SetProperty("TextArea_bout1", 'enabled', "false");
+			SetProperty("TextArea_section_bout1", 'enabled', "false");
 		end if;
 
 		HighlightResults(cat~(components["results"], "1"), "activate");	
@@ -788,253 +1031,6 @@ SetVisibilityComboboxConnection := proc(WhateverYouNeed::table)
 
 	SetVisibilityTimberCut();
 	
-end proc:
-
-
-validateConnection := proc(WhateverYouNeed::table)
-	description "Check various combinations of geometry and fasteners";
-	local structure, warnings, fastenervalues;
-
-	structure := WhateverYouNeed["calculations"]["structure"];
-	warnings := WhateverYouNeed["warnings"];
-	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
-
-	if structure["connection"]["connection1"] = "Steel" and structure["connection"]["connection2"] = "Steel" then
-		Alert("2x steel not allowed", warnings, 5);
-		
-	elif structure["connection"]["connection1"] = "Steel" and structure["connection"]["connectionInsideLayers"] = 0 then
-		Alert("Steel needs to be on the inside in connections with one shear plane", warnings, 5);
-		
-	elif (structure["fastener"]["chosenFastener"] = "Nail" or structure["fastener"]["chosenFastener"] = "Screw") and structure["connection"]["connection2"] = "Steel" and fastenervalues["shearplanes"] > 1 then
-		Alert("Use of nails or screws in connection with inside steelplates not allowed", warnings, 5);
-		
-	end if;
-
-#	if not(structure["connection"]["connection1"] = "Timber" and structure["connection"]["connection2"] = "Steel") then
-#		if WhateverYouNeed["calculations"]["structure"]["connection"]["bout1"] <> "false" then
-#			Alert("Different outer layer only allowed in timber / steel connections", warnings, 5);
-#		end if;
-#	end if;
-end proc:
-
-
-SetComboConnection := proc(WhateverYouNeed::table)
-	description "Setting Combobox after changing of connection";
-	local connection;
-
-	connection := WhateverYouNeed["calculations"]["structure"]["connection"];
-
-	connection["connection1"] := GetProperty("ComboBox_connection1", 'value');
-	connection["connection2"] := GetProperty("ComboBox_connection2", 'value');	
-	connection["connectionInsideLayers"] := parse(GetProperty("ComboBox_connectionInsideLayers", 'value'));
-	connection["connectionInsideTolerance"] := parse(GetProperty("TextArea_connectionInsideTolerance", 'value')) * Unit('mm');
-	SetVisibilityComboboxConnection(WhateverYouNeed);		# EC5_8_SetVisibilityCombobox
-end proc:
-
-
-SetComboFasteners := proc(n::integer)
-	description "Setting Combobox after change of fasteners";
-	# n	
-	# 0...changed fastener type
-	# 1...changed diameter
-
-	local fastenerProducer, fastenerProduct, dummy, dummy1, d, d_, ls_, dh_, washerProducer, chosenFastener, ind, val, foundvalue, items;
-
-	dummy := n;
-
-	# get fastener type
-	chosenFastener := GetProperty("ComboBox_chosenFastener", 'value');
-	
-	# changed fastener
-	# https://www.mapleprimes.com/questions/231924-Which-Set-Sort-Order
-	if dummy = 0 then
-		# structure := SetVisibilityComboboxConnection(structure);
-
-		# general settings
-		SetProperty("ComboBox_nailForm", 'enabled', "false");
-		SetProperty("ComboBox_nailSurface", 'enabled', "false");			
-		SetProperty("ComboBox_fastener_dh", 'enabled', "true");
-		SetProperty("TextArea_fastener_dh", 'enabled', "true");
-
-		SetProperty("CheckBox_calculateAsNail", value, "false");
-		SetProperty("CheckBox_calculateAsNail", 'enabled', "false");
-
-		SetProperty("Slider_alphaScrew", value, 90);
-		# assign('alphaScrew', GetProperty("Slider_alphaScrew", 'value') * Unit('degree'));
-		# SetProperty("Slider_alphaScrew", 'enabled', "false");
-
-		SetVisibilityWasher("deactivate");
-			
-		if chosenFastener = "Nail" then
-			SetProperty("ComboBox_nailForm", 'enabled', "true");
-			SetProperty("ComboBox_nailSurface", 'enabled', "true");
-			SetProperty("CheckBox_calculateAsNail", 'enabled', "true");
-			# SetProperty("Slider_alphaScrew", 'enabled', "true");
-			
-		elif chosenFastener = "Screw" then
-			SetProperty("CheckBox_calculateAsNail", 'enabled', "true");
-			# SetProperty("Slider_alphaScrew", 'enabled', "true");
-			
-		elif chosenFastener = "Bolt" then
-			# SetProperty("ComboBox_fastener_dh", 'enabled', "false");
-			# SetProperty("TextArea_fastener_dh", 'enabled', "false");
-			SetVisibilityWasher("activate")
-
-		elif chosenFastener = "Dowel" then
-			SetProperty("ComboBox_fastener_dh", 'enabled', "false");
-			SetProperty("TextArea_fastener_dh", 'enabled', "false");
-			#
-	
-		end if;	
-		items := convert~(NODETimberFasteners:-fasteners_d[chosenFastener], 'unit_free');
-		SetProperty("ComboBox_fastener_d", 'itemList', items);
-		SetProperty("ComboBox_fastener_d", 'selectedIndex', 0);
-		dummy := 1;
-	end if;
-	
-	if dummy = 1 then
-		d_ := parse(GetProperty("ComboBox_fastener_d", 'value'));
-		SetProperty("TextArea_fastener_d", value, d_);
-	else
-		d_ := parse(GetProperty("TextArea_fastener_d", 'value'));
-	end if;
-	d := d_ * Unit('mm');	
-	
-	# changed diameter
-	if dummy = 1 or dummy = 11 then
-		dummy := 2;
-		items := sort(convert(NODETimberFasteners:-fasteners_producers[chosenFastener, convert(d, 'unit_free')], list), lexorder);
-		SetProperty("ComboBox_fastenerProducer", 'itemList', items);
-		SetProperty("ComboBox_fastenerProducer", 'selectedIndex', 0);
-	end if;
-
-	assign('fastenerProducer', GetProperty("ComboBox_fastenerProducer", 'value'));
-	# changed fastener producer
-	if dummy = 2 then
-		items := sort(convert(NODETimberFasteners:-fasteners_products[chosenFastener, convert(d, 'unit_free'), fastenerProducer], list), lexorder);
-		SetProperty("ComboBox_fastenerProduct", 'itemList', items);
-		SetProperty("ComboBox_fastenerProduct", 'selectedIndex', 0);
-		if fastenerProducer = "ISO 4014" then
-			SetProperty("ComboBox_boltgrade", 'enabled', "true");			
-		else
-			SetProperty("ComboBox_boltgrade", 'enabled', "false")
-		end if;
-		dummy := 3;
-	end if;	
-
-	assign('fastenerProduct', GetProperty("ComboBox_fastenerProduct", 'value'));
-	# changed product
-	if dummy = 3 then
-		dummy1 := NODETimberFasteners:-detailinformation[fastenerProducer, fastenerProduct][1];
-		if whattype(dummy1) = float then	# no text, probably empty field that has been converted to 0 in the list
-			dummy1 := ""
-		end if;
-		dummy1 := cat(dummy1, ", usable for serviceclass ", round(NODETimberFasteners:-serviceclass[fastenerProducer, fastenerProduct][1]));
-		SetProperty("TextArea_detailinformation", value, dummy1);
-		items := round~(convert~(NODETimberFasteners:-l[fastenerProducer, fastenerProduct, convert(d, 'unit_free')], 'unit_free'));
-		SetProperty("ComboBox_fastener_ls", 'itemList', items);
-		SetProperty("ComboBox_fastener_ls", 'selectedIndex', 0);
-
-		dummy := 45;		# changed diameter or product -> ls og dh need to be changed, washer needs to be checked and probably changed
-	end if;
-
-	# changed ls
-	if dummy = 4 or dummy = 41 or dummy = 45 then
-		if dummy = 4 or dummy = 45 then
-			ls_ := parse(GetProperty("ComboBox_fastener_ls", 'value'));
-			SetProperty("TextArea_fastener_ls", value, ls_);
-			items := round~(convert~(NODETimberFasteners:-dh[fastenerProducer, fastenerProduct, convert(d, 'unit_free'), round(ls_)], 'unit_free'));
-			SetProperty("ComboBox_fastener_dh", 'itemList', items);
-			SetProperty("ComboBox_fastener_dh", 'selectedIndex', 0);						
-			
-		elif dummy = 41 then # ls chosen manually
-			assign('ls_', parse(GetProperty("TextArea_fastener_ls", 'value')));
-		end if;	
-
-		dummy := 55;
-
-	end if;
-	
-	# dh
-	if chosenFastener <> "Dowel" and (dummy = 5 or dummy = 51 or dummy = 55) then
-		if dummy = 5 or dummy = 55 then
-			dh_ := parse(GetProperty("ComboBox_fastener_dh", 'value'));
-			SetProperty("TextArea_fastener_dh", value, dh_);
-				
-		elif dummy = 51 then 	# dh manuelt
-			dh_ := parse(GetProperty("TextArea_fastener_dh", 'value'));
-		end if;
-	end if;
-
-	# check if we need washers
-	SetProperty("CheckBox_screwWithWasher", 'enabled', "false");
-	if chosenFastener = "Bolt" then
-		if dummy = 55 then	# change from fastener, diameter or something else
-			items := sort(convert(NODETimberFastenersWashers:-producers[convert(d, 'unit_free')], list), lexorder);
-			SetProperty("ComboBox_washerProducer", 'itemList', items);
-			SetProperty("ComboBox_washerProducer", 'selectedIndex', 0);
-			dummy := 6
-		end if;
-
-		washerProducer := GetProperty("ComboBox_washerProducer", 'value');
-		# changed washer producer
-		if dummy = 6 then	
-			items := sort(convert(NODETimberFastenersWashers:-producer_products[convert(d, 'unit_free'), washerProducer], list), lexorder);
-			SetProperty("ComboBox_washerProduct", 'itemList', items);
-			SetProperty("ComboBox_washerProduct", 'selectedIndex', 0);
-			dummy := 61
-		end if;
-
-		# changed washer product
-		# washerProduct := GetProperty("ComboBox_washerProduct", 'value');		no need for that one, as it will be read by ReadComponentsSpecific
-		
-	elif chosenFastener = "Screw" then
-		# assign('washerProducer', GetProperty("ComboBox_washerProducer", 'value'));
-
-		if assigned(NODETimberFastenersWashers:-producer_products[convert(d, 'unit_free'), fastenerProducer]) then
-
-			foundvalue := "";
-			for val in NODETimberFastenersWashers:-producer_products[convert(d, 'unit_free'), fastenerProducer] do
-				
-				# type of screw must match text in detailinformation of washer
-				if member(fastenerProduct, NODETimberFastenersWashers:-detailinformation[convert(d, 'unit_free'), fastenerProducer, val]) = true then
-					foundvalue := val;
-				end if;		
-				
-			end do;
-			
-			if foundvalue <> "" then
-				SetProperty("CheckBox_screwWithWasher", 'enabled', "true");
-				
-				if GetProperty("CheckBox_screwWithWasher", 'value') = "true" then
-					SetVisibilityWasher("activate");
-
-					# find Washer Producer
-					for ind, val in GetProperty("ComboBox_washerProducer", 'itemList') do
-						if val = fastenerProducer then
-							SetProperty("ComboBox_washerProducer", 'selectedIndex', ind-1)
-						end if;
-					end do;
-					
-					# find matching Washer Product
-					for ind, val in GetProperty("ComboBox_washerProduct", 'itemList') do
-						if val = foundvalue then
-							SetProperty("ComboBox_washerProduct", 'selectedIndex', ind-1)
-						end if;
-					end do;
-				else
-					SetVisibilityWasher("deactivate")
-				end if;
-			else
-				SetProperty("CheckBox_screwWithWasher", 'enabled', "false");
-				SetVisibilityWasher("deactivate")
-			end if;	
-		else
-			SetProperty("CheckBox_screwWithWasher", 'enabled', "false")
-		end if;
-		
-	end if;
-
 end proc:
 
 
@@ -1431,43 +1427,74 @@ end proc:
 
 
 SetLoadExcentricity := proc(WhateverYouNeed::table, createnewloadcase::boolean)
-	description "Setting load excentricity based on load position, called when generating new load case";
-	local side, dummy, warnings;
-	
-	dummy := convert(evalf(WhateverYouNeed["calculations"]["structure"]["opening"]["opening_a"] / 2), 'unit_free');
-	warnings := WhateverYouNeed["warnings"];
+	description "Setting load excentricity based on load position, called when generating new load case or when CheckLoadExcentricity triggers error";
+	local side, dummy, warnings, activeloadcase;
 
-	if searchtext("left", GetProperty("TextArea_activeloadcase", 'value')) > 0 then
-		side := "left";
- 		dummy := -dummy
-	elif searchtext("right", GetProperty("TextArea_activeloadcase", 'value')) > 0  then
-		side := "right"
+	dummy := evalf(WhateverYouNeed["calculations"]["structure"]["opening"]["opening_a"] / 2);
+	warnings := WhateverYouNeed["warnings"];
+	activeloadcase := WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"];
+
+	if activeloadcase = "" or numelems(WhateverYouNeed["calculations"]["loadcases"]) = 0 then
+		# most likely during reset, defer checks
+		return
+	end if;
+
+	if createnewloadcase then
+		if searchtext("left", GetProperty("TextArea_activeloadcase", 'value')) > 0 then
+			side := "left";
+			dummy := -dummy
+		elif searchtext("right", GetProperty("TextArea_activeloadcase", 'value')) > 0  then
+			side := "right"
+		else
+			side := "";
+			Alert("Error: loadcase name must include side \"left\" or \"right\" for calculation of excentricity", warnings, 4);
+			return;
+		end if;
 	else
-		side := "";
-		Alert("Error: loadcase name must include side \"left\" or \"right\" for calculation of excentricity", warnings, 4);
-		return;
+		if searchtext("left", activeloadcase) > 0 then
+			side := "left";
+			dummy := -dummy
+		elif searchtext("right", activeloadcase) > 0  then
+			side := "right"
+		else
+			side := "";
+			Alert("Error: loadcase name must include side \"left\" or \"right\" for calculation of excentricity", warnings, 4);
+			return;
+		end if;
 	end if;
 
 	WriteValueToComponent("loadcenter_x", round(dummy), {"nocheck"});
 	if createnewloadcase then		
-		MainCommon("NewLoadcase");
+		NODEDocumentCommon:-MainCommon("NewLoadcase");
+	else
+		WhateverYouNeed["calculations"]["loadcases"][activeloadcase]["loadcenter_x"] := dummy
 	end if;
-	# MainCommon("CalculateLoads_calculate")
+	
 end proc:
 
 
-CheckLoadExcentricity := proc(WhateverYouNeed::table)
-	description "Check if load excentricity is compatible with opening width";
-	local opening_a, activeloadcase, loadcenter_x, tolerance, warnings;
+validateConnection := proc(WhateverYouNeed::table)
+	description "Check various combinations of geometry and fasteners";
+	local structure, warnings, fastenervalues;
 
-	tolerance := 1 * Unit('mm');
-	opening_a := WhateverYouNeed["calculations"]["structure"]["opening"]["opening_a"];	
-	activeloadcase := WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"];
-	loadcenter_x := WhateverYouNeed["calculations"]["loadcases"][activeloadcase]["loadcenter_x"];
+	structure := WhateverYouNeed["calculations"]["structure"];
 	warnings := WhateverYouNeed["warnings"];
-	
-	if evalf(abs(loadcenter_x) - opening_a / 2) > tolerance then
-		Alert(cat("loadcase ", activeloadcase, ": load excentricity wrong"), warnings, 3);
-		SetLoadExcentricity(WhateverYouNeed, false);
+	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
+
+	if structure["connection"]["connection1"] = "Steel" and structure["connection"]["connection2"] = "Steel" then
+		Alert("2x steel not allowed", warnings, 5);
+		
+	elif structure["connection"]["connection1"] = "Steel" and structure["connection"]["connectionInsideLayers"] = 0 then
+		Alert("Steel needs to be on the inside in connections with one shear plane", warnings, 5);
+		
+	elif (structure["fastener"]["chosenFastener"] = "Nail" or structure["fastener"]["chosenFastener"] = "Screw") and structure["connection"]["connection2"] = "Steel" and fastenervalues["shearplanes"] > 1 then
+		Alert("Use of nails or screws in connection with inside steelplates not allowed", warnings, 5);
+		
 	end if;
+
+#	if not(structure["connection"]["connection1"] = "Timber" and structure["connection"]["connection2"] = "Steel") then
+#		if WhateverYouNeed["calculations"]["structure"]["connection"]["bout1"] <> "false" then
+#			Alert("Different outer layer only allowed in timber / steel connections", warnings, 5);
+#		end if;
+#	end if;
 end proc:

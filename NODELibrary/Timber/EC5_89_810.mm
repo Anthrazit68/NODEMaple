@@ -14,9 +14,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-calculate_F_vR_89_810 := proc(WhateverYouNeed::table, alpha)
+calculate_F_vR_89_810 := proc(alpha)
 	description "Split Ring and Toothed Plate Connectors";
-	local structure, warnings, fastener, platesides, ShearConnector, connectortype, dc, he, F_vRk, F_vRd, k1, k2, k3, k4, t, a3t, rho_k, rho_k_, k_mod, gamma_M,
+	local structure, warnings, fastener, platesides, ShearConnector, connectortype, dc, dc_, he, he_, F_vRk, F_vRd, k1, k2, k3, k4, t, a3t, rho_k, rho_k_, k_mod, gamma_M,
 			fastenervalues, comments, d, shearplanes, F_vRkfin, F_v0Rk, nFasteners, ka, k90;
 
 	warnings := WhateverYouNeed["warnings"];
@@ -40,12 +40,16 @@ calculate_F_vR_89_810 := proc(WhateverYouNeed::table, alpha)
 		platesides := fastener["ToothedPlatesides"];
 		connectortype := fastener["ToothedPlatetype"];
 		dc := fastener["ToothedPlatedc"];
-		he := fastenervalues["ToothedPlatehc"];
+		dc_ := ConvertUnitfree("ToothedPlatedc", dc, WhateverYouNeed);
+		he := fastenervalues["ToothedPlatehc"];		
+		he_ := ConvertUnitfree("ToothedPlatehc", he, WhateverYouNeed)
 
 	elif ShearConnector = "Split ring" then
 		connectortype := fastener["SplitRingtype"];
 		dc := fastener["SplitRingdc"];
+		dc_ := ConvertUnitfree("SplitRingdc", dc, WhateverYouNeed);
 		he := fastenervalues["SplitRinghc"] / 2;		# only halv height is protruded into part
+		he_ := ConvertUnitfree("SplitRinghc", he, WhateverYouNeed)
 	end if;
 
 	# calculate some values need for calculation
@@ -140,7 +144,7 @@ calculate_F_vR_89_810 := proc(WhateverYouNeed::table, alpha)
 	end if;
 
 	# k3 (8.65, 8.78)
-	rho_k_ := convert(min(entries(rho_k, 'nolist')), 'unit_free');
+	rho_k_ := convert(min(entries(rho_k, 'nolist')), 'unit_free');		# [kg/m3]
 
 	if ShearConnector = "Toothed-plate" then
 		k3 := min(1.5, rho_k_ / 350);						# (8.78)
@@ -164,20 +168,20 @@ calculate_F_vR_89_810 := proc(WhateverYouNeed::table, alpha)
 
 		if member(connectortype, {"C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9"}) then
 
-			F_vRk := 18 * k1 * k2 * k3 * convert(dc, 'unit_free')^1.5 * Unit('N')
+			F_vRk := 18 * k1 * k2 * k3 * dc_^1.5 * Unit('N')
 			
 		elif member(connectortype, {"C10", "C11"}) then
 
-			F_vRk := 25 * k1 * k2 * k3 * convert(dc, 'unit_free')^1.5 * Unit('N')
+			F_vRk := 25 * k1 * k2 * k3 * dc_^1.5 * Unit('N')
 
 		end if; 
 
 	elif ShearConnector = "Split ring" then
 
-		F_v0Rk := min(	k1 * k2 * k3 * k4 * 35 * convert(dc, 'unit_free')^1.5 * Unit('N'), 
-						k1 * k3 * convert(he, 'unit_free') * 31.5 * convert(dc, 'unit_free') * Unit('N'));			# 8.61
+		F_v0Rk := min(	k1 * k2 * k3 * k4 * 35 * dc_^1.5 * Unit('N'), 
+						k1 * k3 * he_ * 31.5 * dc_ * Unit('N'));			# 8.61
 
-		k90 := 1.3 + 0.001 * convert(dc, 'unit_free');									# 8.68
+		k90 := 1.3 + 0.001 * dc_;									# 8.68
 
 		# intermediate code, must be changed
 		F_vRk := F_v0Rk / (k90 * sin(alpha)^2 + cos(alpha)^2);		# 8.67
@@ -196,7 +200,7 @@ calculate_F_vR_89_810 := proc(WhateverYouNeed::table, alpha)
 
 	# print
 	if ComponentExists("TextArea_ToothedPlatehc") then
-		SetProperty("TextArea_ToothedPlatehc", 'value', round(convert(he, unit_free)))
+		SetProperty("TextArea_ToothedPlatehc", 'value', round(he_))
 	end if;
 	
 	if ComponentExists("MathContainer_F_vRk_89_810") then

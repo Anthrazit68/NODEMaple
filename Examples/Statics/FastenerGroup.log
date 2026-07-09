@@ -1,0 +1,73 @@
+software: https://github.com/Anthrazit68/NODEMaple
+version: 2025-01
+created: 2026-06-25T21:35:39 CEST
+Projectdata: 
+ projecttitle: Testprosjekt
+ client: privat
+ projectnumber: 1001
+Calculations: 
+ calculation:
+  calculationtype: Loads on Fastener Group
+  positionnumber: 1.1
+  positiontitle: Test
+  activesettings
+   activeloadcase: 2
+   activematerial: 
+   activesection: 
+   activeFastenerPattern: 2
+  loadcases
+   1
+    name: 1
+    F_hGk: 5*Units:-Unit(kN)
+    F_hQk: 2*Units:-Unit(kN)
+    F_hd: 9.75*Units:-Unit(kN)
+    F_vGk: false
+    F_vQk: false
+    F_vd: 8*Units:-Unit(kN)
+    M_yGk: 0
+    M_yQk: 0
+    M_yd: 0.
+    loadcenter_x: 0
+    loadcenter_y: 0
+   2
+    name: 2
+    F_hGk: 0
+    F_hQk: 0
+    F_hd: 0
+    F_vGk: 0
+    F_vQk: 0
+    F_vd: 0
+    M_yGk: 12*Units:-Unit(kN*m)
+    M_yQk: 0
+    M_yd: 16.20*Units:-Unit(kN*m)
+    loadcenter_x: 0
+    loadcenter_y: 10*Units:-Unit(mm)
+  structure
+   FastenerPatterns
+    1
+     name: 1
+     grid_x1: 10
+     grid_y1: 10
+     center_x1: 0
+     center_y1: 0
+     grid_alpha_11: 0
+     grid_alpha_21: 0
+     reactionforces: true
+     FastenerPatternType1: grid
+     FastenerPatternType2: -
+     FastenerPatternType3: -
+     FastenerPatternUnits: mm
+     FastenerPatternCoordinates: false
+    2
+     name: 2
+     center_x1: 0
+     center_y1: 10
+     radial_alpha1: 0
+     radial_items1: 5
+     reactionforces: true
+     FastenerPatternType1: radial
+     FastenerPatternType2: -
+     FastenerPatternType3: -
+     FastenerPatternUnits: mm
+     radial_diameter1: 30
+     FastenerPatternCoordinates: false

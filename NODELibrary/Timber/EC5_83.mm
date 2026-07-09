@@ -14,23 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-
-# calculate_83
-# calculate_t
-# calculate_F_axR
-# checkPredrilled
-# calculate_f_h0k
-# calculate_n_ef
-# calculate_k_ef
-# calculate_f_axk
-# calculate_f_headk
-
 # Kapittel 8.3 Spikerforbindelser
 
 # 8.3.1.1(1)
 # extending procedure for use when calculating reinforcements with metal fasteners in beams (beam with opening)
 # in that case height and split heights will replace beam widths of the specific beams
-calculate_t := proc(WhateverYouNeed::table)
+calculate_t := proc()
 	description "Calculate t and t_pen / effective part thickness and penetration depth";
 	local shearplanes, t_total, t, t_eff, t_ef_814_NA_DE, t_pen, l_tip, n_tip, n_head, ls, d, chosenFastener, connection, alphaScrew,
 		checkPassed, structure, sectiondataAll, warnings, comments, fastenervalues, timberlayers, i, nailSurface, b_max, l1, lmin, h, l_ad, h_r;
@@ -240,7 +229,7 @@ calculate_t := proc(WhateverYouNeed::table)
 
 		# extending formula for inclined screws
 		if alphaScrew <> 90  * Unit('degree') then
-			comments["alphaScrew"] := cat("screw inclined ", convert(alphaScrew, 'unit_free'), " degrees")
+			comments["alphaScrew"] := cat("screw inclined ", ConvertUnitfree("alphaScrew", alphaScrew, WhateverYouNeed), " degrees")
 		elif assigned(comments["alphaScrew"]) then 
 			comments["alphaScrew"] := evaln(comments["alphaScrew"])
 		end if;
@@ -553,7 +542,7 @@ end proc:
 
 # 8.3.2, 8.7.2
 
-calculate_F_axR := proc(WhateverYouNeed::table)
+calculate_F_axR := proc()
 	description "calculate F_axR for nails and screws";
 
 	local calculatedFastener, chosenFastener, t, t_pen, n_tip, rho_k, connection, nailSurface, d, dh, f_axk, f_headk, f_tensk, washer_N_axk, screwWithWasher, alphaScrew, calculateAsNail;
@@ -634,7 +623,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 		# capacity of tip
 		# f_axk, R_axk
 		if f_axk = 0 then
-			calculate_f_axk(WhateverYouNeed);
+			calculate_f_axk();
 			f_axk := fastenervalues["f_axk"]
 		end if;
 
@@ -667,7 +656,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 
 		# f_headk, pull through capacity
 		if f_headk = 0 then
-			calculate_f_headk(WhateverYouNeed);
+			calculate_f_headk();
 			f_headk := fastenervalues["f_headk"]
 		end if;
 		if connection[cat("connection", n_head)] = "Timber" then
@@ -717,7 +706,7 @@ calculate_F_axR := proc(WhateverYouNeed::table)
 		# capacity of the tip
 		# f_axk, R_axk
 		if f_axk = 0 then
-			calculate_f_axk(WhateverYouNeed);
+			calculate_f_axk();
 			f_axk := fastenervalues["f_axk"]
 		end if;
 
@@ -833,7 +822,7 @@ end proc:
 
 
 # 8.3.1.1(2)
-checkPredrilled := proc(WhateverYouNeed::table)
+checkPredrilled := proc()
 	description "Check if predrilled is required";
 	local rho_k, d, predrilled, check_predrilled, chosenFastener, t, connection, ignoreReqPredrilled;
 	local structure, materialdataAll, sectiondataAll, warnings, comments;
@@ -902,15 +891,17 @@ checkPredrilled := proc(WhateverYouNeed::table)
 end proc:
 
 
-GetFastenervalues := proc(WhateverYouNeed::table)
+GetFastenervalues := proc()
 	description "check if fastenervalues are predefined or need to be calculated";
-	local comments, structure, fastener, fastenervalues, calculatedFastener, nailSurface, nailForm, f_uk, d, M_yRk, boltgrade, f_tensk, warnings;
+	local comments, structure, fastener, fastenervalues, calculatedFastener, nailSurface, nailForm, f_uk, d, d_, M_yRk, boltgrade, f_tensk, warnings;
 
 	comments := WhateverYouNeed["results"]["comments"];
 	structure := WhateverYouNeed["calculations"]["structure"];
 	fastener := structure["fastener"];
 	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
 	warnings := WhateverYouNeed["warnings"];
+	d := structure["fastener"]["fastener_d"];
+	d_ := ConvertUnitfree("fastener_d", d, WhateverYouNeed);
 	
 	# M_yRk					
 	if fastenervalues["M_yRk"] = 0 then
@@ -924,14 +915,14 @@ GetFastenervalues := proc(WhateverYouNeed::table)
 		calculatedFastener := WhateverYouNeed["calculatedvalues"]["fastenervalues"]["calculatedFastener"];
 		nailSurface := structure["fastener"]["nailSurface"];
 		nailForm := structure["fastener"]["nailForm"];		
-		d := structure["fastener"]["fastener_d"];
+		
 
 		if assigned(fastener["boltgrade"]) then			# boltgrade is just assigned if chosen bolttype opens up for this, otherwise undefined
 			boltgrade := fastener["boltgrade"];		# "4.6", "8.8"
 			f_uk := NODEBolts:-f_ub[boltgrade];
-			fastenervalues["f_uk"] := f_uk
+			fastenervalues["f_uk"] := f_uk			# [N/mm^2]
 		else
-			f_uk := fastenervalues["f_uk"];
+			f_uk := fastenervalues["f_uk"];			# [N/mm^2]
 #		else
 #			f_uk := 0;
 #			Alert("GetFastenervalues: fastener f_uk not defined", warnings, 3)
@@ -940,14 +931,14 @@ GetFastenervalues := proc(WhateverYouNeed::table)
 		if calculatedFastener = "Nail" and nailSurface = "smooth" and evalb(f_uk > 600 * Unit('N'/'mm^2')) then
 		
 			if nailForm = "round" then
-				M_yRk := (0.3 * convert(f_uk, 'unit_free') * convert(d, 'unit_free')^2.6)/1000 * Unit('N'*'m')			# 8.14
+				M_yRk := (0.3 * convert(f_uk, 'unit_free') * d_^2.6)/1000 * Unit('N'*'m')		# 8.14
 			else
-				M_yRk := (0.45 * convert(f_uk, 'unit_free') * convert(d, 'unit_free')^2.6)/1000 * Unit('N'*'m')		# 8.14
+				M_yRk := (0.45 * convert(f_uk, 'unit_free') * d_^2.6)/1000 * Unit('N'*'m')		# 8.14
 			end if;
 		
 		elif calculatedFastener = "Bolt" or calculatedFastener = "Dowel" then
 		
-			M_yRk := (0.3 * convert(f_uk, 'unit_free') * convert(d, 'unit_free')^2.6)/1000 * Unit('N'*'m')				# 8.30
+			M_yRk := (0.3 * convert(f_uk, 'unit_free') * d_^2.6)/1000 * Unit('N'*'m')			# 8.30
 		
 		end if;
 
@@ -965,7 +956,7 @@ GetFastenervalues := proc(WhateverYouNeed::table)
 	if fastenervalues["f_tensk"] = 0 then
 
 		if assigned(fastener["boltgrade"]) then			# boltgrade is just assigned if chosen bolttype opens up for this, otherwise undefined
-			f_tensk := NODEBolts:-F_tRk(cat("M", round(convert(d, 'unit_free'))), fastener["boltgrade"]);		# "M12", "5.6"
+			f_tensk := NODEBolts:-F_tRk(cat("M", round(d_)), fastener["boltgrade"]);		# "M12", "5.6"
 		else			
 			f_tensk := 0;			
 		end if;
@@ -984,9 +975,9 @@ end proc:
 
 
 # 8.3.1.1(5)
-calculate_f_h0k := proc(WhateverYouNeed::table)
+calculate_f_h0k := proc()
 	description "precalculate f_h0k for each beam, called by Main";
-	local calculatedvalues, calculatedFastener, d, predrilled, chosenFastener, calculateAsNail, structure, rho_k, material, f_h0k, part;
+	local calculatedvalues, calculatedFastener, d, d_, predrilled, chosenFastener, calculateAsNail, structure, rho_k, rho_k_, material, f_h0k, part;
 
 	structure := WhateverYouNeed["calculations"]["structure"];
 	calculatedvalues := WhateverYouNeed["calculatedvalues"];
@@ -995,6 +986,7 @@ calculate_f_h0k := proc(WhateverYouNeed::table)
 	calculateAsNail := structure["fastener"]["calculateAsNail"];
 	predrilled := structure["fastener"]["predrilled"];
 	d := structure["fastener"]["fastener_d"];
+	d_ := ConvertUnitfree("fastener_d", d, WhateverYouNeed);
 
 	f_h0k := table();
 
@@ -1002,20 +994,21 @@ calculate_f_h0k := proc(WhateverYouNeed::table)
 
 		material := WhateverYouNeed["materialdataAll"][part]["material"];
 		rho_k := WhateverYouNeed["materialdataAll"][part]["rho_k"];
+		rho_k_ := convert(rho_k, 'unit_free'); # [kg/m3]
 	
 		if material = "timber" then
 
 			if calculatedFastener = "Nail" or (chosenFastener = "Screw" and calculateAsNail = "true") then
 
 				if predrilled = "true" then
-					f_h0k[part] := (0.082 * (1 - 0.01 * convert(d, 'unit_free')) * convert(rho_k, 'unit_free')) * Unit('N'/'mm^2');
+					f_h0k[part] := (0.082 * (1 - 0.01 * d_) * rho_k_) * Unit('N'/'mm^2');
 				else
-					f_h0k[part] := (0.082 * convert(rho_k, 'unit_free') * convert(d, 'unit_free')^(-0.3)) * Unit('N'/'mm^2')
+					f_h0k[part] := (0.082 * rho_k_ * d_^(-0.3)) * Unit('N'/'mm^2')
 				end if;
 				
 			elif calculatedFastener = "Bolt" or calculatedFastener = "Dowel" then
 				
-				f_h0k[part] := (0.082 * (1 - 0.01 * convert(d, 'unit_free')) * convert(rho_k, 'unit_free')) * Unit('N'/'mm^2');
+				f_h0k[part] := (0.082 * (1 - 0.01 * d_) * rho_k_) * Unit('N'/'mm^2');
 				
 			end if;
 
@@ -1034,7 +1027,7 @@ end proc:
 
 # 8.3.1.1(8)
 # calculating k_n_ef as a reduction factor for capacity due to number of fasteners in a row
-calculate_n_ef := proc(WhateverYouNeed::table)
+calculate_n_ef := proc()
 	description "calculate reduction factor of capacity of one single fastener";
 	local staggered, calculatedFastener, a1, d, chosenFastener, calculateAsNail, part, structure, distance, k_ef, n_ef0, n1, k_n_ef0, comments, ShearConnector;
 
@@ -1067,7 +1060,7 @@ calculate_n_ef := proc(WhateverYouNeed::table)
 
 			elif calculatedFastener = "Nail" or (chosenFastener = "Screw" and calculateAsNail = "true") then
 				if staggered = "false" then		# staggered parallel to grain direction with distance d
-					k_ef := calculate_k_ef(part, WhateverYouNeed);
+					k_ef := calculate_k_ef(part);
 					n_ef0 := n1^k_ef;			# (8.17)
 				else
 					comments[cat("staggered", part)] := cat("row parallel to grain ", part, " staggered");
@@ -1118,7 +1111,7 @@ end proc:
 
 
 # 8.3.1.1(8)
-calculate_k_ef := proc(part::string, WhateverYouNeed::table)
+calculate_k_ef := proc(part::string)
 	description "calculate reduction factor k_ef for nails";
 	local k_ef, d, predrilled, distance, a1, structure;
 
@@ -1150,9 +1143,9 @@ calculate_k_ef := proc(part::string, WhateverYouNeed::table)
 end proc:
 
 
-calculate_f_axk := proc(WhateverYouNeed::table)
+calculate_f_axk := proc()
 	description "calculate f_axk according to formula in EC 5";
-	local f_axk, chosenFastener, d, t_pen, nailSurface, calculatedvalue, structure, fastenervalues;
+	local f_axk, chosenFastener, d, d_, t_pen, nailSurface, calculatedvalue, structure, fastenervalues;
 
 	# local variables
 	structure := WhateverYouNeed["calculations"]["structure"];
@@ -1162,14 +1155,15 @@ calculate_f_axk := proc(WhateverYouNeed::table)
 	chosenFastener := structure["fastener"]["chosenFastener"];
 	nailSurface := structure["fastener"]["nailSurface"];
 	d := structure["fastener"]["fastener_d"];
-	t_pen := fastenervalues["t_pen"];		# penetration depth, limited by thread length when using screws
+	d_ := ConvertUnitfree("fastener_d", d, WhateverYouNeed);
+	t_pen := fastenervalues["t_pen"];		# penetration depth, limited by thread length when using screws [mm]
 	# f_axk := WhateverYouNeed["calculatedvalues"]["fastenervalues"]["f_axk"];
 
 	if chosenFastener = "Nail" and nailSurface = "smooth" and evalb(t_pen > 12 * d) then
 		f_axk := 20*10^(-6) * 350 ^ 2 * Unit('N/mm^2');															# (8.25)
 		calculatedvalue := true
 	elif chosenFastener = "Screw" then
-		f_axk := 0.52 * convert(d, 'unit_free') ^ (-0.5) * convert(t_pen, 'unit_free') ^ (-0.1) * 350 ^ 0.8 * Unit('N/mm^2');		# (8.39)
+		f_axk := 0.52 * d_ ^ (-0.5) * convert(t_pen, 'unit_free') ^ (-0.1) * 350 ^ 0.8 * Unit('N/mm^2');		# (8.39)
 		calculatedvalue := true
 	end if;
 
@@ -1188,7 +1182,7 @@ calculate_f_axk := proc(WhateverYouNeed::table)
 end proc:
 
 
-calculate_f_headk := proc(WhateverYouNeed::table)
+calculate_f_headk := proc()
 	description "Calculate f_head,k according to EC5";
 	local f_headk, chosenFastener, d, t_pen, nailSurface, calculatedvalue, structure, fastenervalues;
 
@@ -1220,7 +1214,7 @@ calculate_f_headk := proc(WhateverYouNeed::table)
 end proc:
 
 
-EC5_832 := proc(WhateverYouNeed::table)
+EC5_832 := proc()
 	description "8.3.2/8.7.2 Axially loaded nails/screw";
 	local eta_active, usedcode, comments, F_axd, activeloadcase, F_axRd_fastener, numberOfFasteners;
 
@@ -1249,7 +1243,7 @@ EC5_832 := proc(WhateverYouNeed::table)
 end proc:
 
 
-EC5_833 := proc(WhateverYouNeed::table)
+EC5_833 := proc()
 	description "8.3.3 Combined laterally and axially loaded nails";
 	local chosenFastener, nailSurface, structure, eta, usedcode, warnings, comments, eta_active;
 

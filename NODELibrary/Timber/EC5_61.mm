@@ -26,7 +26,7 @@
 # EC5_618
 
 # 6.1.2 Tension parallel to the grain
-EC5_612 := proc(WhateverYouNeed::table)
+EC5_612 := proc()
 	description "6.1.2 Tension parallel to the grain";
 	local A, sigma_t0d, eta, usedcode, comments, F_xd, f_t0d, loadcase;
 
@@ -46,7 +46,7 @@ end proc:
 
 
 # 6.1.3 Tension perpendicular to the grain
-EC5_613 := proc(WhateverYouNeed::table)
+EC5_613 := proc()
 	description "6.1.3 Tension perpendicular to the grain";
 	local sigma_t90d, V0, eta, usedcode, comments, F_xd, b, h, l_615, f_t90d, loadcase;
 
@@ -77,7 +77,7 @@ end proc:
 
 # 6.1.4 Compression parallel to the grain
 # Denne blir ikke brukt lenger, bruker 6.3.2 istedenfor, som sender saken videre til 6.2.4
-EC5_614 := proc(WhateverYouNeed::table)
+EC5_614 := proc()
 	description "6.1.4 Compression parallel to the grain";
 	local A, sigma_c0d, eta, usedcode, comments, F_xd, f_c0d, loadcase;
 	
@@ -97,7 +97,7 @@ end proc:
 
 
 # 6.1.5 Compression perpendicular to the grain
-EC5_615 := proc(WhateverYouNeed::table)
+EC5_615 := proc()
 	description "6.1.5 Compression perpendicular to the grain";
 	local eta_615_EN, eta_615_NTI, eta, usedcode, comments;
 
@@ -124,7 +124,7 @@ EC5_615 := proc(WhateverYouNeed::table)
 end proc:
 
 
-calculate_k_c90 := proc(WhateverYouNeed::table)
+calculate_k_c90 := proc()
 	local h, k_c90, type_615, l_615, l1_615, timbertype;
 
 	# define local variables
@@ -164,7 +164,7 @@ calculate_k_c90 := proc(WhateverYouNeed::table)
 end proc:
 
 
-EC5_615_EN := proc(WhateverYouNeed::table)
+EC5_615_EN := proc()
 	description "Beregning iht. Eurocode, punkt 6.1.5";
 	local b, sigma_c90d, l_ef_615, A_net, A_ef, F_c90d, f_c90d_mod, eta_EN, a, l, l1, k_c90, f_c90d, loadcase;
 
@@ -199,7 +199,7 @@ EC5_615_EN := proc(WhateverYouNeed::table)
 
 	sigma_c90d := convert(F_c90d / A_ef, 'units', 'N'/'mm^2');
 
-	k_c90 := calculate_k_c90(WhateverYouNeed);		# beregner k_c90
+	k_c90 := calculate_k_c90();		# beregner k_c90
 	f_c90d_mod := convert(k_c90 * f_c90d, 'units', 'N'/'mm^2');
 	
 	eta_EN := sigma_c90d / f_c90d_mod;
@@ -226,7 +226,7 @@ EC5_615_EN := proc(WhateverYouNeed::table)
 end proc:
 
 
-EC5_615_NTI := proc(WhateverYouNeed::table)
+EC5_615_NTI := proc()
 	description "Beregning iht NT rapport 86";
 	local b, h, A_net, f_c90k_mod, f_c90d_mod, k_c90_mod, sigma_c90d, eta_NTI, a, l, l1, strengthclass, F_c90d, type_opplegg, loadcase, gamma_M, k_mod;
 
@@ -330,7 +330,7 @@ end proc:
 # 6.1.6 Bending
 # code including torsional buckling
 # code including tapered beams
-EC5_616 := proc(WhateverYouNeed::table, k_crity, k_critz)
+EC5_616 := proc(k_crity, k_critz)
 	description "6.1.6 Bending";
 	local k_m_alpha, k_r, k_l;		# factors for special constructions 6.4 (tapered and curved beams)
 	local W_y, W_z;
@@ -397,13 +397,15 @@ end proc:
 
 
 # 6.1.7 Shear / 6.5.2 Beams with a notch at the support
-EC5_617 := proc(WhateverYouNeed::table)
+EC5_617 := proc()
 	description "6.1.7 Shear";
-	local kcr, tau_yd, tau_zd, h_ef, l_incl, endnotched, endnotchedType, k_v, k_v1, k_v2, i_652, alpha_652, kn, x_652, eta, usedcode, comments, V_yd, V_zd, b, h, timbertype, f_vd, A, loadcase;
+	local kcr, tau_yd, tau_zd, h_ef, l_incl, endnotched, endnotchedType, k_v, k_v1, k_v2, i_652, alpha_652, kn, x_652, eta, usedcode,
+			 comments, V_yd, V_zd, b, h, h_, timbertype, f_vd, A, loadcase;
 
 	# define local variables
 	b := WhateverYouNeed["sectiondata"]["b"];
 	h := WhateverYouNeed["sectiondata"]["h"];
+	h_ := convert(h, 'unit_free');
 	A := WhateverYouNeed["sectiondata"]["A"];
 		
 	endnotched := WhateverYouNeed["calculations"]["structure"]["code_652"]["endnotched"];
@@ -443,8 +445,8 @@ EC5_617 := proc(WhateverYouNeed::table)
 				if endnotchedType = "6.11(a)" then
 					i_652 := evalf(l_incl / (h - h_ef));
 					alpha_652 := evalf(h_ef / h);
-					k_v1 := evalf(kn * (1 + 1.1 * i_652^1.5 / sqrt(convert(h, 'unit_free'))));
-					k_v2 := evalf(sqrt(convert(h, 'unit_free')) * (sqrt(alpha_652 * (1 - alpha_652)) + 0.8 * x_652 / h * sqrt(1 / alpha_652 - alpha_652^2)));
+					k_v1 := evalf(kn * (1 + 1.1 * i_652^1.5 / sqrt(h_)));
+					k_v2 := evalf(sqrt(h_) * (sqrt(alpha_652 * (1 - alpha_652)) + 0.8 * x_652 / h * sqrt(1 / alpha_652 - alpha_652^2)));
 					k_v := min(1, evalf(k_v1 / k_v2));
 				else
 					k_v := 1
@@ -495,7 +497,7 @@ end proc:
 
 
 # 6.1.8 Torsjon
-EC5_618 := proc(WhateverYouNeed::table)
+EC5_618 := proc()
 	description "6.1.8 Torsion";
 	local tau_tord, k_shape, eta, usedcode, comments, M_td, b, h, f_vd, I_t, loadcase;
 

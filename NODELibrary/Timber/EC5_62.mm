@@ -19,7 +19,7 @@
 # EC5_624
 
 # 6.2.2 Compression stresses at an angle to the grain
-EC5_622 := proc(WhateverYouNeed::table)
+EC5_622 := proc()
 	description "6.2.2 Compression stresses at an angle to the grain";
 	local sigma_cad, f_cad, eta_622, usedcode, comments, F_xd, alpha, f_c0d, f_c90d, k_c90, A_622, loadcase, timbertype, h_622;
 
@@ -76,7 +76,7 @@ end proc:
 
 
 # 6.2.3 Combined bending and axial tension
-EC5_623 := proc(WhateverYouNeed::table)
+EC5_623 := proc()
 	description "6.2.3 Combined bending and axial tension";
 	local sigma_t0d, sigma_myd, sigma_mzd, km, eta, usedcode, comments, F_xd, M_yd, M_zd, b, h, f_t0d, f_md, loadcase;
 
@@ -102,7 +102,7 @@ EC5_623 := proc(WhateverYouNeed::table)
 	           sigma_t0d / f_t0d + km * sigma_myd / (f_md * kh("h", WhateverYouNeed)) + sigma_mzd / (f_md * kh("b", WhateverYouNeed)));
 
 	usedcode := "6.2.3";
-	if sigma_c0d = 0 then
+	if sigma_t0d = 0 then
 		comments := "Bending (combined bending and axial tension)";
 	else 		
 		comments := "Combined bending and axial tension";
@@ -113,7 +113,7 @@ end proc:
 
 
 # 6.2.4/6.3.2 Combined bending and axial compression
-EC5_624 := proc(WhateverYouNeed::table, k_cy, k_cz)
+EC5_624 := proc(k_cy, k_cz)
 	description "6.2.4/6.3.2 Combined bending and axial compression";
 	local A, W_y, W_z, F_xd, M_yd, M_zd, sigma_c0d, sigma_myd, sigma_mzd, km, eta_, usedcode, comments, f_c0d, f_md, loadcase;
 

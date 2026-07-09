@@ -21,7 +21,7 @@
 # 6.3.2 columns subjected to either compression or combined compression and bending
 # 6.3.3 beams subjected to either bending or combined bending and compression
 
-EC5_63 := proc(WhateverYouNeed::table)
+EC5_63 := proc()
 	description "Checking columns and beams subjected to bending and compression";
 	local E_m0k, f_c0k, f_c0d, f_md, f_mk, G_005;
 	local b, h, timbertype, l_ky, l_kz, l_efy, l_efz, F_xd, M_yd, M_zd;
@@ -104,7 +104,7 @@ EC5_63 := proc(WhateverYouNeed::table)
 	end if;
 
 	# 6.2.4
-	eta["624"], usedcode["624"], usedcodeDescription["624"] := EC5_624(WhateverYouNeed, k_cy, k_cz);		# beregner kapasitet med utvidet formel fra 6.2.4
+	eta["624"], usedcode["624"], usedcodeDescription["624"] := EC5_624(k_cy, k_cz);		# beregner kapasitet med utvidet formel fra 6.2.4
 	# if ComponentExists("TextArea_eta_624") then
 	#	HighlightResults({"eta_624"}, "highlight");
 	#	SetProperty("TextArea_eta_624", 'value', round2(eta["624"], 2))
@@ -155,7 +155,7 @@ EC5_63 := proc(WhateverYouNeed::table)
 
 	# 6.1.6
 	# calculating capacity with extended formula for bending chapter 6.1.6 (6.11 + 6.12)
-	eta["616"], usedcode["616"], usedcodeDescription["616"] := EC5_616(WhateverYouNeed, k_crity, k_critz);		
+	eta["616"], usedcode["616"], usedcodeDescription["616"] := EC5_616(k_crity, k_critz);
 	# if ComponentExists("TextArea_eta_616") then
 	#	HighlightResults({"eta_616"}, "highlight");
 	#	SetProperty("TextArea_eta_616", 'value', round2(eta["616"],2))
@@ -183,7 +183,7 @@ EC5_63 := proc(WhateverYouNeed::table)
 end proc:
 
 
-calculate_k_64 := proc(WhateverYouNeed::table)
+calculate_k_64 := proc()
 	description "Beregner diverse k-verdier for konstruksjoner i kapittel 6.4";
 	local k1, k2, k3, k4, k5, k6, k7, r, V;
 	local A, h, b;
@@ -302,7 +302,7 @@ calculate_k_64 := proc(WhateverYouNeed::table)
 	k_64["k_p"] := k_p;
 	k_64["k_r"] := k_r;
 	k_64["k_vol"] := k_vol;
-	k_64["V"] := V;
+	k_64["V"] := V;		# [m3]
 
 	if ComponentExists("TextArea_k_dis") and ComponentExists("TextArea_k_m_alpha") and ComponentExists("TextArea_k_l") and ComponentExists("TextArea_k_p") and ComponentExists("TextArea_k_r")
 		and ComponentExists("TextArea_k_vol") and ComponentExists("TextArea_V") then 

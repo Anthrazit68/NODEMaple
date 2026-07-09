@@ -63,7 +63,7 @@
 
 # 8.5.1.1(2)
 # calculates f_h0k and f_hak values
-calculate_f_hk := proc(WhateverYouNeed::table, part::string, alpha)
+calculate_f_hk := proc(part::string, alpha)
 	local fastenervalues, f_hk, k90, calculatedFastener, d, f_h0k, f_h0k_table, f_hk_table, dummy;
 
 	fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
@@ -87,7 +87,7 @@ calculate_f_hk := proc(WhateverYouNeed::table, part::string, alpha)
 
 		# 8.5.1.1 (8.33)
 		d := WhateverYouNeed["calculations"]["structure"]["fastener"]["fastener_d"];
-		k90 := 1.35 + 0.015 * convert(d, 'unit_free');		# for softwoods
+		k90 := 1.35 + 0.015 * ConvertUnitfree("fastener_d", d, WhateverYouNeed);		# for softwoods
 		# k90 := 1.30 + 0.015 * convert(d, 'unit_free');		# for LVL
 		# k90 := 0.9 + 0.015 * convert(d, 'unit_free');		# for hardwoods
 		
