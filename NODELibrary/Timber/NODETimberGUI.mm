@@ -900,7 +900,7 @@ NODETimberGUI := module()
 
         # set Combobox values dependent on stored definitions
         for partsnumber in {"1", "2"} do		
-            
+
             if assigned(WhateverYouNeed["calculations"]["activesettings"][cat("activematerial", partsnumber)]) then
                 activematerial := WhateverYouNeed["calculations"]["activesettings"][cat("activematerial", partsnumber)];
                 NODETimberEN1995:-GetMaterialdata(activematerial, WhateverYouNeed);

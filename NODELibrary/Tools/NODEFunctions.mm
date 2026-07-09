@@ -1753,11 +1753,14 @@ NODEFunctions := module()
             end if;
 
             if ComponentExists(cat("ComboBox_timbertype", i)) then
+
                 if GetProperty(cat("ComboBox_timbertype", i), 'enabled') = "true" then
+
 					if action = "Reset" then
 						SetProperty(cat("ComboBox_timbertype", i), 'selectedindex', 0)		# Solid timber
 					end if;
 
+					# different timbertype (Solid timber, Glued laminated timber), so need to exchange strengthclasses
                     if materialdata["timbertype"] <> GetProperty(cat("ComboBox_timbertype", i), value) then					
 
                         # set strengthclass

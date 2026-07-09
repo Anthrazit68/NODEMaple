@@ -66,15 +66,17 @@ NODEDocumentCommon := module()
         # Robust fallback check if the global table has been wiped from memory
         if not assigned(WhateverYouNeed) or type(WhateverYouNeed, table) = false then
             
+            Alert("Global variable WhateverYouNeed uninitialized, exiting program", table(), 5);
+            return
             # Read directly from the sheet's GUI components to recover the state safely
-            activeMat  := `if`(ComponentExists("TextArea_material"), GetProperty("TextArea_material", value), "steel");
-            activeType := `if`(ComponentExists("TextArea_calculationtype"), GetProperty("TextArea_calculationtype", value), "Universal");
+            # activeMat  := `if`(ComponentExists("TextArea_material"), GetProperty("TextArea_material", value), "steel");
+            # activeType := `if`(ComponentExists("TextArea_calculationtype"), GetProperty("TextArea_calculationtype", value), "Universal");
             
-            InitCommon(activeMat, activeType);
+            # InitCommon(activeMat, activeType);
         end if;
-        
+  
         ResetWarnings(WhateverYouNeed);
-        
+
         ReadComponentsCommon(action, WhateverYouNeed, readList);
         
         if action = "Reset" or MASTERALARM(WhateverYouNeed["warnings"]) = true then
@@ -139,8 +141,8 @@ NODEDocumentCommon := module()
                 return  # storesettings initialized, but has no content (e.g. pure material information)
             else
                 Restoresettings(storesettings, WhateverYouNeed);        # restore values from "storedsettings" matrix to WhateverYouNeed
-                StoredsettingsToComponents(WhateverYouNeed);
-                # RunAfterRestoresettings(WhateverYouNeed);	# local procedures to define secondary necessary settings
+                NODEDocumentCommon:-RunRestoreHandlers(); 	# replaces RunAfterRestoresettings(WhateverYouNeed); # local procedures after restore
+                StoredsettingsToComponents(WhateverYouNeed);                
             end if;
         end if;
     end proc:

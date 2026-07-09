@@ -1010,7 +1010,10 @@ NODEXML := module()
 											if isNumericVariable(p, WhateverYouNeed) then
 												# catch exceptions with invalid values which can't be parsed
 												try
-													returndata3[p] := parse(AttributeValue(xmldummy, p));
+													returndata3[p] := eval(parse(AttributeValue(xmldummy, p)));
+													if returndata3[p] = false then		# change boolean false to string "false"
+														returndata3[p] := "false"
+													end if;
 												catch:
 													Alert(cat("Unable to parse variable ", p, " = ", AttributeValue(xmldummy, p)), warnings, 4);
 													FileTools[Text][WriteLine](logfile, cat("Unable to parse variable ", p, " = ", AttributeValue(xmldummy, p)));
@@ -1039,7 +1042,11 @@ NODEXML := module()
 
 												if isNumericVariable(p, WhateverYouNeed) then
 													try
-														returndata4[p] := eval(parse(AttributeValue(xmldummy1, p)))
+														returndata4[p] := eval(parse(AttributeValue(xmldummy1, p)));
+														if returndata4[p] = false then		# change boolean false to string "false"
+															returndata4[p] := "false"
+														end if;
+
 													catch:
 														Alert(cat("Unable to parse variable ", p, " = ", AttributeValue(xmldummy1, p)), warnings, 4);
 														FileTools[Text][WriteLine](logfile, cat("Unable to parse variable ", p, " = ", AttributeValue(xmldummy1, p)));
@@ -1068,7 +1075,11 @@ NODEXML := module()
 
 													if isNumericVariable(q, WhateverYouNeed) then
 														try
-															returndata5[q] := eval(parse(AttributeValue(xmldummy2, q)))
+															returndata5[q] := eval(parse(AttributeValue(xmldummy2, q)));
+															if returndata5[p] = false then		# change boolean false to string "false"
+																returndata5[p] := "false"
+															end if;
+
 														catch:
 															Alert(cat("Unable to parse variable ", q, " = ", AttributeValue(xmldummy2, q)), warnings, 4);
 															FileTools[Text][WriteLine](logfile, cat("Unable to parse variable ", q, " = ", AttributeValue(xmldummy2, q)));
