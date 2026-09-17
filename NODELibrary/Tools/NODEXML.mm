@@ -19,7 +19,8 @@ NODEXML := module()
 	description "Funksjoner for import og export av XML filer":
 	option package;
 	export XMLFileInOut;
-	local XMLWrite, XMLImport, XMLMaterialTimber, XMLMaterialConcrete, XMLMaterialSteel, XMLSectionSteel, XMLSectionTimber, XMLCalculations, XMLRead, GetStoreitemsCalculations, runAfterXMLImport, checkBeforeWriteout;
+	local XMLWrite, XMLImport, XMLMaterialTimber, XMLMaterialConcrete, XMLMaterialSteel, XMLSectionSteel, XMLSectionTimber, XMLCalculations,
+		 XMLRead, GetStoreitemsCalculations, runAfterXMLImport, checkBeforeWriteout, SafeXMLParse;
 
 	checkBeforeWriteout := proc(items, WhateverYouNeed::table)
 		uses DocumentTools;
@@ -695,8 +696,8 @@ NODEXML := module()
 		# [["material", "timber", "name"]]
 
 		# https://www.mapleprimes.com/questions/230537-XMLTools--FirstChild
-		# https://mapleprimes.com/questions/242325-Bug-In-XMLToolsParseFile			prolog = true does not work anymore from Maple 2026
-		xmltree := CleanXML(ParseFile(afilename));
+		# https://mapleprimes.com/questions/242325-Bug-In-XMLToolsParseFile			prolog = true does not work anymore from Maple 2026	
+		xmltree := SafeXMLParse(afilename);
 
 		# .xsd file check - unsure if it is working yet
 		# https://www.mapleprimes.com/questions/239423-XMLTools--Validate--Schema-Location?sq=239423
@@ -1522,6 +1523,38 @@ NODEXML := module()
 		FileTools:-Text:-WriteString(afilename, xmltree);
 		fclose(afilename);
 
+	end proc:
+
+	# SafeXMLParse: Sanitiserer rå XML-tekst og returnerer et parsert Maple XML-tre
+	SafeXMLParse := proc(afilename::string)
+		description "Read XML file and replace illegal '&'-characters safe";
+		uses FileTools, StringTools, XMLTools;
+		local fileContent, sanitized, parsedXmlTree;
+
+		# 1. read in xml file
+		fileContent := FileTools[Text][ReadFile](afilename);
+
+		# 2. hide existing valid XML-entities with placeholders
+		sanitized := SubstituteAll(fileContent, "&amp;",  "___AMP___");
+		sanitized := SubstituteAll(sanitized,   "&lt;",   "___LT___");
+		sanitized := SubstituteAll(sanitized,   "&gt;",   "___GT___");
+		sanitized := SubstituteAll(sanitized,   "&quot;", "___QUOT___");
+		sanitized := SubstituteAll(sanitized,   "&apos;", "___APOS___");
+
+		# 3. Replace illegal '&' with '&amp;'
+		sanitized := SubstituteAll(sanitized, "&", "&amp;");
+
+		# 4. get back original valid entities from placeholders
+		sanitized := SubstituteAll(sanitized, "___AMP___",  "&amp;");
+		sanitized := SubstituteAll(sanitized, "___LT___",   "&lt;");
+		sanitized := SubstituteAll(sanitized, "___GT___",   "&gt;");
+		sanitized := SubstituteAll(sanitized, "___QUOT___", "&quot;");
+		sanitized := SubstituteAll(sanitized, "___APOS___", "&apos;");
+
+		# 5. parse xml-string and clean tree
+		parsedXmlTree := XMLTools:-CleanXML(XMLTools:-ParseString(sanitized));
+
+		return parsedXmlTree;
 	end proc:
 
 # $include "NODEXML.mm";
