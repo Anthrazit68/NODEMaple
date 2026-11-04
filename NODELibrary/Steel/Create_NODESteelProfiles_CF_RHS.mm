@@ -1,4 +1,4 @@
-# Create_NODESteelProfiles_CF_RHS.mm :create cold formed rectangular hollow sections
+# Create_NODESteelProfiles_CF_RHS.mm : create cold formed rectangular hollow sections
 # Copyright (C) 2026  Andreas Zieritz
 
 # This program is free software: you can redistribute it and/or modify
@@ -20,42 +20,42 @@ proc()
    data:=subs("&ndash;" = NULL,data):
 
    # This is the metadata from the spreadsheet
-   # - ingen dots in variablename!
+   # - no dots in variable names!
 
-   metadata:=[ 
-   [A, "section", 1, "Betegnelse iht. EN 10219-2"]
-   ,[B, "steelcode", 1, "Verdier iht. standard"]
-   ,[C, "h", (mm), "høyde"]
-   ,[D, "b", (mm), "bredde"]
-   ,[E, "t", (mm), "tykkelse"]
-   ,[F, "r_o", (mm), "ytre radius"]
-   ,[G, "r_i", (mm), "indre radius"]
+   metadata:= [ 
+   [A, "section", 1, "Designation according to EN 10219-2"]
+   ,[B, "steelcode", 1, "Values according to standard"]
+   ,[C, "h", (mm), "height"]
+   ,[D, "b", (mm), "width"]
+   ,[E, "t", (mm), "thickness"]
+   ,[F, "r_o", (mm), "outer radius"]
+   ,[G, "r_i", (mm), "inner radius"]
 
-   ,[H, "A", (cm^2), "tverrsnittsareal"]
-   ,[I, "A_vz", (cm^2), "virksom skjærareal iht. EC3"]
-   ,[J, "A_vy", (cm^2), "skjærareal i y-retning"]
+   ,[H, "A", (cm^2), "cross-sectional area"]
+   ,[I, "A_vz", (cm^2), "effective shear area according to EC3"]
+   ,[J, "A_vy", (cm^2), "shear area in y-direction"]
 
-   ,[K, "U_o", (cm), "omkrets utside"]
-   ,[L, "U_i", (cm), "omkrets innside"]
-   ,[M, "U_m", (cm), "omkrets senterlinje"]
-   ,[N, "m_k", (kg/m), "masse"]
-   ,[O, "g_k", (kN/m), "vekt"]
+   ,[K, "U_o", (cm), "perimeter, outside"]
+   ,[L, "U_i", (cm), "perimeter, inside"]
+   ,[M, "U_m", (cm), "perimeter, centre line"]
+   ,[N, "m_k", (kg/m), "mass"]
+   ,[O, "g_k", (kN/m), "weight"]
 
-   ,[P, "I_y", (cm^4), "treghetsmoment om y-akse"]
-   ,[Q, "I_z", (cm^4), "treghetsmoment om z-akse"]
-   ,[R, "I_p", (cm^4), "polar treghetsmoment"]
-   ,[S, "W_el_y", (cm^3), "elastisk motstandsmoment om y-akse"]
-   ,[T, "W_el_z", (cm^3), "elastisk motstandsmoment om z-akse"]
-   ,[U, "W_pl_y", (cm^3), "plastisk motstandsmoment om y-akse"]
-   ,[V, "W_pl_z", (cm^3), "plastisk motstandsmoment om z-akse"]
-   ,[W, "S_y", (cm^3), "statisk moment om y-akse"]
-   ,[X, "S_z", (cm^3), "statisk moment om z-akse"]
-   ,[Y, "i_y", (cm), "treghetsradius om y-akse"]
-   ,[Z, "i_z", (cm), "treghetsradius om z-akse "]
-   ,[AA, "i_p", (cm), "polar treghetsradius"]
+   ,[P, "I_y", (cm^4), "second moment of area about y-axis"]
+   ,[Q, "I_z", (cm^4), "second moment of area about z-axis"]
+   ,[R, "I_p", (cm^4), "polar second moment of area"]
+   ,[S, "W_el_y", (cm^3), "elastic section modulus about y-axis"]
+   ,[T, "W_el_z", (cm^3), "elastic section modulus about z-axis"]
+   ,[U, "W_pl_y", (cm^3), "plastic section modulus about y-axis"]
+   ,[V, "W_pl_z", (cm^3), "plastic section modulus about z-axis"]
+   ,[W, "S_y", (cm^3), "first moment of area about y-axis"]
+   ,[X, "S_z", (cm^3), "first moment of area about z-axis"]
+   ,[Y, "i_y", (cm), "radius of gyration about y-axis"]
+   ,[Z, "i_z", (cm), "radius of gyration about z-axis "]
+   ,[AA, "i_p", (cm), "polar radius of gyration"]
 
-   ,[AB, "A_m", (cm^2), "Areal innenfor senterlinje"]
-   ,[AC, "I_t", (cm^4), "torsjonsmotstandsmoment med utrunding"]
+   ,[AB, "A_m", (cm^2), "area within centre line"]
+   ,[AC, "I_t", (cm^4), "torsional constant including corner radii"]
    ,[AD, "omega_0", (cm^2), "warping"]
    ,[AE, "omega_1", (cm^2), "warping"]
    ,[AF, "omega_2", (cm^2), "warping"]
@@ -67,29 +67,29 @@ proc()
    ,[AL, "S_omega_3", (cm^4), "warping"]
    ,[AM, "I_omega", (cm^6), "warping"]
 
-   ,[AN, "alpha_pl_y", 1, "plastisk formfaktor om y-akse"]
-   ,[AO, "alpha_pl_z", 1, "plastisk formfaktor om z-akse"]
+   ,[AN, "alpha_pl_y", 1, "plastic shape factor about y-axis"]
+   ,[AO, "alpha_pl_z", 1, "plastic shape factor about z-axis"]
 
    ,[AP, "alpha_1", 1, "d / t"]
    ,[AQ, "alpha_2", 1, "c / t"]
 
-   ,[AR, "cross_section_class_bending_S235", 1, "Tverrsnittsklasse Bøyning S235"]
-   ,[AS, "cross_section_class_compression_S235", 1, "Tverrsnittsklasse Trykk S235"]
-   ,[AT, "cross_section_class_bending_S355", 1, "Tverrsnittsklasse Bøyning S355"]
-   ,[AU, "cross_section_class_compression_S355", 1, "Tverrsnittsklasse Trykk S355"]
-   ,[AV, "cross_section_class_bending_S460", 1, "Tverrsnittsklasse Bøyning S460"]
-   ,[AW, "cross_section_class_compression_S460", 1, "Tverrsnittsklasse Trykk S460"]
+   ,[AR, "cross_section_class_bending_S235", 1, "Cross-section class, bending, S235"]
+   ,[AS, "cross_section_class_compression_S235", 1, "Cross-section class, compression, S235"]
+   ,[AT, "cross_section_class_bending_S355", 1, "Cross-section class, bending, S355"]
+   ,[AU, "cross_section_class_compression_S355", 1, "Cross-section class, compression, S355"]
+   ,[AV, "cross_section_class_bending_S460", 1, "Cross-section class, bending, S460"]
+   ,[AW, "cross_section_class_compression_S460", 1, "Cross-section class, compression, S460"]
 
-   ,[AX, "N_pl_Rk_S235", (kN), "plastisk bruddlast"]
-   ,[AY, "M_el_y_Rk_S235", (kN*m), "elastisk bruddmoment om y-akse"]
-   ,[AZ, "M_el_z_Rk_S235", (kN*m), "elastisk bruddmoment om z-akse"]
-   ,[BA, "M_pl_y_Rk_S235", (kN*m), "plastisk bruddmoment om y-akse"]
-   ,[BB, "M_pl_z_Rk_S235", (kN*m), "plastisk bruddmoment om z-akse"]
-   ,[BC, "V_pl_y_Rk_S235", (kN), "plastisk bruddlast i y-retning"]
-   ,[BD, "V_pl_z_Rk_S235", (kN), "plastisk bruddlast i z-retning"]
+   ,[AX, "N_pl_Rk_S235", (kN), "plastic axial resistance"]
+   ,[AY, "M_el_y_Rk_S235", (kN*m), "elastic moment resistance about y-axis"]
+   ,[AZ, "M_el_z_Rk_S235", (kN*m), "elastic moment resistance about z-axis"]
+   ,[BA, "M_pl_y_Rk_S235", (kN*m), "plastic moment resistance about y-axis"]
+   ,[BB, "M_pl_z_Rk_S235", (kN*m), "plastic moment resistance about z-axis"]
+   ,[BC, "V_pl_y_Rk_S235", (kN), "plastic shear resistance in y-direction"]
+   ,[BD, "V_pl_z_Rk_S235", (kN), "plastic shear resistance in z-direction"]
 
-   ,[BE, "buckling_curve_S235-420", 1, "Knekklinje, S235-420"]
-   ,[BF, "buckling_curve_S460", 1, "Knekklinje, S460"]
+   ,[BE, "buckling_curve_S235-420", 1, "Buckling curve, S235-420"]
+   ,[BF, "buckling_curve_S460", 1, "Buckling curve, S460"]
    ]:
 
 
@@ -102,9 +102,19 @@ proc()
    for i from 1 to numelems(data[..,1]) do
       if data[i,1] <> NULL and data[i,1] <> "" then   # we don't want empty rows at end of worksheet
          dataTable[data[i,1]] := table([
-            "steelcode" = data[i,2],
-            seq(metadata[j,2] = `if`(data[i,j]<>NULL, data[i,j]*Unit(metadata[j,3]), NULL), j = 3..58)
-            ]);
+            "section"    = data[i,1],
+            "steelcode"  = data[i,2],
+            seq(
+               metadata[j,2] = `if`(
+                  data[i,j] <> NULL,
+                  `if`(type(data[i,j], string),
+                      data[i,j],
+                      data[i,j]*Unit(metadata[j,3])),
+                  NULL
+               ),
+               j = 3..numelems(metadata)
+            )
+         ]);
       end if;
    end do:
 
@@ -112,7 +122,7 @@ proc()
    ofilename := "Steel/Data_CF_RHS.mm";
    file := FileTools[Text][Open](ofilename, create=true, overwrite=true);
 
-   # %a i sprintf dumps table/matrix into raw, valid Maple-code
+   # %a in sprintf dumps table/matrix into raw, valid Maple-code
    FileTools[Text][WriteString](file, sprintf("metadata := %a:\n", eval(metadata)));
    FileTools[Text][WriteString](file, sprintf("dataTable := %a:\n", eval(dataTable)));
    FileTools[Text][Close](file);
