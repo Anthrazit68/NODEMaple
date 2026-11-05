@@ -1,8 +1,26 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Copyright (C) 2026 <your name>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details: https://www.gnu.org/licenses/gpl-3.0.txt
+
 """
-NODEMaple Material Data — Levels 2 & 3 (tree output)
+NODEMaple Material Definitions
+
 Queries grade lists ("allmembers") and property definitions ("metadata")
 for all material categories in a single Maple process, and returns them
 as Grasshopper data trees whose branches correspond to categories.
+
+For steel: grades include standard code (e.g. "S 275 H@NS-EN 10210-1")
+to disambiguate grades that appear under multiple standards.
 
 The branch order matches the order reported by NODEFunctions:-Materials(),
 so a branch index is valid simultaneously in both trees.
@@ -15,14 +33,8 @@ Output:
   metadata_tree : tree, branch per category -> list of property names
   categories    : ordered list of category names (branch keys, human-readable)
   debug         : raw Maple output; also shows SKIP|<category> lines
-
-Requirements:
-  - Maple 2023+ with NODE Library installed
-  - NODE Toolbox loaded (automatically via PackageTools)
-  - Valid Maple license available
-
-GH1 compatibility: Uses Grasshopper.Kernel.Data.GH_Path
 """
+
 import os
 import subprocess
 import Grasshopper
@@ -37,7 +49,6 @@ else:
     MAPLE_ROOT = os.path.join(r"C:\Program Files", f"Maple {maple_version}")
 
 MAPLE_PATH = os.path.join(MAPLE_ROOT, "bin.X86_64_WINDOWS", "cmaple.exe")
-
 
 def run_maple_script(script, timeout=30):
     """Run a Maple script in a fresh cmaple process and return its output."""
@@ -57,10 +68,12 @@ def run_maple_script(script, timeout=30):
     out, _ = proc.communicate(input=script, timeout=timeout)
     return out
 
-
 def query_material_data():
     """Fetch categories, grades and metadata in one Maple process.
 
+    For STEEL: outputs CODE@GRADE combinations to disambiguate
+    grades appearing under multiple standards (e.g. "S 275 H@NS-EN 10210-1").
+    
     Emits: CAT|<category>          once per category, in order
            LIST|mem|<category>|<grade>
            LIST|meta|<category>|<property>
@@ -73,21 +86,36 @@ def query_material_data():
     script_lines = [
         "kernelopts(printbytes=false):",
         "interface(prettyprint=0):",
-        '# Category -> module mapping. Extend when new NODE material',
-        '# packages are installed.',
+        '# Category -> module mapping',
         'nodetab := table(["steel"    = NODESteelMaterial,',
         '                  "timber"   = NODETimberMaterial,',
         '                  "concrete" = NODEConcreteMaterial]):',
-        '# Categories are discovered at runtime, not hard-coded.',
+        '# Categories are discovered at runtime',
         "cats := NODEFunctions:-Materials():",
         "known := [indices(nodetab, 'nolist')]:",
         "for c in cats do",
         '  printf("CAT|%s\\n", c):',
         "  if member(c, known) then",
         "    M := nodetab[c]:",
+        '# Steel: special handling for code-grade pairs',
+        '  if c = "steel" then',
+        '# First get all codes',
+        '    codes := M:-Property("allcodes"):',
+        '    for code in codes do',
+        '# Then grades of this code',
+        '      for g in M:-Property(code,"allmembers") do',
+        '# Composite grade name: grade@code',
+        '        fullname := cat(g,"@",code):',
+        '        printf("LIST|mem|%s|%s\\n", c, fullname):',
+        "      end do:",
+        "    end do:",
+        "  else:",
+        '# Non-steel: simple grade list',
         '    for e in M:-Property("allmembers") do',
         '      printf("LIST|mem|%s|%s\\n", c, e):',
         "    end do:",
+        "  end if:",
+        '# Metadata is always simple list',
         '    for e in M:-Property("metadata") do',
         '      printf("LIST|meta|%s|%s\\n", c, e):',
         "    end do:",
@@ -98,7 +126,6 @@ def query_material_data():
         "quit:",
     ]
     return run_maple_script("\n".join(script_lines) + "\n")
-
 
 # ---------------------------------------------------------------------------
 # Main execution
@@ -118,7 +145,6 @@ for line in raw.splitlines():
             members_by_cat.setdefault(cat, [])
             metadata_by_cat.setdefault(cat, [])
     elif s.startswith("LIST|mem|"):
-        # Parse grade entries
         parts = s.split("|", 3)
         if len(parts) == 4:
             _, kind, cat, entry = parts
@@ -126,7 +152,6 @@ for line in raw.splitlines():
             if entry:
                 members_by_cat.setdefault(cat, []).append(entry)
     elif s.startswith("LIST|meta|"):
-        # Parse property entries
         parts = s.split("|", 3)
         if len(parts) == 4:
             _, kind, cat, entry = parts
