@@ -1,7 +1,7 @@
 metadata := [[A, "prod", 1, "Producer"], [B, "bet", 1, "Designation / Product name"], [C, "descr", 1, "Detailed description"], [D, "fm_serviceclass", 1, "Service class limitation"], [E, "fm_width", mm, "Width of sharp metal plate"], [F, "fm_withscrew", 1, "Connection reinforced with screw"], [G, "f_v_0_k", N/mm^2, "Shear strength parallel to grain"], [H, "f_v_90_k", N/mm^2, "Shear strength normal to grain"], [I, "f_v_EG_k", N/mm^2, "Shear strength at end-grain edge"], [J, "k_ser_0_k", N/mm^3, "Slip modulus / Deformation factor parallel"], [K, "k_ser_90_k", N/mm^3, "Slip modulus / Deformation factor normal"], [L, "k_ser_EG_k", N/mm^3, "Slip modulus / Deformation factor edge"]]:
 fm_withscrew := {"false", "true"}:
-prod := table([("false")={"ROTHOBLAAS"},("true")={"ROTHOBLAAS"}]):
-bet := table([("false", "ROTHOBLAAS")={"SHARP50", "SHARP50H"},("true", "ROTHOBLAAS")={"SHARP50", "SHARP50H"}]):
+prod := table([("true")={"ROTHOBLAAS"},("false")={"ROTHOBLAAS"}]):
+bet := table([("true", "ROTHOBLAAS")={"SHARP50", "SHARP50H"},("false", "ROTHOBLAAS")={"SHARP50", "SHARP50H"}]):
 descr := table([("true", "ROTHOBLAAS", "SHARP50H")={"Sharp Metal High Density"},("false", "ROTHOBLAAS", "SHARP50")={"Sharp Metal Low Density"},("true", "ROTHOBLAAS", "SHARP50")={"Sharp Metal Low Density"},("false", "ROTHOBLAAS", "SHARP50H")={"Sharp Metal High Density"}]):
 fm_serviceclass := table([("true", "ROTHOBLAAS", "SHARP50H")={2.0},("false", "ROTHOBLAAS", "SHARP50")={2.0},("true", "ROTHOBLAAS", "SHARP50")={2.0},("false", "ROTHOBLAAS", "SHARP50H")={2.0}]):
 fm_width := table([("true", "ROTHOBLAAS", "SHARP50H")={50.0*Units:-Unit(mm)},("false", "ROTHOBLAAS", "SHARP50")={50.0*Units:-Unit(mm)},("true", "ROTHOBLAAS", "SHARP50")={50.0*Units:-Unit(mm)},("false", "ROTHOBLAAS", "SHARP50H")={50.0*Units:-Unit(mm)}]):
