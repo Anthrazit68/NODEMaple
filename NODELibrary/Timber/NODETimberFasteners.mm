@@ -77,10 +77,20 @@ $include "Timber/Data_NODETimberFasteners.mm"
     #          pass "-" to leave d or producer unfiltered
     #   Property("value", <type>, <member>, <d>, <ls>, <varname>)
     #       -> value of <varname> for member "producer@product";
-    #          d   = number or "-" (auto: unique diameter with data)
-    #          ls  = number or "-" (auto: shortest available length)
+    #          d   = number/string-number or "-" (auto: unique diameter with data)
+    #          ls  = number/string-number or "-" (auto: shortest available length)
     #
-    # Naming/keys follow Create_NODETimberFasteners.mm:
+    # Numeric input normalisation:
+    #   Grasshopper/panels may deliver diameters and lengths as strings
+    #   ("24", "6.2") or as floats (24.0) while the database is keyed by
+    #   the raw Excel import values (often integers: 24). Therefore:
+    #     - string numerics are parsed (parse)
+    #     - explicit d is SNAPPED to the closest actual key of
+    #       fm_d[<type>] within tolerance before any table indexing,
+    #       so 24, 24.0, "24" and "24.0" all hit the same record
+    #   "members" compares diameters with the same tolerance loop.
+    #
+    # Other naming/keys follow Create_NODETimberFasteners.mm:
     #   - prod/bet are keyed by UNIT-FREE diameters, fasteners_d carries
     #     units -> every descent converts with convert(..., 'unit_free'),
     #     same as SetComboFasteners does in the worksheet GUI
@@ -94,9 +104,13 @@ $include "Timber/Data_NODETimberFasteners.mm"
     # -----------------------------------------------------------------------
     Property := proc()
         local what, dia, pd, m, dfree, res, ds, pos, producer, product,
-              ls_r, ls_c, pname, vals, x, lsr, mkey, tol;
+              ls_r, ls_c, pname, vals, x, lsr, mkey, tol, dnum, lsnum;
 
         tol := 10^(-9);
+
+        # Helper semantics (inlined to stay module-local):
+        #   dnum / lsnum hold the numeric value of the d / ls arguments
+        #   after parse() normalisation of string numerics.
 
         # ------------------- one-argument queries --------------------------
         if nargs = 1 then
@@ -154,11 +168,19 @@ $include "Timber/Data_NODETimberFasteners.mm"
             if not assigned(fm_d[what]) then
                 error "unknown fastener type %1", what;
             end if;
+            # Normalise the diameter argument: strings ("24", "6.2") -> numbers
+            if args[2] = "-" then
+                dnum := "-";
+            elif type(args[2], string) then
+                dnum := parse(args[2]);
+            else
+                dnum := args[2];
+            end if;
             res := {};
             for dia in fm_d[what] do
                 dfree := convert(dia, 'unit_free');
-                # "-" means: no diameter filter (float-safe comparison)
-                if args[2] <> "-" and abs(evalf(args[2] - dfree)) > tol then
+                # "-" means: no diameter filter (tolerant float comparison)
+                if dnum <> "-" and abs(evalf(dnum - dfree)) > tol then
                     next;
                 end if;
                 for pd in prod[what, dfree] do
@@ -188,30 +210,51 @@ $include "Timber/Data_NODETimberFasteners.mm"
                 error "unknown member %1", mkey;
             end if;
 
-            # Resolve diameter: given value, or the unique diameter
-            # for which this product actually has data
+            # Normalise the diameter argument: strings ("24", "6.2") -> numbers
             if args[4] = "-" then
-                ds := [];
-                for dia in fm_d[what] do
-                    dfree := convert(dia, 'unit_free');
+                dnum := "-";
+            elif type(args[4], string) then
+                dnum := parse(args[4]);
+            else
+                dnum := args[4];
+            end if;
+
+            # Resolve diameter:
+            #   "-" -> the unique diameter with data for this product
+            #   given -> SNAPPED to the closest actual key of fm_d[what]
+            #            (so 24.0 matches an integer 24 key, etc.)
+            ds := [];
+            for dia in fm_d[what] do
+                dfree := convert(dia, 'unit_free');
+                if dnum = "-" then
                     if assigned(fm_l[producer, product, dfree]) then
                         ds := [op(ds), dfree];
                     end if;
-                end do;
-                ds := [op({op(ds)})];
-                if numelems(ds) = 1 then
-                    dfree := ds[1];
-                elif numelems(ds) = 0 then
-                    error "no data found for %1", mkey;
-                else
-                    error "diameter ambiguous for %1, supply diameter", mkey;
+                elif abs(evalf(dnum - dfree)) <= tol then
+                    ds := [op(ds), dfree];
                 end if;
+            end do;
+            ds := [op({op(ds)})];
+            if numelems(ds) = 1 then
+                dfree := ds[1];
+            elif numelems(ds) = 0 then
+                error "no matching diameter %1 for fastener type %2",
+                      args[4], what;
             else
-                dfree := convert(args[4], 'unit_free');
+                error "diameter ambiguous for %1, supply diameter", mkey;
             end if;
 
-            # Resolve length: given value, or shortest available length
+            # Normalise the length argument: strings ("40") -> numbers
             if args[5] = "-" then
+                lsnum := "-";
+            elif type(args[5], string) then
+                lsnum := parse(args[5]);
+            else
+                lsnum := args[5];
+            end if;
+
+            # Resolve length: given value rounded, or shortest available
+            if lsnum = "-" then
                 ls_c := sort([op({seq(round(convert(x, 'unit_free')),
                                        x in fm_l[producer, product, dfree])})]);
                 if numelems(ls_c) = 0 then
@@ -219,7 +262,7 @@ $include "Timber/Data_NODETimberFasteners.mm"
                 end if;
                 ls_r := ls_c[1];
             else
-                ls_r := round(convert(args[5], 'unit_free'));
+                ls_r := round(evalf(lsnum));
             end if;
 
             pname := args[6];
