@@ -25,15 +25,19 @@ Hierarchy (one Property call per output tree):
   NODETimberFasteners:-Property(t, "allmembers")  -> members "producer@product"
   NODETimberFasteners:-Property(t, "metadata")    -> variable names
   NODETimberFasteners:-Property(t, "producers")   -> producer names
-  NODETimberFasteners:-Property(t, "diameters")  -> unit-free diameters (6, 6.2, ...)
+  NODETimberFasteners:-Property(t, "diameters")   -> diameters WITH units
+
+UNITS POLICY: the Maple module returns all quantities WITH their units.
+Stripping happens here (Grasshopper side) where value lists need plain
+numbers — NOT in Maple.
 
 Diameter handling (robust against Maple number formats):
-  - Maple emits evalf(e), forcing decimal form (avoids rationals like 31/5)
+  - the query script strips the unit and forces decimal form via
+    evalf(convert(e, 'unit_free'))  (avoids rationals like 31/5)
   - Python accepts plain floats, and falls back to:
       * fraction parsing "a/b" -> a/b
       * keeping the raw string in the tree (nothing is dropped silently)
-  - the debug summary lists rejected raw values, if any, so the
-    actual Maple output format is always visible
+  - the debug summary lists rejected raw values, if any
 
 Input:
   maple_version : Maple year, e.g. "2026" (ignored if MAPLE env var is set)
@@ -43,7 +47,7 @@ Output:
   members_tree  : tree, branch per type -> "producer@product" designations
   metadata_tree : tree, branch per type -> variable names
   producers_tree: tree, branch per type -> producer names
-  diameters_tree: tree, branch per type -> diameters (numbers when parseable)
+  diameters_tree: tree, branch per type -> diameters (unit-free numbers)
   debug         : raw Maple output with a count/reject summary header
 """
 
@@ -88,7 +92,7 @@ def query_fastener_data():
            LIST|mem|<type>|producer@product
            LIST|meta|<type>|<variable name>
            LIST|prod|<type>|<producer>
-           LIST|dia|<type>|<diameter, evalf-decimal>
+           LIST|dia|<type>|<diameter, unit-free decimal>
            SKIP|<type>              if the type cannot be queried
 
     NOTE: every Maple statement is terminated with ":" or ";".
@@ -114,9 +118,10 @@ def query_fastener_data():
         '    for e in NODETimberFasteners:-Property(t, "producers") do',
         '      printf("LIST|prod|%s|%s\\n", t, e):',
         "    end do:",
-        "# Diameters: evalf forces decimal form (no rationals such as 31/5)",
+        "# Diameters come WITH units from the module -> strip HERE",
+        "# (Grasshopper side), evalf forces decimal form",
         '    for e in NODETimberFasteners:-Property(t, "diameters") do',
-        '      printf("LIST|dia|%s|%a\\n", t, evalf(e)):',
+        '      printf("LIST|dia|%s|%a\\n", t, evalf(convert(e, \'unit_free\'))):',
         "    end do:",
         "  catch:",
         '    printf("SKIP|%s\\n", t):',
