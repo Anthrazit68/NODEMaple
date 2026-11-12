@@ -14,11 +14,27 @@ For more information see https://www.node.no.
 
 NODE rådgivende ingeniører AS does neither own this software nor is legally responsible in any way.
 
-# Installation
+# Download and Installation
+## Download
+- The software can be downloaded from Codeberg https://codeberg.org/Anthrazit68/NODEMaple (original) or GitHub https://github.com/Anthrazit68/NODEMaple (mirror).
+## Maple
 - A valid license of Maple (see https://www.maplesoft.com/products/Maple/) is required to run this software. Usually the latest release of the program is required.
-- The software can be downloaded on GitHub: https://github.com/Anthrazit68/NODEMaple
-- Before running the workbooks, NODElibrary needs to be installed or updated. This is done by running "Install NODELibrary.mw" once.
+- Before running the workbooks, the NODElibrary package needs to be installed or updated. This is done by running "Install NODELibrary.mw" once.
 - After installing the library, it is recommended to exit Maple and start the program again.
+- Calculation sheets
+  - NODETimber.maple: timber design
+  - NODESteel_basic.maple: steel material and profile properties
+  - NDOEConcrete_basic.maple: concrete material properties
+  - NODEStatics.maple: static calculation example
+
+## Grasshopper
+- NODELibrary has to be installed first (see Maple installation above)
+- A valid license of Rhino (https://www.rhino3d.com) and Grasshopper is required to run Grasshopper components (in addition to a valid Maple license).
+- It is recommended to set the system variable **MAPLE = C:\Program Files\Maple 2026** (Linux see Maple help file). Alternatively set canvas input "maple_version".
+- Copy NODEMaple\Grasshopper\userobjects folder to UserObjects folder (File - Special Folders - User Object folder)
+- Start Rhino and Grasshopper, open file "NODEMaple Grasshopper.gh" in /example folder
+- Enable canvas to the right of "Materials" to check connection to Maple
+- Check that Maple has valid license
 
 # Usage
 - After installation of the library, the desired Maple workbooks can be opened and run. Check also information on the opening pages of the specific workbooks.
@@ -41,6 +57,8 @@ I would like to thank everyone who helped with this project.
 - Harald Liven from Moelven Limtre AS for help on questions regarding examples from Limtreboka
 - all the Maple gurus from https://www.mapleprimes.com/
 - my daughter Astrid for general coding tips and GitHub support
+- Grasshopper Python scripts were generated with the help of Proton Lumo
+- Grasshopper canvas bitmaps were generated using Google Gemini
 
 # License
 Copyright (C) 2024  Andreas Zieritz

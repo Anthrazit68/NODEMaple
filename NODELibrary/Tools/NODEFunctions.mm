@@ -19,9 +19,10 @@ NODEFunctions := module()
 	option package;
 	uses Units[Simple], DocumentTools;
 	
-	export Alert, CalculateAllLoadcases, ComponentExists, ConvertUnitfree, disableTextAreaEtaMax, ExcelFileInOut, HighlightResults, isNumericVariable, isNumericValue, LibInitCommon, MASTERALARM, MaterialChanged, maxIndexTable,
-			  ModifyComboVariables, ModifyLoadcases, PrintAlert, ProcessLoadcasesFromFile, ReadComponentsCommon, ReadComponentsCommon_TimberGUI, ResetComponent, ResetWarnings, Restoresettings, round2, SectionChanged,
-			  SetComboBoxValues, Storesettings, SetVisibilityTextAreaLoads, SortStructuralnames, StoredsettingsToComponents, SyncSliderWithTextArea, WriteLoadsToDocument, Segment2Arrow, Write_eta, Write_eta2, WriteValueToComponent;
+	export Alert, CalculateAllLoadcases, ComponentExists, ConvertUnitfree, disableTextAreaEtaMax, ExcelFileInOut, HighlightResults, isNumericVariable, isNumericValue,
+			LibInitCommon, MASTERALARM, Materials, MaterialChanged, maxIndexTable, ModifyComboVariables, ModifyLoadcases, PrintAlert, ProcessLoadcasesFromFile, ReadComponentsCommon,
+			ReadComponentsCommon_TimberGUI, ResetComponent, ResetWarnings, Restoresettings, round2, SectionChanged, SetComboBoxValues, Storesettings, SetVisibilityTextAreaLoads,
+			SortStructuralnames, StoredsettingsToComponents, SyncSliderWithTextArea, WriteLoadsToDocument, Segment2Arrow, Write_eta, Write_eta2, WriteValueToComponent;
 
 	local rnd2, updateResults, CalculateLoads, UnpackTable;
 
@@ -916,6 +917,12 @@ NODEFunctions := module()
 			end if;
 		end do;
 		return MASTERALARM
+	end proc:
+
+
+	Materials := proc()::list;
+		description "defined materials in NODEMaple library";
+		return {"concrete", "steel", "timber"}
 	end proc:
 
 

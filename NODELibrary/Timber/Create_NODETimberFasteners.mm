@@ -1,4 +1,4 @@
-# Create_NODETimberFasteners.mm : create timber fastener database
+# NODETimberFasteners.mm : timber fastener properties and tracking API
 # Copyright (C) 2026  Andreas Zieritz
 
 # This program is free software: you can redistribute it and/or modify
@@ -14,153 +14,353 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-proc()
-    local rawData, metadata, i, j, outputFile, outputFilename, rowKey,
-          fm_set, fm_d, prod, bet, fm_producers, producers_connectionstypes,
-          fm_descr, fm_serviceclass, prod_con_dia, fm_l, fm_MyRk, fm_faxk, 
+NODETimberFasteners := module()
+    description "Data and access tracking procedures for timber mechanical fasteners";
+    option package;
+
+    # Exported API boundaries accessed directly by worksheet GUI or structural checks
+    export fasteners, producers, producer_products, fasteners_producers, fasteners_products,
+           detailinformation, serviceclass, d, l, fasteners_d, dh, l1, l2, M_yRk, f_axk, f_headk, f_tensk,
+           f_uk, b_max,
+           # Query API (same call shapes as NODESteelMaterial / NODESteelProfiles)
+           Property;
+
+    # Module-level encapsulated tables and variables - zero global contamination
+    local metadata, fm, fm_d, prod, bet, fm_producers, producers_connectionstypes,
+          fm_descr, fm_serviceclass, prod_con_dia, fm_l, fm_MyRk, fm_faxk,
           fm_fheadk, fm_ftensk, fm_dh, fm_l1, fm_l2, fm_fuk, fm_Bmax;
-    uses ExcelTools, ListTools, NODEFunctions;
 
-    # 1. Import raw data from Excel (Columns A to P, starting from row 2 to skip headers)
-    rawData := convert(ExcelTools:-Import("Data/TimberFasteners.xlsx", "TimberFasteners", "A2:P"), Matrix):
-    rawData := subs("&ndash;" = NULL, rawData):
+# $include MUST be placed at the absolute start of line column 1 to build correctly
+$include "Timber/Data_NODETimberFasteners.mm"
 
-    # 2. Metadata describing columns, units, and descriptions
-    metadata := [ 
-         [A, "fm", 1, "Fastener type (Nail, bolt, screw, or dowel)"]
-        ,[B, "prod", 1, "Producer"]
-        ,[C, "bet", 1, "Designation / Product name"]
-        ,[D, "descr", 1, "Detailed information / Description"]
-        ,[E, "serviceclass", 1, "Highest service class"]
-        ,[F, "d", (mm), "Diameter"]
-        ,[G, "l", (mm), "Length"]
-        ,[H, "dh", (mm), "Head diameter"]
-        ,[I, "M_y_Rk", (N*m), "Yield moment (My,Rk)"]
-        ,[J, "f_ax_k", (N/mm^2), "Withdrawal parameter (fax,k)"]
-        ,[K, "f_head_k", (N/mm^2), "Head pull-through parameter (fhead,k)"]
-        ,[L, "f_tens_k", (kN), "Tensile capacity (ftens,k)"]
-        ,[M, "l1", (mm), "Threaded length from tip"]
-        ,[N, "l3", (mm), "Threaded length from head"] # Map column N matching 'l3' in Excel sheet
-        ,[O, "f_uk", (N/mm^2), "Ultimate tensile strength of wire (f,uk)"]
-        ,[P, "B_max", (mm), "Maximum thickness (B max)"]
-    ]:
+    # Safely evaluate and bind raw data fields into the public package handle exports
+    fasteners           := eval(fm);
+    producers           := eval(fm_producers);
+    fasteners_d         := eval(fm_d);
+    fasteners_producers := eval(prod);
+    fasteners_products  := eval(bet);
+    producer_products   := eval(producers_connectionstypes);
+    detailinformation   := eval(fm_descr);
+    serviceclass        := eval(fm_serviceclass);
+    d                   := eval(prod_con_dia);
+    l                   := eval(fm_l);
+    dh                  := eval(fm_dh);
+    l1                  := eval(fm_l1);
+    l2                  := eval(fm_l2);
+    M_yRk               := eval(fm_MyRk);
+    f_axk               := eval(fm_faxk);
+    f_headk             := eval(fm_fheadk);
+    f_tensk             := eval(fm_ftensk);
+    f_uk                := eval(fm_fuk);
+    b_max               := eval(fm_Bmax);
 
-    # 3. Initialize database tables and sets
-    fm_set := {};
-    fm_d := table();
-    prod := table();
-    bet := table();
-    fm_producers := {};
-    producers_connectionstypes := table();
-    fm_descr := table();
-    fm_serviceclass := table();
-    prod_con_dia := table();
-    fm_l := table();
-    fm_MyRk := table();
-    fm_faxk := table();
-    fm_fheadk := table();
-    fm_ftensk := table();
-    fm_dh := table();
-    fm_l1 := table();
-    fm_l2 := table(); # Kept variable name for backwards compatibility
-    fm_fuk := table();
-    fm_Bmax := table();
+    # -----------------------------------------------------------------------
+    # Property : unified query interface, mirroring the material/profile API
+    #
+    # Queries:
+    #   Property("allmembers")
+    #       -> all fastener types (Nail, Screw, Bolt, Dowel, ...)
+    #   Property(<type>, "allmembers")
+    #       -> every designation of that type as "producer@product"
+    #          (flat, deduplicated across diameters and producers)
+    #   Property(<type>, "producers")
+    #       -> all producers offering at least one product of that type
+    #   Property(<type>, "diameters")
+    #       -> all diameters of that type, unit-free numbers, sorted
+    #          (decimals supported, e.g. 6.2)
+    #   Property("metadata")  or  Property(<type>, "metadata")
+    #       -> variable names (column 2 of the metadata table):
+    #          fm, prod, bet, descr, serviceclass, d, l, dh, M_y_Rk,
+    #          f_ax_k, f_head_k, f_tens_k, l1, l3, f_uk, B_max
+    #   Property(<type>, <d>, <producer>, "members")
+    #       -> "producer@product" list filtered by diameter and/or producer;
+    #          pass "-" to leave d or producer unfiltered
+    #   Property("value", <type>, <member>, <d>, <ls>, <varname>)
+    #       -> value of <varname> for member "producer@product";
+    #          d   = number/string-number or "-" (auto: unique diameter with data)
+    #          ls  = number/string-number or "-" (auto: shortest available length)
+    #   Property("value", <type>, <member>, <d>, "-", "lengths")
+    #       -> comma-joined text list of ALL available lengths of the member
+    #          (not part of the metadata record; used by the Lengths
+    #          component to populate the length value list)
+    #
+    # Return conventions per variable (follows the metadata definition:
+    # a record row is identified by producer, product, d and l, so every
+    # field is a SCALAR with its unit):
+    #   - unit "1" columns are TEXT: fm, prod, bet, descr, serviceclass
+    #     (serviceclass is a classification 1/2/3: whole floats like 2.0
+    #      are printed as "2")
+    #   - unit-bearing columns are QUANTITIES (returned with their units,
+    #     parsed by Units:-Split in the Grasshopper components):
+    #       d, l, dh, M_y_Rk, f_ax_k, f_head_k, f_tens_k, l1, l3, f_uk, B_max
+    #     where l  = the SELECTED length (ls argument)
+    #           dh = head diameter AT the selected length
+    #   - "lengths" (helper query, not in metadata): comma-joined,
+    #     unit-free, rounded text list of all lengths of the member
+    #
+    # Numeric input normalisation:
+    #   Grasshopper/panels may deliver diameters and lengths as strings
+    #   ("24", "6.2") or as floats (24.0) while the database is keyed by
+    #   the raw Excel import values (often integers: 24). Therefore:
+    #     - string numerics are parsed (parse)
+    #     - explicit d is SNAPPED to the closest actual key of
+    #       fm_d[<type>] within tolerance before any table indexing,
+    #       so 24, 24.0, "24" and "24.0" all hit the same record
+    #   "members" compares diameters with the same tolerance loop.
+    #
+    # Other naming/keys follow Create_NODETimberFasteners.mm:
+    #   - prod/bet are keyed by UNIT-FREE diameters, fasteners_d carries
+    #     units -> every descent converts with convert(..., 'unit_free'),
+    #     same as SetComboFasteners does in the worksheet GUI
+    #   - Excel column N (threaded length from head, "l3") is stored
+    #     in table fm_l2 (kept for backwards compatibility)
+    #
+    # NOTE: all loop variables are declared local explicitly,
+    # otherwise Maple warns "implicitly declared local".
+    # -----------------------------------------------------------------------
+    Property := proc()
+        local what, dia, pd, m, dfree, res, ds, pos, producer, product,
+              ls_r, ls_c, pname, vals, x, lsr, mkey, tol, dnum, lsnum;
 
-    # 4. Process the data matrix and build relation mappings
-    for i from 1 to numelems(rawData[..,1]) do
-        # Skip potential empty rows at the bottom of the Excel sheet
-        if rawData[i,1] <> NULL and rawData[i,1] <> "" then
-            
-            # Populate unique sets for fasteners and producers
-            fm_set := fm_set union {rawData[i,1]};
-            fm_producers := fm_producers union {rawData[i,2]};
+        tol := 10^(-9);
 
-            # Indexing Hierarchy 1: Fastener Type -> Diameter -> Producer -> Designation
-            if not assigned(fm_d[rawData[i,1]]) then fm_d[rawData[i,1]] := {}; end if;
-            fm_d[rawData[i,1]] := fm_d[rawData[i,1]] union {rawData[i,6] * Unit('mm')};
+        # ------------------- one-argument queries --------------------------
+        if nargs = 1 then
+            what := args[1];
+            if what = "allmembers" then
+                # All fastener types defined in the database
+                return sort([op(fm)]);
+            elif what = "metadata" then
+                # Variable names of the fastener data records
+                return [seq(m[2], m in metadata)];
+            else
+                error "unknown query %1", what;
+            end if;
 
-            if not assigned(prod[rawData[i,1], rawData[i,6]]) then prod[rawData[i,1], rawData[i,6]] := {}; end if;
-            prod[rawData[i,1], rawData[i,6]] := prod[rawData[i,1], rawData[i,6]] union {rawData[i,2]};
+        # ------------------- Property(type, query) ------------------------
+        elif nargs = 2 then
+            what := args[1];
+            if not assigned(fm_d[what]) then
+                error "unknown fastener type %1", what;
+            end if;
+            if args[2] = "allmembers" then
+                # Flat member list: "producer@product", all d and producers
+                res := {};
+                for dia in fm_d[what] do
+                    dfree := convert(dia, 'unit_free');
+                    for pd in prod[what, dfree] do
+                        res := res union map(b -> cat(pd, "@", b),
+                                             bet[what, dfree, pd]);
+                    end do;
+                end do;
+                return sort([op(res)]);
+            elif args[2] = "producers" then
+                # All producers of this fastener type
+                res := {};
+                for dia in fm_d[what] do
+                    res := res union prod[what, convert(dia, 'unit_free')];
+                end do;
+                return sort([op(res)]);
+            elif args[2] = "diameters" then
+                # All diameters of this fastener type, unit-free, sorted
+                res := {};
+                for dia in fm_d[what] do
+                    res := res union {convert(dia, 'unit_free')};
+                end do;
+                return sort([op(res)]);
+            elif args[2] = "metadata" then
+                return [seq(m[2], m in metadata)];
+            else
+                error "unknown query %1 for fastener type %2", args[2], what;
+            end if;
 
-            if not assigned(bet[rawData[i,1], rawData[i,6], rawData[i,2]]) then bet[rawData[i,1], rawData[i,6], rawData[i,2]] := {}; end if;
-            bet[rawData[i,1], rawData[i,6], rawData[i,2]] := bet[rawData[i,1], rawData[i,6], rawData[i,2]] union {rawData[i,3]};
+        # ------------------- Property(type, d, producer, "members") --------
+        elif nargs = 4 and args[4] = "members" then
+            what := args[1];
+            if not assigned(fm_d[what]) then
+                error "unknown fastener type %1", what;
+            end if;
+            # Normalise the diameter argument: strings ("24", "6.2") -> numbers
+            if args[2] = "-" then
+                dnum := "-";
+            elif type(args[2], string) then
+                dnum := parse(args[2]);
+            else
+                dnum := args[2];
+            end if;
+            res := {};
+            for dia in fm_d[what] do
+                dfree := convert(dia, 'unit_free');
+                # "-" means: no diameter filter (tolerant float comparison)
+                if dnum <> "-" and abs(evalf(dnum - dfree)) > tol then
+                    next;
+                end if;
+                for pd in prod[what, dfree] do
+                    if args[3] <> "-" and pd <> args[3] then
+                        next;
+                    end if;
+                    res := res union map(b -> cat(pd, "@", b),
+                                         bet[what, dfree, pd]);
+                end do;
+            end do;
+            return sort([op(res)]);
 
-            # Indexing Hierarchy 2: Producer -> Designation
-            if not assigned(producers_connectionstypes[rawData[i,2]]) then producers_connectionstypes[rawData[i,2]] := {}; end if;
-            producers_connectionstypes[rawData[i,2]] := producers_connectionstypes[rawData[i,2]] union {rawData[i,3]};
+        # ------------------- Property("value", type, member, d, ls, var) --
+        elif nargs = 6 and args[1] = "value" then
+            what := args[2];
+            if not assigned(fm_d[what]) then
+                error "unknown fastener type %1", what;
+            end if;
+            mkey := args[3];
+            pos := StringTools:-Search("@", mkey);
+            if pos = 0 then
+                error "member %1 must be of the form producer@product", mkey;
+            end if;
+            producer := mkey[1 .. pos-1];
+            product   := mkey[pos+1 .. -1];
+            if not assigned(fm_descr[producer, product]) then
+                error "unknown member %1", mkey;
+            end if;
 
-            # Map text descriptions and classifications per Producer/Designation
-            if not assigned(fm_descr[rawData[i,2], rawData[i,3]]) then fm_descr[rawData[i,2], rawData[i,3]] := {}; end if;
-            fm_descr[rawData[i,2], rawData[i,3]] := fm_descr[rawData[i,2], rawData[i,3]] union {rawData[i,4]};
+            # Normalise the diameter argument: strings ("24", "6.2") -> numbers
+            if args[4] = "-" then
+                dnum := "-";
+            elif type(args[4], string) then
+                dnum := parse(args[4]);
+            else
+                dnum := args[4];
+            end if;
 
-            if not assigned(fm_serviceclass[rawData[i,2], rawData[i,3]]) then fm_serviceclass[rawData[i,2], rawData[i,3]] := {}; end if;
-            fm_serviceclass[rawData[i,2], rawData[i,3]] := fm_serviceclass[rawData[i,2], rawData[i,3]] union {rawData[i,5]};
+            # Resolve diameter:
+            #   "-" -> the unique diameter with data for this product
+            #   given -> SNAPPED to the closest actual key of fm_d[what]
+            #            (so 24.0 matches an integer 24 key, etc.)
+            ds := [];
+            for dia in fm_d[what] do
+                dfree := convert(dia, 'unit_free');
+                if dnum = "-" then
+                    if assigned(fm_l[producer, product, dfree]) then
+                        ds := [op(ds), dfree];
+                    end if;
+                elif abs(evalf(dnum - dfree)) <= tol then
+                    ds := [op(ds), dfree];
+                end if;
+            end do;
+            ds := [op({op(ds)})];
+            if numelems(ds) = 1 then
+                dfree := ds[1];
+            elif numelems(ds) = 0 then
+                error "no matching diameter %1 for fastener type %2",
+                      args[4], what;
+            else
+                error "diameter ambiguous for %1, supply diameter", mkey;
+            end if;
 
-            if not assigned(prod_con_dia[rawData[i,2], rawData[i,3]]) then prod_con_dia[rawData[i,2], rawData[i,3]] := {}; end if;
-            prod_con_dia[rawData[i,2], rawData[i,3]] := prod_con_dia[rawData[i,2], rawData[i,3]] union {rawData[i,6] * Unit('mm')};
+            # Helper value: all available lengths of this member at dfree,
+            # unit-free, rounded, sorted, deduplicated
+            ls_c := sort([op({seq(round(convert(x, 'unit_free')),
+                                   x in fm_l[producer, product, dfree])})]);
 
-            # Map mechanical properties tables indexed by (Producer, Designation, Diameter)
-            if not assigned(fm_l[rawData[i,2], rawData[i,3], rawData[i,6]]) then fm_l[rawData[i,2], rawData[i,3], rawData[i,6]] := {}; end if;
-            fm_l[rawData[i,2], rawData[i,3], rawData[i,6]] := fm_l[rawData[i,2], rawData[i,3], rawData[i,6]] union {rawData[i,7] * Unit('mm')};
+            # Normalise the length argument: strings ("40") -> numbers
+            if args[5] = "-" then
+                lsnum := "-";
+            elif type(args[5], string) then
+                lsnum := parse(args[5]);
+            else
+                lsnum := args[5];
+            end if;
 
-            if not assigned(fm_MyRk[rawData[i,2], rawData[i,3], rawData[i,6]]) then fm_MyRk[rawData[i,2], rawData[i,3], rawData[i,6]] := {}; end if;
-            fm_MyRk[rawData[i,2], rawData[i,3], rawData[i,6]] := fm_MyRk[rawData[i,2], rawData[i,3], rawData[i,6]] union {rawData[i,9] * Unit('N*m')};
+            # Resolve length: given value (snapped to nearest key), or shortest
+            if lsnum = "-" then
+                if numelems(ls_c) = 0 then
+                    error "no length data for %1 at d = %2", mkey, dfree;
+                end if;
+                ls_r := ls_c[1];
+            else
+                # snap to the closest available length within tolerance
+                ls_r := NULL:
+                for x in ls_c do
+                    if abs(evalf(lsnum - x)) <= 0.5 then
+                        ls_r := x;
+                        break;
+                    end if;
+                end do;
+                if ls_r = NULL then
+                    error "no matching length %1 for %2 at d = %3",
+                          args[5], mkey, dfree;
+                end if;
+            end if;
 
-            if not assigned(fm_faxk[rawData[i,2], rawData[i,3], rawData[i,6]]) then fm_faxk[rawData[i,2], rawData[i,3], rawData[i,6]] := {}; end if;
-            fm_faxk[rawData[i,2], rawData[i,3], rawData[i,6]] := fm_faxk[rawData[i,2], rawData[i,3], rawData[i,6]] union {rawData[i,10] * Unit('N/mm^2')};
+            pname := args[6];
+            if pname = "fm" then
+                return what;
+            elif pname = "prod" then
+                return producer;
+            elif pname = "bet" then
+                return product;
+            elif pname = "descr" then
+                vals := fm_descr[producer, product][1];
+                if whattype(vals) = float then
+                    # empty Excel field converted to 0 in the set
+                    return "";
+                end if;
+                return vals;
+            elif pname = "serviceclass" then
+                # Classification (1/2/3), not a quantity -> return as STRING
+                vals := fm_serviceclass[producer, product][1];
+                if whattype(vals) = float and vals = 0 then
+                    # empty Excel field converted to 0 in the set
+                    return "";
+                end if;
+                if type(vals, numeric) and abs(evalf(vals - round(vals))) <= tol then
+                    # whole number stored as float (2.0) -> print as "2",
+                    # not "2.0"; genuine decimals (1.5) keep their digits
+                    return convert(round(vals), string);
+                end if;
+                return convert(vals, string);
+            elif pname = "d" then
+                # Diameter of the selected record
+                return dfree * Unit('mm');
+            elif pname = "l" then
+                # Selected length of the record (scalar with unit, num)
+                return ls_r * Unit('mm');
+            elif pname = "dh" then
+                # Head diameter AT the selected length (scalar with unit, num)
+                return fm_dh[producer, product, dfree, ls_r][1];
+            elif pname = "M_y_Rk" then
+                return fm_MyRk[producer, product, dfree][1];
+            elif pname = "f_ax_k" then
+                return fm_faxk[producer, product, dfree][1];
+            elif pname = "f_head_k" then
+                return fm_fheadk[producer, product, dfree][1];
+            elif pname = "f_tens_k" then
+                return fm_ftensk[producer, product, dfree][1];
+            elif pname = "l1" then
+                return fm_l1[producer, product, dfree, ls_r][1];
+            elif pname = "l3" then
+                # Excel column N stored in fm_l2 (backwards-compatible name)
+                return fm_l2[producer, product, dfree, ls_r][1];
+            elif pname = "f_uk" then
+                return fm_fuk[producer, product, dfree, ls_r][1];
+            elif pname = "B_max" then
+                return fm_Bmax[producer, product, dfree, ls_r][1];
+            elif pname = "lengths" then
+                # Helper query for the Lengths component (NOT part of the
+                # metadata record): all available lengths, comma-joined
+                if numelems(ls_c) = 0 then
+                    return "";
+                end if;
+                return StringTools:-Join(convert~(ls_c, string), ", ");
+            else
+                error "unknown variable %1", pname;
+            end if;
 
-            if not assigned(fm_fheadk[rawData[i,2], rawData[i,3], rawData[i,6]]) then fm_fheadk[rawData[i,2], rawData[i,3], rawData[i,6]] := {}; end if;
-            fm_fheadk[rawData[i,2], rawData[i,3], rawData[i,6]] := fm_fheadk[rawData[i,2], rawData[i,3], rawData[i,6]] union {rawData[i,11] * Unit('N/mm^2')};
-
-            if not assigned(fm_ftensk[rawData[i,2], rawData[i,3], rawData[i,6]]) then fm_ftensk[rawData[i,2], rawData[i,3], rawData[i,6]] := {}; end if;
-            fm_ftensk[rawData[i,2], rawData[i,3], rawData[i,6]] := fm_ftensk[rawData[i,2], rawData[i,3], rawData[i,6]] union {rawData[i,12] * Unit('kN')};
-
-            # Map length-dependent dimension tables indexed by (Producer, Designation, Diameter, Length)
-            rowKey := rawData[i,2], rawData[i,3], rawData[i,6], round(rawData[i,7]);
-
-            if not assigned(fm_dh[rowKey]) then fm_dh[rowKey] := {}; end if;
-            fm_dh[rowKey] := fm_dh[rowKey] union {rawData[i,8] * Unit('mm')};
-
-            if not assigned(fm_l1[rowKey]) then fm_l1[rowKey] := {}; end if;
-            fm_l1[rowKey] := fm_l1[rowKey] union {`if`(rawData[i,13]<>NULL, rawData[i,13]*Unit('mm'), 0*Unit('mm'))};
-
-            if not assigned(fm_l2[rowKey]) then fm_l2[rowKey] := {}; end if;
-            fm_l2[rowKey] := fm_l2[rowKey] union {`if`(rawData[i,14]<>NULL, rawData[i,14]*Unit('mm'), 0*Unit('mm'))};
-
-            if not assigned(fm_fuk[rowKey]) then fm_fuk[rowKey] := {}; end if;
-            fm_fuk[rowKey] := fm_fuk[rowKey] union {`if`(rawData[i,15]<>NULL, rawData[i,15]*Unit('N/mm^2'), 0*Unit('N/mm^2'))};
-
-            if not assigned(fm_Bmax[rowKey]) then fm_Bmax[rowKey] := {}; end if;
-            fm_Bmax[rowKey] := fm_Bmax[rowKey] union {`if`(rawData[i,16]<>NULL, rawData[i,16]*Unit('mm'), 0*Unit('mm'))};
-
+        else
+            error "invalid call to Property; expected Property(\"allmembers\"), "
+                  "Property(<type>, \"allmembers\"/\"producers\"/\"diameters\"/\"metadata\"), "
+                  "Property(<type>, <d>, <producer>, \"members\"), or "
+                  "Property(\"value\", <type>, <member>, <d>, <ls>, <varname>)";
         end if;
-    end do:
+    end proc;
 
-    # 5. Export processed datasets into a clean file using raw Maple format (%a)
-    outputFilename := "Timber/Data_NODETimberFasteners.mm";
-    outputFile := FileTools[Text][Open](outputFilename, create=true, overwrite=true);
-
-    FileTools[Text][WriteString](outputFile, sprintf("metadata := %a:\n", eval(metadata)));
-    FileTools[Text][WriteString](outputFile, sprintf("fm := %a:\n", eval(fm_set)));
-    FileTools[Text][WriteString](outputFile, sprintf("fm_d := %a:\n", eval(fm_d)));
-    FileTools[Text][WriteString](outputFile, sprintf("prod := %a:\n", eval(prod)));
-    FileTools[Text][WriteString](outputFile, sprintf("bet := %a:\n", eval(bet)));
-    FileTools[Text][WriteString](outputFile, sprintf("fm_producers := %a:\n", eval(fm_producers)));
-    FileTools[Text][WriteString](outputFile, sprintf("producers_connectionstypes := %a:\n", eval(producers_connectionstypes)));
-    FileTools[Text][WriteString](outputFile, sprintf("fm_descr := %a:\n", eval(fm_descr)));
-    FileTools[Text][WriteString](outputFile, sprintf("fm_serviceclass := %a:\n", eval(fm_serviceclass)));
-    FileTools[Text][WriteString](outputFile, sprintf("prod_con_dia := %a:\n", eval(prod_con_dia)));
-    FileTools[Text][WriteString](outputFile, sprintf("fm_l := %a:\n", eval(fm_l)));
-    FileTools[Text][WriteString](outputFile, sprintf("fm_MyRk := %a:\n", eval(fm_MyRk)));
-    FileTools[Text][WriteString](outputFile, sprintf("fm_faxk := %a:\n", eval(fm_faxk)));
-    FileTools[Text][WriteString](outputFile, sprintf("fm_fheadk := %a:\n", eval(fm_fheadk)));
-    FileTools[Text][WriteString](outputFile, sprintf("fm_ftensk := %a:\n", eval(fm_ftensk)));
-    FileTools[Text][WriteString](outputFile, sprintf("fm_dh := %a:\n", eval(fm_dh)));
-    FileTools[Text][WriteString](outputFile, sprintf("fm_l1 := %a:\n", eval(fm_l1)));
-    FileTools[Text][WriteString](outputFile, sprintf("fm_l2 := %a:\n", eval(fm_l2)));
-    FileTools[Text][WriteString](outputFile, sprintf("fm_fuk := %a:\n", eval(fm_fuk)));
-    FileTools[Text][WriteString](outputFile, sprintf("fm_Bmax := %a:\n", eval(fm_Bmax)));
-
-    FileTools[Text][Close](outputFile);
-
-end proc():
+end module:

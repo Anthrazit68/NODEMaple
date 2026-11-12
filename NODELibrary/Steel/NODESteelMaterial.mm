@@ -36,11 +36,43 @@ $include "Steel/Data_SteelMaterial.mm"
     # memberNames extracts ALL unique steel grades across all tables and sorts them cleanly
     memberNames := sort([indices(dataTable, 'nolist')], SortStructuralnames);
 
-    # Standard lookup using only the steel grade string (e.g., Property("S 235 W", "E"))
+    # Dispatch: 
+    #   Property(grade, par)                          -> legacy grade-only lookup
+    #   Property(grade, code, par)                    -> NEW unambiguous pair lookup
+    #   Property(code, "allmembers")                  -> NEW grades of one code
+    #   Property("allcodes")                          -> NEW list of codes
     Property := proc(requiredMember::string, requiredPar::string)
         uses ListTools;
+        local key;
 
-        if _npassed = 2 then
+        if _npassed = 3 and _passed[3] <> "metadata" then
+            # NEW: pair lookup, e.g. Property("S 275 H", "NS-EN 10210-1", "f_y_0_40")
+            if _passed[3] = "steeltype" then
+                return _passed[1];
+            elif _passed[3] = "steelcode" then
+                return _passed[2];
+            end if;
+            key := {_passed[1], _passed[2]};
+            if assigned(dataTable1[key]) then
+                if assigned(dataTable1[key][_passed[3]]) then
+                    return dataTable1[key][_passed[3]];
+                else
+                    error("Parameter not found: %1", _passed[3]);
+                end if;
+            else
+                error("Material set not found: %1", key);
+            end if;
+
+        elif _npassed = 1 and _passed[1] = "allcodes" then
+            # NEW: list of standards
+            return standarder;
+
+        elif _npassed = 2 and _passed[2] = "allmembers" and
+             assigned(steeltypeTocode[_passed[1]]) then
+            # NEW: grades of one code, e.g. Property("NS-EN 10210-1", "allmembers")
+            return steeltypeTocode[_passed[1]];
+
+        elif _npassed = 2 then
             if assigned(dataTable[requiredMember]) then
                 if assigned(dataTable[requiredMember][requiredPar]) then
                     return dataTable[requiredMember][requiredPar];
