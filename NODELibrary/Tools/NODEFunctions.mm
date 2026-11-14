@@ -56,9 +56,13 @@ NODEFunctions := module()
 		warnings_ := convert(WhateverYouNeed["warnings"], set);
 
 		if level > 0 and member(cat(opts,": ", msg), warnings_) = false then
-			Maplets[Examples]:-Alert(msg, 'title'=opts);		# Alert pop up
+			try
+				Maplets[Examples]:-Alert(msg, 'title'=opts);   # Alert pop up
+			catch:
+				NULL;   # headless cmaple: no GUI, pop up not possible
+			end try;
 		end if;
-
+		
 		if level > 1 or level < 0 then
 			# only if warning is new, take it into account		
 			if member(cat(opts,": ", msg), warnings_) = false then
@@ -415,13 +419,16 @@ NODEFunctions := module()
 		description "Check if Maple component exists";
 		try
 			DocumentTools:-GetProperty(EC, ':-visible');
-			# GetProperty(EC, ':-visible');
 			true;
-		catch "Attempted to retrieve property of unknown component":
+		catch "Attempted to retrieve property of unknown component",
+			"DocumentTools is not supported in this interface":
+			# second message: headless cmaple has no document, so no components
 			false;
 		catch:
-			Alert("Unknown error in ComponentExists", table(), 5);
-			DEBUG();	
+			# headless: any other DocumentTools failure also means "no component".
+			# NOTE: in a worksheet this masks unexpected errors; set a breakpoint
+			# here while debugging GUI sheets if a guard misbehaves.
+			false;
 		end try;
 	end proc:
 
