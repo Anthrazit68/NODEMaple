@@ -16,7 +16,7 @@
 
 proc()
     local rawData, metadata, i, outputFile, outputFilename, timberTypeKey, widthKey,
-          tretype_set, profil_b, profil_h;
+          timbertype_set, profil_b, profil_h;
     uses ExcelTools, ListTools, NODEFunctions;
 
     # 1. Import data matrix from Excel (Columns A to C, row 2 down to the end of the data layout)
@@ -31,7 +31,7 @@ proc()
     ]:
 
     # 3. Initialize lookup sets and configuration index tables
-    tretype_set := {};
+    timbertype_set := {};
     profil_b := table();
     profil_h := table();
 
@@ -45,7 +45,7 @@ proc()
             widthKey      := round(rawData[i,2]);
 
             # Store the unique structural category types
-            tretype_set := tretype_set union {timberTypeKey};
+            timbertype_set := timbertype_set union {timberTypeKey};
 
             # Hierarchy Level 1: Timber Category Type -> Width Set
             if not assigned(profil_b[timberTypeKey]) then 
@@ -67,7 +67,7 @@ proc()
     outputFile := FileTools[Text][Open](outputFilename, create=true, overwrite=true);
 
     FileTools[Text][WriteString](outputFile, sprintf("metadata := %a:\n", eval(metadata)));
-    FileTools[Text][WriteString](outputFile, sprintf("tretype := %a:\n", eval(tretype_set)));
+    FileTools[Text][WriteString](outputFile, sprintf("tretype := %a:\n", eval(timbertype_set)));
     FileTools[Text][WriteString](outputFile, sprintf("profil_b := %a:\n", eval(profil_b)));
     FileTools[Text][WriteString](outputFile, sprintf("profil_h := %a:\n", eval(profil_h)));
 

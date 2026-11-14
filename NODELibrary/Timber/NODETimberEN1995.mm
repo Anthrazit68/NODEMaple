@@ -21,16 +21,17 @@ NODETimberEN1995 := module()
 	uses Units[Simple], NODEFunctions, DocumentTools, StringTools;
 
 	export EC5_612, EC5_613, EC5_614, EC5_615, EC5_616, EC5_617, EC5_618, EC5_622, EC5_623, EC5_624, EC5_63, EC5_643,
-	       calculate_k_64, GetMaterialdata, GetSectiondata, strengthclassExists, SetComboBoxMaterial, SetComboBoxSection, Changed_bh, GetActiveSectionName, kh, 
+	       calculate_k_64, GetMaterialdata, GetSectiondata, strengthclassExists, SetComboBoxMaterial, SetComboBoxSection, Changed_bh, GetActiveSectionName, kh,
+		   GetServiceclasses, GetLoaddurationclasses,  
 	       EC5_812, EC5_814, EC5_814_NA_DE, EC5_62net, EC5_832, EC5_833, AnnexA, calculateMinimumdistances, calculate_amin_max, calculateShearplanes, calculate_t_total, calculate_t, calculate_f_h0k,
 	       BoltandSteelCapacity, calculate_F_axR, checkPredrilled, GetFastenervalues, calculate_n_ef, checkServiceclass, gamma_M, checkOpeningGeometry, calculate_BeamWithOpening, GetCalculatedFastener,
 	       ReadComponentsSpecific_fastener, ReadComponentsSpecific_connection, SetComboFastenersAfterXMLImport, SetComboConnectionAfterXMLImport, SetVisibilityComboboxConnection, validateConnection, SetComboConnection, 
 	       SetComboFasteners, SetVisibilityWasher, SetVisibilityShearConnector, SetVisibilityTimberCut, SetComboBoxSharpMetal, SetComboBoxSplitRing, SetComboBoxToothedPlateConnectors, SetVisibilityCutProfile,
-	       SetVisibilityOpening, SetLoadExcentricity, CheckLoadExcentricity;
+	       SetVisibilityOpening, SetLoadExcentricity, CheckLoadExcentricity, kmod;
 	       
 	       # version   not working as it already is defined in NODEFunctions
 	       
-	local ModuleLoad, kmod, EC5_615_EN, EC5_615_NTI, calculate_k_c90, calculate_F_90R, calculate_F_vR, 
+	local ModuleLoad, EC5_615_EN, EC5_615_NTI, calculate_k_c90, calculate_F_90R, calculate_F_vR, 
 		calculate_alpha_rope, calculate_k_ef, calculate_f_axk, calculate_f_headk, calculate_f_hk, calculate_F_vR_89_810, calculate_amin_alpha,
 		PrintMinimumdistance, calculate_amin_steel, calculate_n_ef_872, f_k1k;
 

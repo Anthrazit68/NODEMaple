@@ -329,6 +329,18 @@ kmod := proc(loaddurationclass::string, serviceclass::string)
 end proc:
 
 
+GetServiceclasses := proc()::list;
+    description "Service classes defined in kmod, NS-EN 1995-1-1 Table 2.2";
+    return ["1", "2", "3"]
+end proc:
+
+
+GetLoaddurationclasses := proc()::list;
+    description "Load-duration classes defined in kmod, NS-EN 1995-1-1 Table 2.2";
+    return ["Permanent", "Long-term", "Medium-term", "Short-term", "Instantaneous"]
+end proc:
+
+
 GetMaterialdata := proc(activematerial::string, WhateverYouNeed::table)		# "GL 30c / serviceclass 3 / Langtidslast"
 	uses NODETimberMaterial;
 	description "Get materialvalues for predefined material";
