@@ -355,45 +355,51 @@ NODEXML := module()
 	end proc:
 
 
-	XMLFileInOut := proc(action::string, WhateverYouNeed::table)
+	XMLFileInOut := proc(action::string, WhateverYouNeed::table, filename::{string, symbol} := "")
 		uses DocumentTools;
 		description "Write out data to xml file";
 		local items, i, successful, parent, child, dummy, storeitems;
 
-		# get set of saveable items
+		# get set of saveable items  (unchanged)
 		storeitems := {};
 		for dummy in WhateverYouNeed["componentvariables"]["var_storeitems"] do
-			
-			if searchtext("/", dummy) > 0 then 		# "calculations/positionnumber"
+			if searchtext("/", dummy) > 0 then
 				parent := StringTools:-Split(dummy, "/")[1];
-				child := StringTools:-Split(dummy, "/")[2];
+				child  := StringTools:-Split(dummy, "/")[2];
 				storeitems := storeitems union {parent}
 			else
 				storeitems := storeitems union {dummy}
 			end if;
 		end do;
 
-		# check if saveable items should be saved		
+		# check if saveable items should be saved
 		items := {};
-		for i in storeitems do		#{"projectdata", "materials", "sections", "calculations"}
-			if ComponentExists(cat("CheckBox_", i)) then
-				if GetProperty(cat("CheckBox_", i), 'enabled') = "true" and GetProperty(cat("CheckBox_", i), 'value') = "true" then
-					items := items union {i};
-				end if
-			end if;
-		end do;
+		if filename <> "" then
+			# headless / scripted: no CheckBox components exist, so the
+			# GUI selection below can never fire. Take all saveable items.
+			items := storeitems minus {"material"};
+		else
+			for i in storeitems do
+				if ComponentExists(cat("CheckBox_", i)) then
+					if GetProperty(cat("CheckBox_", i), 'enabled') = "true"
+						and GetProperty(cat("CheckBox_", i), 'value') = "true" then
+						items := items union {i};
+					end if;
+				end if;
+			end do;
+		end if;
 
 		if action = "export" then
-			successful := checkBeforeWriteout(items, WhateverYouNeed); 	# need to check if materials or sections that are used are also saved in list of active materials
+			successful := checkBeforeWriteout(items, WhateverYouNeed);
 			if successful then
-				XMLWrite(items, WhateverYouNeed)
+				XMLWrite(items, WhateverYouNeed, filename)
 			end if;
-					
+
 		elif action = "import" then
-			NODEDocumentCommon:-Reset();		# clean sheet before import
+			NODEDocumentCommon:-Reset();
 			successful := XMLImport(items, WhateverYouNeed);
-			runAfterXMLImport(successful, WhateverYouNeed);	# local routines to be run after XMLImport
-			
+			runAfterXMLImport(successful, WhateverYouNeed);
+
 		else
 			Alert(cat("XMLFileInOut unknown command: ", action), WhateverYouNeed["warnings"], 3)
 		end if;
@@ -1260,7 +1266,7 @@ NODEXML := module()
 	end proc:
 
 
-	XMLWrite := proc(exportItems::set, WhateverYouNeed::table)
+	XMLWrite := proc(exportItems::set, WhateverYouNeed::table, filename::{string, symbol} := "")	
 		description "Write out XML file";
 		uses Maplets[Elements], XMLTools;
 		local xmltree, xmlmaterials, xmlMaterial, xmlencoding, xmlversion, software, material, materials, ind, ind1, j, n, item;	# xmlcomment
@@ -1269,24 +1275,36 @@ NODEXML := module()
 		local xmlprojectdata;
 		local maplet, afilename, action, writeposition, foundcalculationtype, mainType;
 
-		# open file dialogue box, and 
-		# https://www.mapleprimes.com/questions/230384-File-Open-Dialogue-Box
-		maplet := Maplet(FileDialog['FD2']('filefilter' = "xml", 'filterdescription' = "XML file", 'onapprove' = Shutdown(['FD2']), 'oncancel' = Shutdown()));
-		afilename := Maplets[Display](maplet);
-		if type(afilename, 'list') then
-			afilename := afilename[1];
-			if searchtext(".xml", afilename, -4..-1) = 0 then				# mest sannsynlig ny fil, xml ending ikke lagt inn
-				afilename := cat(afilename , ".xml")
+
+		if filename <> "" then
+			# headless / scripted mode: filename given, no dialogs possible.
+			# existing files are always overwritten - callers wanting merge
+			# should pass a fresh filename or delete the file first
+			afilename := filename;
+			if searchtext(".xml", afilename, -4..-1) = 0 then
+				afilename := cat(afilename, ".xml")
 			end if;
-			if FileTools[Exists](afilename) then						# filnavn existerer allerede, merge eller overwrite ?
-				maplet := Maplet(QuestionDialog("File exists already: Make new file (Yes) or update content (No)?",	'onapprove'=Shutdown("overwrite"), 'ondecline'=Shutdown("merge")));
-				action := Maplets[Display](maplet);
-			else
-				action := "overwrite";
-			end if;
+			action := "overwrite";
 		else
-			return
-		end if;		
+			# open file dialogue box, and 
+			# https://www.mapleprimes.com/questions/230384-File-Open-Dialogue-Box
+			maplet := Maplet(FileDialog['FD2']('filefilter' = "xml", 'filterdescription' = "XML file", 'onapprove' = Shutdown(['FD2']), 'oncancel' = Shutdown()));
+			afilename := Maplets[Display](maplet);
+			if type(afilename, 'list') then
+				afilename := afilename[1];
+				if searchtext(".xml", afilename, -4..-1) = 0 then				# mest sannsynlig ny fil, xml ending ikke lagt inn
+					afilename := cat(afilename , ".xml")
+				end if;
+				if FileTools[Exists](afilename) then						# filnavn existerer allerede, merge eller overwrite ?
+					maplet := Maplet(QuestionDialog("File exists already: Make new file (Yes) or update content (No)?",	'onapprove'=Shutdown("overwrite"), 'ondecline'=Shutdown("merge")));
+					action := Maplets[Display](maplet);
+				else
+					action := "overwrite";
+				end if;
+			else
+				return
+			end if;	
+		end if;	
 
 		if action = "overwrite" then	# lager ny fil
 			xmlversion := "2025-01";
