@@ -9,7 +9,7 @@
 # https://www.gnu.org/licenses/gpl-3.0.txt
 
 """
-NODEMaple Timber Beam Design (EC5_6, all loadcases, XML export)
+NODEMaple Beam Design (EC5_6, all loadcases, XML export)
 
 Full beam ULS design driven from Grasshopper:
 
@@ -23,6 +23,19 @@ Full beam ULS design driven from Grasshopper:
     (NODEXML:-XMLFileInOut("export", ..., filename) - requires the
     headless filename extension in NODEXML.mm)
 
+IMPORTANT: ALL Maple procedures are called with their explicit
+module prefix (NODEFunctions:-LibInitCommon, NODEFunctions:-
+MASTERALARM, ...). Unqualified names are UNASSIGNED in a fresh
+cmaple session - the call silently returns unevaluated and
+WhateverYouNeed stays empty.
+
+PERCENT RULE (applies PER LINE, not per script): a script line that
+is substituted through Python's % operator must double its literal
+Maple printf specifiers (%%s); a line assembled without %
+substitution keeps them single (%s). Most of this script is plain
+string assembly (single %s); the few lines with "% <value>" carry
+doubled literals.
+
 Load case tree contract (input "loadcases", set access to Tree):
   one branch per load case, exactly 7 numbers per branch:
       [0] alpha   [deg]     (0 = parallel to grain,
@@ -33,8 +46,9 @@ Load case tree contract (input "loadcases", set access to Tree):
       [4] V_yd    [kN]
       [5] V_zd    [kN]
       [6] M_td    [kNm]
-  Missing items count as 0. "loadcase_names" (List access) holds one
-  name per branch, in the same order.
+  Missing items count as 0 - so an EMPTY branch produces a
+  loadcase with all-zero forces and (correctly) zero etas.
+  "loadcase_names" (List access) holds one name per branch.
 
 Design values are stored directly (d-fields), Gk/Qk fields are set
 to "false" - mirroring the stored calculations of existing files
@@ -80,8 +94,6 @@ Requires the NODEXML.mm patch: XMLFileInOut and XMLWrite accept an
 optional filename argument and skip all dialogs when it is given.
 
 NOTE: the Maple<->Python protocol is ASCII-only ("|" as separator).
-NOTE: all Maple printf specifiers are doubled (%%) because the script
-      string is Python %-formatted.
 """
 
 import os
@@ -198,6 +210,8 @@ if not xml_path:
 
 # ---------------------------------------------------------------------------
 # Maple script assembly
+# PERCENT RULE per line: lines with "% <value>" use %%s for literal Maple
+# specifiers; all other lines use plain %s / %a.
 # ---------------------------------------------------------------------------
 
 L = []
@@ -208,7 +222,14 @@ A('interface(prettyprint=0):')
 A('WhateverYouNeed := table():')
 A('')
 A('# --- skeleton: tables, catalogs, calculationtype, storeitems ---------')
-A('LibInitCommon(WhateverYouNeed, "%s"):' % mstr(CALCULATIONTYPE))
+A('# NOTE: explicit module prefix - unqualified calls do NOT resolve')
+A('# in a fresh cmaple session!')
+A('NODEFunctions:-LibInitCommon(WhateverYouNeed, "%s"):'
+  % mstr(CALCULATIONTYPE))
+A('if not assigned(WhateverYouNeed["warnings"]) then')
+A('    printf("ERR|LibInitCommon did not initialize WhateverYouNeed\\n"):')
+A('    quit:')
+A('end if:')
 A('NODETimberGUI:-InitSpecific_EC5_6():')
 A('WhateverYouNeed["calculations"]["calculationtype_short"] := "%s":'
   % mstr(CALCULATIONTYPE_SHORT))
@@ -258,12 +279,12 @@ A('structure := WhateverYouNeed["calculations"]["structure"]:')
 A('structure["code_64"] := table(["ConstructionType" = "-", '
   '"alpha_ap" = 0, "tapered_N" = "false", "r_in" = 0, "l_curve" = 0, '
   '"t_lam" = 0]):')
-A('structure["buckling"] := table(')
+A('structure["buckling"] := table([')
 A('    "l_ky"  = %s,' % mnum(l_ky, "'m'"))
 A('    "l_kz"  = %s,' % mnum(l_kz, "'m'"))
 A('    "l_efy" = %s,' % mnum(l_efy, "'m'"))
 A('    "l_efz" = %s' % mnum(l_efz, "'m'"))
-A(')):')
+A(']):')
 A('structure["code_652"] := table(["endnotched" = "false", '
   '"endnotchedType" = "6.11(b)", "h_ef" = 80*Unit(mm), '
   '"l_incl" = 100*Unit(mm), "x_652" = 0]):')
@@ -274,7 +295,7 @@ A('structure["code_615"] := table(["type_615" = "b", "a_615" = 0, '
 A('try')
 A('    NODETimberEN1995:-calculate_k_64():')
 A('catch:')
-A('    printf("ERR|calculate_k_64 failed: %%a\\n", lastexception):')
+A('    printf("ERR|calculate_k_64 failed: %a\\n", lastexception):')
 A('end try:')
 A('if not assigned(WhateverYouNeed["results"]["k_64"]["k_m_alpha"]) then')
 A('    WhateverYouNeed["results"]["k_64"] := table(')
@@ -324,22 +345,22 @@ A('    WhateverYouNeed["calculations"]["activesettings"]'
 A('    try')
 A('        NODETimberGUI:-Main_EC5_6("CalculateAllLoadcases"):')
 A('    catch:')
-A('        printf("ERR|Main_EC5_6 failed for %%s: %%a\\n", lcname, '
-  'lastexception):')
+A('        printf("ERR|Main_EC5_6 failed for %s: %a\\n", lcname, '
+  '[lastexception]):')
 A('        aborted := true:')
 A('        break:')
 A('    end try:')
 A('    etatab := eval(WhateverYouNeed["results"]["eta"]):')
 A('    codetab := eval(WhateverYouNeed["results"]["comments"]):')
 A('    emax := evalf(etatab["max"]):')
-A('    printf("REC|lc|%%s|etamax|%%a\\n", lcname, emax):')
+A('    printf("REC|lc|%s|etamax|%a\\n", lcname, emax):')
 A('    for k in [indices(etatab)] do')
 A('        if op(k) <> "max" then')
-A('            printf("REC|eta|%%s|%%a|%%a\\n", lcname, op(k), '
+A('            printf("REC|eta|%s|%a|%a\\n", lcname, op(k), '
   'evalf(etatab[op(k)])):')
 A('        end if:')
 A('    end do:')
-A('    printf("REC|code|%%s|%%a|%%a\\n", lcname, '
+A('    printf("REC|code|%s|%a|%a\\n", lcname, '
   'codetab["usedcode"], codetab["usedcodeDescription"]):')
 A('    if emax > overallmax then')
 A('        overallmax := emax:')
@@ -347,30 +368,33 @@ A('        maxlc := lcname:')
 A('        maxcode := codetab["usedcode"]:')
 A('        maxdesc := codetab["usedcodeDescription"]:')
 A('    end if:')
-A('    if MASTERALARM(WhateverYouNeed["warnings"]) then')
-A('        printf("ERR|fatal warning in loadcase %%s\\n", lcname):')
+A('    if NODEFunctions:-MASTERALARM(WhateverYouNeed["warnings"]) then')
+A('        printf("ERR|fatal warning in loadcase %s\\n", lcname):')
 A('        aborted := true:')
 A('        break:')
 A('    end if:')
 A('end do:')
 A('WhateverYouNeed["calculations"]["calculatingAllLoadcases"] := false:')
 A('')
-A('# --- set governing loadcase active, save to XML ------------------------')
+A('# --- set governing loadcase active, save to XML -----------------------')
 A('if maxlc <> "" then')
 A('    WhateverYouNeed["calculations"]["activesettings"]'
   '["activeloadcase"] := maxlc:')
 A('end if:')
-A('printf("REC|summary|etamax|%%a\\n", overallmax):')
-A('printf("REC|summary|governingloadcase|%%s\\n", maxlc):')
-A('printf("REC|summary|governingcode|%%s\\n", maxcode):')
-A('printf("REC|summary|governingdescription|%%s\\n", maxdesc):')
+A('printf("REC|summary|etamax|%a\\n", overallmax):')
+A('printf("REC|summary|governingloadcase|%s\\n", maxlc):')
+A('printf("REC|summary|governingcode|%s\\n", maxcode):')
+A('printf("REC|summary|governingdescription|%s\\n", maxdesc):')
 A('if aborted = false then')
 A('    try')
 A('        NODEXML:-XMLFileInOut("export", WhateverYouNeed, "%s"):'
   % mstr(xml_path.replace("\\", "/")))
-A('        printf("REC|saved|text|%%s\\n", "%s"):' % mstr(xml_path))
+# NOTE: this line IS %-formatted (path substitution below), so the
+# literal Maple specifier is doubled -> Maple receives a single %s.
+A('        printf("REC|saved|text|%%s\\n", "%s"):'
+  % mstr(xml_path.replace("\\", "/")))
 A('    catch:')
-A('        printf("ERR|XML export failed: %%a\\n", lastexception):')
+A('        printf("ERR|XML export failed: %a\\n", [lastexception]):')
 A('    end try:')
 A('end if:')
 A('quit:')
@@ -439,6 +463,9 @@ for i, cname in enumerate(loadcase_list):
 
 eta_max = summary_max if summary_max is not None else \
     (max(lc_max.values()) if lc_max else None)
+
+governing_loadcase = gov_lc
+governing_code = gov_code
 
 error = err
 
