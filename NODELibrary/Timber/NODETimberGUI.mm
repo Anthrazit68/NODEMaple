@@ -35,7 +35,6 @@
 # activateComponents_64
 
 NODETimberGUI := module()
-
     description "Module for workbook initialization and GUI handlers":
     option package;
     
@@ -44,6 +43,17 @@ NODETimberGUI := module()
             InitSpecific_EC5_8, Main_EC5_8, ReadComponentsSpecific_EC5_8, ResetSpecific_EC5_8, RunAfterRestoresettings_EC5_8,
             InitSpecific_Opening, Main_Opening, ReadComponentsSpecific_Opening, ResetSpecific_Opening, RunAfterRestoresettings_Opening;
     uses DocumentTools, NODEFunctions, NODETimberEN1995, NODEDocumentCommon;
+    local ModuleLoad;
+
+    # Runs AUTOMATICALLY when the module is first read from the
+    # library - in every session, including headless cmaple.
+    # The dispatch in Main_EC5_6 (and other routines) compares
+    # angle quantities with scalars, which requires the Simple
+    # units environment. Worksheets already run document-wide in
+    # Simple mode; this makes headless sessions match them.
+    ModuleLoad := proc()
+        with(Units[Simple]);
+    end proc:
 
     runAfterXMLImportLocal := proc(i::string)
         description "Procedure run after import of XML file, called in NODEXML:-runAfterXMLImport";
@@ -154,7 +164,7 @@ NODETimberGUI := module()
 
 
     # Main calculation routine
-    Main_EC5_6 := proc(action::string)
+    Main_EC5_6 := proc(action::string)        
         description "Main calculation routine for EC5_6 calculations";        
         local force, activeloadcase, eta, usedcode, comments, structure, warnings, maxindex, usedcodeDescription;
         local alpha, F_xd, M_yd, M_zd, V_yd, V_zd, M_td;

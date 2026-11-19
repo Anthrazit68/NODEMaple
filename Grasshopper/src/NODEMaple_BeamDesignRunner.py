@@ -9,15 +9,18 @@
 # https://www.gnu.org/licenses/gpl-3.0.txt
 
 """
-NODEMaple Beam Design Runner (groups edition)
+NODEMaple Beam Design Runner (groups edition, with check_tree)
 
 Consumes JSON group objects from the group components:
 
-  project   <- NODEMaple_ProjectParameters  (Item access, 1 JSON)
-  structure <- NODEMaple_BeamStructure       (Item access, 1 JSON)
-  loadcases <- NODEMaple_LoadDefinition xN   (Item access, N JSONs;
-              connect several components' outputs to the same input,
-              Grasshopper merges them into one list)
+  project   <- NODEMaple_ProjectParameters  (Item access, 1 JSON,
+                                               FLATTEN this input)
+  structure <- NODEMaple_BeamStructure       (Item access, 1 JSON,
+                                               FLATTEN this input)
+  loadcases <- NODEMaple_LoadDefinition xN   (Item access, N JSONs,
+              FLATTEN this input; connect several components'
+              outputs, Grasshopper merges them, Flatten collapses
+              branches so the component runs ONCE)
 
 JSON contracts:
 
@@ -34,11 +37,15 @@ Per loadcase Main_EC5_6 picks the checks (6.1.x / 6.2.x / 6.3)
 automatically from the force combination. Bending routes through
 6.3.3 lateral-torsional buckling using the buckling lengths.
 
-See the single-file NODEMapple_BeamDesign for the full background
-(module prefixes, percent rule, headless requirements) - unchanged
-here; only the input layer was refactored.
+Outputs per loadcase (branch i = loadcase i, order = input order):
+  eta_tree    : eta per executed check, SORTED BY VALUE ascending
+                (governing check = last item in a branch)
+  check_tree  : check code for each eta in eta_tree - item i in
+                check_tree labels item i in eta_tree ("616" etc.)
+  etamax_tree : max eta of that loadcase
+  code_tree   : governing check "<code> <description>" of that case
 
-Emits records:
+Emits records (debug):
   DBG|lc|<name>|alpha=..,F_xd=..,...   echo of parsed forces
   REC|lc|<name>|etamax|<value>
   REC|eta|<name>|<check>|<value>       one per executed check
@@ -55,19 +62,30 @@ Input:
   xml_path           : target .xml file
   overwrite          : True -> delete existing file first
   run                : True -> execute; False -> only echo inputs
-                       (cheap wiring test without spawning Maple)
+                       (dry run without spawning Maple)
   maple_version      : Maple year, e.g. "2026" (ignored if MAPLE set)
 
 Output:
-  loadcase_list  : names in calculation order
-  eta_tree       : branch per loadcase -> eta per executed check
-  etamax_tree    : branch per loadcase -> max eta
-  code_tree      : branch per loadcase -> "<code> <description>"
-  eta_max        : global maximum utilization
-  governing_loadcase, governing_code : of governing case
-  saved          : True if the XML file was written
-  error          : error message or None
-  debug          : summary + raw Maple output
+  loadcase_list       : names in calculation order
+  eta_tree            : eta per executed check (sorted by value)
+  check_tree          : check code per eta (labels eta_tree items)
+  etamax_tree         : max eta per loadcase
+  code_tree           : governing code+description per loadcase
+  eta_max             : global maximum utilization
+  governing_loadcase  : name of governing case
+  governing_code      : code of governing case
+  saved               : True if the XML file was written
+  error               : error message or None
+  debug               : summary + raw Maple output
+
+Requires the NODEXML.mm patch: XMLFileInOut and XMLWrite accept an
+optional filename argument and skip all dialogs when it is given.
+
+NOTE: the Maple<->Python protocol is ASCII-only ("|" as separator);
+human strings are transliterated by the group components and again
+by mstr() here.
+NOTE: PERCENT RULE per line: lines with "% <value>" use %%s for
+literal Maple specifiers; lines without keep %s single.
 """
 
 import os
@@ -75,6 +93,22 @@ import json
 import subprocess
 import Grasshopper
 from Grasshopper.Kernel.Data import GH_Path
+
+# ---------------------------------------------------------------------------
+# ASCII transliteration (safety net; group components also apply it)
+# ---------------------------------------------------------------------------
+
+TRANSLATE = {
+    "å": "a", "ø": "o", "æ": "ae", "Å": "A", "Ø": "O", "Æ": "AE",
+    "ä": "a", "ö": "o", "ü": "u", "Ä": "A", "Ö": "O", "Ü": "U",
+    "é": "e", "è": "e", "ê": "e", "É": "E",
+    "ñ": "n", "Ñ": "N", "ç": "c", "Ç": "C",
+}
+
+
+def ascii_safe(s):
+    return "".join(TRANSLATE.get(ch, ch) for ch in s)
+
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -89,17 +123,6 @@ MAPLE_PATH = os.path.join(MAPLE_ROOT, "bin.X86_64_WINDOWS", "cmaple.exe")
 
 CALCULATIONTYPE = "NS-EN 1995-1-1, Section 6: Ultimate limit state design principles"
 CALCULATIONTYPE_SHORT = "Eurocode 5 part 1-1 ULS"
-
-# ASCII-safe transliteration for the Maple pipe protocol
-TRANSLATE = {
-    "å": "a", "ø": "o", "æ": "ae", "Å": "A", "Ø": "O", "Æ": "AE",
-    "ä": "a", "ö": "o", "ü": "u", "Ä": "A", "Ö": "O", "Ü": "U",
-    "é": "e", "è": "e", "ê": "e", "É": "E",
-    "ñ": "n", "Ñ": "N", "ç": "c", "Ç": "C",
-}
-
-def ascii_safe(s):
-    return "".join(TRANSLATE.get(ch, ch) for ch in s)
 
 
 def run_maple_script(script, timeout=180):
@@ -122,8 +145,9 @@ def run_maple_script(script, timeout=180):
 
 
 def mstr(s):
+    """Python string -> safe Maple string literal (ASCII-safe)."""
     s = "" if s is None else str(s).strip().replace("|", "/")
-    s = ascii_safe(s)                       # pipe protocol is ASCII-only
+    s = ascii_safe(s)
     return s.replace("\\", "\\\\").replace('"', '\\"')
 
 
@@ -141,12 +165,12 @@ def mnum(v, unit=None):
 
 
 def _flatten(v):
-    """Item-access input: unwrap possible tree/list into flat list."""
+    """Item/List-access input: unwrap tree/list into a flat list."""
     if v is None:
         return []
     if hasattr(v, "Branches"):
         out = []
-        for br in v.Branchs if hasattr(v, "Branchs") else v.Branches:
+        for br in v.Branches:
             out.extend(x for x in br)
         return out
     if isinstance(v, (list, tuple)):
@@ -161,7 +185,7 @@ def _flatten(v):
 
 
 # ---------------------------------------------------------------------------
-# Parse group inputs (JSON) - with clear errors instead of silent zeros
+# Parse group inputs (JSON) - clear errors instead of silent zeros
 # ---------------------------------------------------------------------------
 
 # project
@@ -190,8 +214,7 @@ for k in ("l_ky", "l_kz", "l_efy", "l_efz"):
 
 # loadcases
 cases = []
-raw_cases = _flatten(loadcases)
-for item in raw_cases:
+for item in _flatten(loadcases):
     try:
         r = json.loads(item) if not isinstance(item, dict) else item
     except (ValueError, TypeError):
@@ -229,9 +252,10 @@ def _validate():
 problems = _validate()
 
 if not run:
-    # wiring test - show what would be sent, no Maple spawn
+    # dry run - show what would be sent, no Maple spawn
     loadcase_list = [n for n, _ in cases]
     eta_tree = Grasshopper.DataTree[object]()
+    check_tree = Grasshopper.DataTree[object]()
     etamax_tree = Grasshopper.DataTree[object]()
     code_tree = Grasshopper.DataTree[object]()
     eta_max = None
@@ -257,7 +281,7 @@ else:
             pass
 
     # -----------------------------------------------------------------------
-    # Maple script assembly (percent rule per line applies as before)
+    # Maple script assembly (percent rule per line)
     # -----------------------------------------------------------------------
 
     L = []
@@ -268,6 +292,8 @@ else:
     A('WhateverYouNeed := table():')
     A('')
     A('# --- skeleton ---------------------------------------------------------')
+    A('# NOTE: explicit module prefix - unqualified calls do NOT resolve')
+    A('# in a fresh cmaple session!')
     A('NODEFunctions:-LibInitCommon(WhateverYouNeed, "%s"):'
       % mstr(CALCULATIONTYPE))
     A('if not assigned(WhateverYouNeed["warnings"]) then')
@@ -455,7 +481,7 @@ else:
     # -----------------------------------------------------------------------
 
     lc_max = {}
-    lc_eta = {}
+    lc_eta = {}      # {name: [(check, value), ...]}
     lc_code = {}
     lc_echo = {}
     summary_max = None
@@ -498,13 +524,18 @@ else:
 
     loadcase_list = [n for n, _ in cases]
 
+    # trees: branch i = loadcase i; eta values sorted ascending,
+    # check_tree carries the matching check code per value
     eta_tree = Grasshopper.DataTree[object]()
+    check_tree = Grasshopper.DataTree[object]()
     etamax_tree = Grasshopper.DataTree[object]()
     code_tree = Grasshopper.DataTree[object]()
 
     for i, cname in enumerate(loadcase_list):
-        checks = sorted(lc_eta.get(cname, []))
+        checks = sorted(lc_eta.get(cname, []),
+                        key=lambda cv: (cv[1], cv[0]))
         eta_tree.AddRange([v for _, v in checks], GH_Path(i))
+        check_tree.AddRange([k for k, _ in checks], GH_Path(i))
         m = lc_max.get(cname)
         etamax_tree.AddRange([m if m is not None else -1.0], GH_Path(i))
         c = lc_code.get(cname, ("", ""))
@@ -512,8 +543,9 @@ else:
 
     eta_max = summary_max if summary_max is not None else \
         (max(lc_max.values()) if lc_max else None)
-    governing_loadcase = gov_lc          # (bug fixed: actually output)
+    governing_loadcase = gov_lc
     governing_code = gov_code
+    saved_flag = saved
     error = err
 
     debug = ("material : %s\nsection  : %s\n"
@@ -522,5 +554,8 @@ else:
              % (material_name, section_name, ", ".join(loadcase_list),
                 xml_path, len(lc_max), sum(len(v) for v in lc_eta.values())))
     for cname in loadcase_list:
-        debug += "forces %-12s: %s\n" % (cname, lc_echo.get(cname, "<no echo>"))
+        debug += "forces %-12s: %s\n" % (cname,
+                                         lc_echo.get(cname, "<no echo>"))
     debug += "\n" + raw
+
+saved = saved_flag if run else False
