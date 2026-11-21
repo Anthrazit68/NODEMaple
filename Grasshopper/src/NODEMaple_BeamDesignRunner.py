@@ -9,83 +9,91 @@
 # https://www.gnu.org/licenses/gpl-3.0.txt
 
 """
-NODEMaple Beam Design Runner (groups edition, with check_tree)
+NODEMaple Beam Design Runner (block components edition)
 
-Consumes JSON group objects from the group components:
+Consumes one JSON per worksheet input block (see
+"NODEMaple Timber ULS.pdf" for the block definitions):
 
-  project   <- NODEMaple_ProjectParameters  (Item access, 1 JSON,
-                                               FLATTEN this input)
-  structure <- NODEMaple_BeamStructure       (Item access, 1 JSON,
-                                               FLATTEN this input)
-  loadcases <- NODEMaple_LoadDefinition xN   (Item access, N JSONs,
-              FLATTEN this input; connect several components'
-              outputs, Grasshopper merges them, Flatten collapses
-              branches so the component runs ONCE)
+  project           <- NODEMaple_ProjectParameters   (MANDATORY)
+  material          <- NODEMaple_BeamMaterial         (MANDATORY)
+  loadcases         <- NODEMaple_LoadDefinition xN    (MANDATORY)
+  buckling          <- NODEMaple_BeamBuckling        (OPTIONAL)
+  support_check     <- NODEMaple_SupportCheck         (OPTIONAL, 6.1.5)
+  angle_compression <- NODEMaple_AngleCompression     (OPTIONAL, 6.2.2)
+  tapered_curved    <- NODEMaple_TaperedCurved        (OPTIONAL, 6.4)
+  end_notch         <- NODEMaple_EndNotch             (OPTIONAL, 6.5.2)
 
-JSON contracts:
+Unconnected OPTIONAL blocks fall back to the defaults below; the
+debug output lists "structure block defaults in use" so a result
+computed on defaults is always identifiable.
 
-  project  : {"project_number": "...", "project_title": "...",
-              "client": "...", "position_number": "...",
-              "position_text": "..."}
-  structure: {"material_name": "GL 30c / Service class 1 / Permanent",
-              "section_name": "Rectangular / 140x585",
-              "l_ky": .., "l_kz": .., "l_efy": .., "l_efz": ..}
-  loadcase : {"name": "...", "alpha": .., "F_xd": .., "M_yd": ..,
-              "M_zd": .., "V_yd": .., "V_zd": .., "M_td": ..}
-
-Per loadcase Main_EC5_6 picks the checks (6.1.x / 6.2.x / 6.3)
-automatically from the force combination. Bending routes through
-6.3.3 lateral-torsional buckling using the buckling lengths.
+FLATTEN all Item-access group inputs so this component runs ONCE.
 
 Outputs per loadcase (branch i = loadcase i, order = input order):
-  eta_tree    : eta per executed check, SORTED BY VALUE ascending
+  eta_tree    : eta per executed check, sorted by value ascending
                 (governing check = last item in a branch)
-  check_tree  : check code for each eta in eta_tree - item i in
-                check_tree labels item i in eta_tree ("616" etc.)
-  etamax_tree : max eta of that loadcase
-  code_tree   : governing check "<code> <description>" of that case
+  check_tree   : check code for each eta ("616" etc.)
+  etamax_tree  : max eta of that loadcase
+  code_tree    : governing check "<code> <description>" of that case
 
-Emits records (debug):
-  DBG|lc|<name>|alpha=..,F_xd=..,...   echo of parsed forces
-  REC|lc|<name>|etamax|<value>
-  REC|eta|<name>|<check>|<value>       one per executed check
-  REC|code|<name>|<code>|<description>
-  REC|summary|etamax|<value>
-  REC|summary|governingloadcase|<name>
-  REC|summary|governingcode|<code>
-  REC|saved|text|<path>
-  ERR|<message>
+Defaults for optional blocks (matching the worksheet examples):
+  buckling:          all lengths 0 m (-> dispatch may flag warnings)
+  support_check:     type b, a=0, l=225 mm, l1=7500 mm
+  angle_compression: h = section height
+  tapered_curved:    prismatic ("-"), all values 0
+  end_notch:         not notched, h_ef=80, l_incl=100 mm, x=0
 
 Input:
-  project, structure : JSON strings from the group components
-  loadcases          : JSON strings from LoadDefinition components
-  xml_path           : target .xml file
-  overwrite          : True -> delete existing file first
-  run                : True -> execute; False -> only echo inputs
-                       (dry run without spawning Maple)
-  maple_version      : Maple year, e.g. "2026" (ignored if MAPLE set)
+  project           : JSON from NODEMaple_ProjectParameters (mandatory)
+  material          : JSON from NODEMaple_BeamMaterial (mandatory)
+  loadcases         : JSON strings from NODEMaple_LoadDefinition
+                      xN (mandatory; flattened list)
+  buckling          : JSON from NODEMaple_BeamBuckling (optional)
+  support_check     : JSON from NODEMaple_SupportCheck (optional, 6.1.5)
+  angle_compression : JSON from NODEMaple_AngleCompression
+                      (optional, 6.2.2)
+  tapered_curved    : JSON from NODEMaple_TaperedCurved (optional, 6.4)
+  end_notch         : JSON from NODEMaple_EndNotch (optional, 6.5.2)
+  xml_path          : target .xml file for the NODEMaple export
+                      (mandatory when run=True)
+  overwrite         : True -> delete existing xml_path before export
+                      (prevents a stale file surviving a failed run)
+  run               : True -> execute (spawn cmaple, calculate, export);
+                      False -> dry run: validate and echo inputs in
+                      debug without spawning Maple
+  maple_version     : Maple year, e.g. "2026" (ignored when the
+                      MAPLE environment variable is set)
 
 Output:
-  loadcase_list       : names in calculation order
-  eta_tree            : eta per executed check (sorted by value)
-  check_tree          : check code per eta (labels eta_tree items)
-  etamax_tree         : max eta per loadcase
-  code_tree           : governing code+description per loadcase
-  eta_max             : global maximum utilization
-  governing_loadcase  : name of governing case
-  governing_code      : code of governing case
-  saved               : True if the XML file was written
-  error               : error message or None
-  debug               : summary + raw Maple output
+  loadcase_list      : names in calculation order (index key for
+                       the trees below)
+  eta_tree           : eta per executed check, sorted by value
+                       ascending (branch i = loadcase i; governing
+                       check = last item of a branch)
+  check_tree         : check code per eta - item i labels item i
+                       in eta_tree (Maple-quoted, "616" etc.)
+  etamax_tree        : max eta per loadcase (-1 if none)
+  code_tree          : governing check "<code> <description>"
+                       per loadcase
+  eta_max            : global maximum utilization over all cases
+  governing_loadcase : name of the governing loadcase
+  governing_code     : code of the governing case's governing check
+  saved              : True if the XML file was written
+  error              : first ERR| message of the run, or None
+  debug              : header (inputs, blocks in use/on defaults,
+                       parsed record counts, force echoes) followed
+                       by the raw Maple output
 
-Requires the NODEXML.mm patch: XMLFileInOut and XMLWrite accept an
-optional filename argument and skip all dialogs when it is given.
-
-NOTE: the Maple<->Python protocol is ASCII-only ("|" as separator);
-human strings are transliterated by the group components and again
-by mstr() here.
-NOTE: PERCENT RULE per line: lines with "% <value>" use %%s for
-literal Maple specifiers; lines without keep %s single.
+CONSTRUCTION RULE (supersedes the old percent rule):
+  Script lines are built with STRING CONCATENATION only. Python
+  %-formatting is BANNED inside the A(...) script assembly, because
+  mixing Python format specifiers with Maple printf specifiers on
+  one line caused three separate bugs. Concatenation needs no
+  doubling: every % sign written in a concatenated line reaches
+  Maple exactly as written, single.
+  Exception: lines with NO % sign at all may use % formatting.
+  (The REC|saved line also switched to concatenation.)
+Protocol is ASCII-only; mstr() transliterates as a safety net.
 """
 
 import os
@@ -184,33 +192,90 @@ def _flatten(v):
     return [v]
 
 
+def _parse_json(value, label):
+    """Parse one group-component JSON; empty/None -> {} (block absent)."""
+    if value is None:
+        return {}
+    txt = str(value).strip()
+    if not txt:
+        return {}
+    try:
+        return json.loads(txt)
+    except (ValueError, TypeError):
+        raise ValueError("%s input is not valid JSON" % label)
+
+
 # ---------------------------------------------------------------------------
 # Parse group inputs (JSON) - clear errors instead of silent zeros
 # ---------------------------------------------------------------------------
 
-# project
-try:
-    P = json.loads(project) if project else {}
-except (ValueError, TypeError):
-    raise ValueError("project input is not valid JSON - connect "
-                      "NODEMaple_ProjectParameters")
+P = _parse_json(project, "project")
 for k in ("project_number", "project_title", "client",
           "position_number", "position_text"):
     P.setdefault(k, "")
 
-# structure
-try:
-    S = json.loads(structure) if structure else {}
-except (ValueError, TypeError):
-    raise ValueError("structure input is not valid JSON - connect "
-                      "NODEMaple_BeamStructure")
-material_name = str(S.get("material_name", "")).strip()
-section_name = str(S.get("section_name", "")).strip()
-for k in ("l_ky", "l_kz", "l_efy", "l_efz"):
+M = _parse_json(material, "material")
+material_name = str(M.get("material_name", "")).strip()
+section_name = str(M.get("section_name", "")).strip()
+
+BK = _parse_json(buckling, "buckling")
+def _bk(k):
     try:
-        S[k] = float(S.get(k, 0.0))
+        return float(BK.get(k, 0.0))
     except (TypeError, ValueError):
-        S[k] = 0.0
+        return 0.0
+
+SC = _parse_json(support_check, "support_check")
+def _sc(k, d):
+    v = SC.get(k, d)
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return d
+sc_type = str(SC.get("type", "b")).strip() or "b"
+
+AC = _parse_json(angle_compression, "angle_compression")
+try:
+    ac_h = float(AC.get("h", 0.0))
+except (TypeError, ValueError):
+    ac_h = 0.0
+
+TC = _parse_json(tapered_curved, "tapered_curved")
+tc_ct = str(TC.get("construction_type", "-")).strip() or "-"
+tc_N = str(TC.get("tapered_N", "false")).strip() or "false"
+def _tc(k):
+    try:
+        return float(TC.get(k, 0.0))
+    except (TypeError, ValueError):
+        return 0.0
+
+EN = _parse_json(end_notch, "end_notch")
+en_notched = str(EN.get("endnotched", "false")).strip() or "false"
+en_type = str(EN.get("notch_type", "6.11(b)")).strip() or "6.11(b)"
+def _en(k, d):
+    try:
+        return float(EN.get(k, d))
+    except (TypeError, ValueError):
+        return d
+
+# block sources for the DBG|block| echoes
+src_buckling = "buckling" if BK else "default"
+src_615 = "support_check" if SC else "default"
+src_622 = "angle_compression" if AC else "default_section_h"
+src_64 = "tapered_curved" if TC else "default_prismatic"
+src_652 = "end_notch" if EN else "default"
+
+blocks_defaults = []
+if not BK:
+    blocks_defaults.append("buckling (lengths -> 0)")
+if not SC:
+    blocks_defaults.append("support_check (type b, 0/225/7500)")
+if not AC:
+    blocks_defaults.append("angle_compression (h -> section h)")
+if not TC:
+    blocks_defaults.append("tapered_curved (prismatic)")
+if not EN:
+    blocks_defaults.append("end_notch (not notched)")
 
 # loadcases
 cases = []
@@ -218,8 +283,7 @@ for item in _flatten(loadcases):
     try:
         r = json.loads(item) if not isinstance(item, dict) else item
     except (ValueError, TypeError):
-        raise ValueError("loadcases input contains invalid JSON: %r - "
-                          "connect NODEMaple_LoadDefinition outputs" % item)
+        raise ValueError("loadcases input contains invalid JSON: %r" % item)
     vals = []
     for k in ("alpha", "F_xd", "M_yd", "M_zd", "V_yd", "V_zd", "M_td"):
         try:
@@ -239,20 +303,32 @@ run = bool(run)
 def _validate():
     msgs = []
     if not material_name:
-        msgs.append("structure: material_name missing")
+        msgs.append("material: material_name missing - connect "
+                    "NODEMaple_BeamMaterial")
     if not section_name:
-        msgs.append("structure: section_name missing")
+        msgs.append("material: section_name missing - connect "
+                    "NODEMaple_BeamMaterial")
     if not cases:
         msgs.append("loadcases: none - connect at least one "
                     "NODEMaple_LoadDefinition")
     if not xml_path:
         msgs.append("xml_path missing")
+    # 6.1.5 support check needs real bearing geometry: refuse to run
+    # it on the Limtreboka placeholder defaults. Trigger condition is
+    # a proxy for the library's dispatch: compression with a force
+    # component at an angle to the grain (alpha > 0, F_xd < 0).
+    if not SC and any(v[1] < 0 and v[0] > 0 for _, v in cases):
+        msgs.append("support_check: MISSING - a loadcase has angled "
+                    "compression (F_xd < 0, alpha > 0) which triggers "
+                    "the 6.1.5 support check. Connect "
+                    "NODEMaple_SupportCheck with the bearing geometry "
+                    "(type a/b, a, l, l1). Calculating 6.1.5 on "
+                    "undocumented default values is refused.")
     return msgs
 
 problems = _validate()
 
 if not run:
-    # dry run - show what would be sent, no Maple spawn
     loadcase_list = [n for n, _ in cases]
     eta_tree = Grasshopper.DataTree[object]()
     check_tree = Grasshopper.DataTree[object]()
@@ -261,15 +337,21 @@ if not run:
     eta_max = None
     governing_loadcase = ""
     governing_code = ""
-    saved = False
-    error = "DRY RUN (run=False)" if not problems else \
-            "; ".join(problems)
+    saved_flag = False
+    error = "DRY RUN (run=False)" if not problems else "; ".join(problems)
     debug = ("DRY RUN - inputs parsed:\n"
              "material : %s\nsection  : %s\n"
-             "loadcases: %s\nxml_path : %s\nproblems : %s\n"
+             "loadcases: %s\nxml_path : %s\n"
+             "blocks in use     : %s\n"
+             "blocks on defaults: %s\nproblems : %s\n"
              % (material_name, section_name,
                 ", ".join("%s %s" % (n, v) for n, v in cases),
-                xml_path, "; ".join(problems) or "none"))
+                xml_path,
+                ", ".join([s for s in (src_buckling, src_615, src_622,
+                                       src_64, src_652)
+                           if not s.startswith("default")]) or "none",
+                "; ".join(blocks_defaults) or "none",
+                "; ".join(problems) or "none"))
 else:
     if problems:
         raise ValueError("; ".join(problems))
@@ -280,8 +362,12 @@ else:
         except OSError:
             pass
 
+    fwd_xml_path = xml_path.replace("\\", "/")
+
     # -----------------------------------------------------------------------
-    # Maple script assembly (percent rule per line)
+    # Maple script assembly - CONCATENATION ONLY inside A(...) lines
+    # (see docstring CONSTRUCTION RULE). No Python % formatting on
+    # lines that contain Maple printf specifiers.
     # -----------------------------------------------------------------------
 
     L = []
@@ -289,41 +375,40 @@ else:
 
     A('kernelopts(printbytes=false):')
     A('interface(prettyprint=0):')
+    A('with(Units[Simple]):')
     A('WhateverYouNeed := table():')
     A('')
     A('# --- skeleton ---------------------------------------------------------')
-    A('# NOTE: explicit module prefix - unqualified calls do NOT resolve')
-    A('# in a fresh cmaple session!')
-    A('NODEFunctions:-LibInitCommon(WhateverYouNeed, "%s"):'
-      % mstr(CALCULATIONTYPE))
+    A('NODEFunctions:-LibInitCommon(WhateverYouNeed, "' +
+      mstr(CALCULATIONTYPE) + '"):')
     A('if not assigned(WhateverYouNeed["warnings"]) then')
     A('    printf("ERR|LibInitCommon did not initialize WhateverYouNeed\\n"):')
     A('    quit:')
     A('end if:')
     A('NODETimberGUI:-InitSpecific_EC5_6():')
-    A('WhateverYouNeed["calculations"]["calculationtype_short"] := "%s":'
-      % mstr(CALCULATIONTYPE_SHORT))
+    A('WhateverYouNeed["calculations"]["calculationtype_short"] := "' +
+      mstr(CALCULATIONTYPE_SHORT) + '":')
     A('WhateverYouNeed["calculations"]["suppress_gui"] := true:')
     A('WhateverYouNeed["material"] := "timber":')
     A('')
     A('# --- project and position metadata ------------------------------------')
     A('WhateverYouNeed["projectdata"] := table([')
-    A('    "projectnumber" = "%s",' % mstr(P["project_number"]))
-    A('    "projecttitle"  = "%s",' % mstr(P["project_title"]))
-    A('    "client"        = "%s"' % mstr(P["client"]))
+    A('    "projectnumber" = "' + mstr(P["project_number"]) + '",')
+    A('    "projecttitle"  = "' + mstr(P["project_title"]) + '",')
+    A('    "client"        = "' + mstr(P["client"]) + '"')
     A(']):')
-    A('WhateverYouNeed["calculations"]["positionnumber"] := "%s":'
-      % mstr(P["position_number"]))
-    A('WhateverYouNeed["calculations"]["positiontitle"] := "%s":'
-      % mstr(P["position_text"]))
+    A('WhateverYouNeed["calculations"]["positionnumber"] := "' +
+      mstr(P["position_number"]) + '":')
+    A('WhateverYouNeed["calculations"]["positiontitle"] := "' +
+      mstr(P["position_text"]) + '":')
     A('WhateverYouNeed["calculations"]["loadvariables"] := {"alpha", '
       '"F_xGk", "F_xQk", "F_xd", "V_yGk", "V_yQk", "V_yd", "V_zGk", "V_zQk", '
       '"V_zd", "M_yGk", "M_yQk", "M_yd", "M_zGk", "M_zQk", "M_zd", "M_tGk", '
       '"M_tQk", "M_td"}:')
     A('')
     A('# --- active material and section --------------------------------------')
-    A('matname := "%s":' % mstr(material_name))
-    A('sectname := "%s":' % mstr(section_name))
+    A('matname := "' + mstr(material_name) + '":')
+    A('sectname := "' + mstr(section_name) + '":')
     A('NODETimberEN1995:-GetMaterialdata(matname, WhateverYouNeed):')
     A('NODETimberEN1995:-GetSectiondata(sectname, WhateverYouNeed):')
     A('if not assigned(WhateverYouNeed["materialdata"]["name"]) then')
@@ -344,24 +429,55 @@ else:
     A('WhateverYouNeed["calculations"]["activesettings"]["activesection"] '
       ':= sectname:')
     A('')
-    A('# --- structure --------------------------------------------------------')
+    A('# --- structure blocks --------------------------------------------------')
     A('structure := WhateverYouNeed["calculations"]["structure"]:')
-    A('structure["code_64"] := table(["ConstructionType" = "-", '
-      '"alpha_ap" = 0, "tapered_N" = "false", "r_in" = 0, "l_curve" = 0, '
-      '"t_lam" = 0]):')
+
+    # 6.4 tapered / curved (prismatic defaults when block absent)
+    a_64 = mnum(_tc("alpha_ap"), "degrees") if _tc("alpha_ap") else "0"
+    r_64 = mnum(_tc("r_in"), "'m'") if _tc("r_in") else "0"
+    l_64 = mnum(_tc("l_curve"), "'m'") if _tc("l_curve") else "0"
+    t_64 = mnum(_tc("t_lam"), "mm") if _tc("t_lam") else "0"
+    A('structure["code_64"] := table(')
+    A('    ["ConstructionType" = "' + mstr(tc_ct) + '", '
+      '"alpha_ap" = ' + a_64 + ', "tapered_N" = "' + tc_N + '", '
+      '"r_in" = ' + r_64 + ', "l_curve" = ' + l_64 + ', '
+      '"t_lam" = ' + t_64 + ']):')
+    A('printf("DBG|block|code_64|' + src_64 + '\\n"):')
+
+    # buckling lengths
     A('structure["buckling"] := table([')
-    A('    "l_ky"  = %s,' % mnum(S["l_ky"], "'m'"))
-    A('    "l_kz"  = %s,' % mnum(S["l_kz"], "'m'"))
-    A('    "l_efy" = %s,' % mnum(S["l_efy"], "'m'"))
-    A('    "l_efz" = %s' % mnum(S["l_efz"], "'m'"))
+    A('    "l_ky"  = ' + mnum(_bk("l_ky"), "'m'") + ',')
+    A('    "l_kz"  = ' + mnum(_bk("l_kz"), "'m'") + ',')
+    A('    "l_efy" = ' + mnum(_bk("l_efy"), "'m'") + ',')
+    A('    "l_efz" = ' + mnum(_bk("l_efz"), "'m'"))
     A(']):')
-    A('structure["code_652"] := table(["endnotched" = "false", '
-      '"endnotchedType" = "6.11(b)", "h_ef" = 80*Unit(mm), '
-      '"l_incl" = 100*Unit(mm), "x_652" = 0]):')
-    A('structure["code_622"] := table(["h_622" = '
-      'eval(WhateverYouNeed["sectiondata"]["h"])]):')
-    A('structure["code_615"] := table(["type_615" = "b", "a_615" = 0, '
-      '"l_615" = 225*Unit(mm), "l1_615" = 7500*Unit(mm)]):')
+    A('printf("DBG|block|buckling|' + src_buckling + '\\n"):')
+
+    # 6.1.5 support check
+    a_615 = mnum(_sc("a", 0.0), "mm") if _sc("a", 0.0) else "0"
+    l_615 = mnum(_sc("l", 225.0), "mm") if _sc("l", 225.0) else "0"
+    l1_615 = mnum(_sc("l1", 7500.0), "mm") if _sc("l1", 7500.0) else "0"
+    A('structure["code_615"] := table(["type_615" = "' + mstr(sc_type) +
+      '", "a_615" = ' + a_615 + ', "l_615" = ' + l_615 +
+      ', "l1_615" = ' + l1_615 + ']):')
+    A('printf("DBG|block|code_615|' + src_615 + '\\n"):')
+
+    # 6.2.2 compression at an angle: h from block, else section height
+    h_622 = mnum(ac_h) if ac_h else "0"
+    A('structure["code_622"] := table(["h_622" = if %g > 0 then %s*Unit(mm) '
+      'else eval(WhateverYouNeed["sectiondata"]["h"]) end if]):'
+      % (ac_h, h_622))
+    A('printf("DBG|block|code_622|' + src_622 + '\\n"):')
+
+    # 6.5.2 end notch
+    hef_652 = mnum(_en("h_ef", 80.0), "mm") if _en("h_ef", 80.0) else "0"
+    lincl_652 = mnum(_en("l_incl", 100.0), "mm") if _en("l_incl", 100.0) else "0"
+    x_652 = mnum(_en("x", 0.0), "mm") if _en("x", 0.0) else "0"
+    A('structure["code_652"] := table(["endnotched" = "' + en_notched +
+      '", "endnotchedType" = "' + mstr(en_type) + '", "h_ef" = ' + hef_652 +
+      ', "l_incl" = ' + lincl_652 + ', "x_652" = ' + x_652 + ']):')
+    A('printf("DBG|block|code_652|' + src_652 + '\\n"):')
+    A('')
     A('try')
     A('    NODETimberEN1995:-calculate_k_64():')
     A('catch:')
@@ -378,27 +494,27 @@ else:
         alpha, fxd, myd, mzd, vyd, vzd, mtd = vals
         a_s = "0" if alpha == 0 else "%.10g*Unit(degrees)" % alpha
         A('lc := table([')
-        A('    "name"   = "%s",' % mstr(cname))
-        A('    "alpha"  = %s,' % a_s)
-        A('    "F_xGk"  = "false", "F_xQk" = "false", "F_xd"  = %s,'
-          % mnum(fxd, "kN"))
-        A('    "M_yGk"  = "false", "M_yQk" = "false", "M_yd"  = %s,'
-          % mnum(myd, "'kN*m'"))
-        A('    "M_zGk"  = "false", "M_zQk" = "false", "M_zd"  = %s,'
-          % mnum(mzd, "'kN*m'"))
-        A('    "V_yGk"  = "false", "V_yQk" = "false", "V_yd"  = %s,'
-          % mnum(vyd, "kN"))
-        A('    "V_zGk"  = "false", "V_zQk" = "false", "V_zd"  = %s,'
-          % mnum(vzd, "kN"))
-        A('    "M_tGk"  = "false", "M_tQk" = "false", "M_td"  = %s'
-          % mnum(mtd, "'kN*m'"))
+        A('    "name"   = "' + mstr(cname) + '",')
+        A('    "alpha"  = ' + a_s + ',')
+        A('    "F_xGk"  = "false", "F_xQk" = "false", "F_xd"  = ' +
+          mnum(fxd, "kN") + ',')
+        A('    "M_yGk"  = "false", "M_yQk" = "false", "M_yd"  = ' +
+          mnum(myd, "'kN*m'") + ',')
+        A('    "M_zGk"  = "false", "M_zQk" = "false", "M_zd"  = ' +
+          mnum(mzd, "'kN*m'") + ',')
+        A('    "V_yGk"  = "false", "V_yQk" = "false", "V_yd"  = ' +
+          mnum(vyd, "kN") + ',')
+        A('    "V_zGk"  = "false", "V_zQk" = "false", "V_zd"  = ' +
+          mnum(vzd, "kN") + ',')
+        A('    "M_tGk"  = "false", "M_tQk" = "false", "M_td"  = ' +
+          mnum(mtd, "'kN*m'"))
         A(']):')
-        A('WhateverYouNeed["calculations"]["loadcases"]["%s"] := eval(lc):'
-          % mstr(cname))
+        A('WhateverYouNeed["calculations"]["loadcases"]["' + mstr(cname) +
+          '"] := eval(lc):')
         A('')
 
-    A('loadcasenames := [%s]:'
-      % ", ".join('"%s"' % mstr(c) for c, _ in cases))
+    names_str = ", ".join('"' + mstr(c) + '"' for c, _ in cases)
+    A('loadcasenames := [' + names_str + ']:')
     A('WhateverYouNeed["calculations"]["calculatingAllLoadcases"] := true:')
     A('')
     A('# --- run all loadcases -------------------------------------------------')
@@ -462,11 +578,9 @@ else:
     A('printf("REC|summary|governingdescription|%s\\n", maxdesc):')
     A('if aborted = false then')
     A('    try')
-    A('        NODEXML:-XMLFileInOut("export", WhateverYouNeed, "%s"):'
-      % mstr(xml_path.replace("\\", "/")))
-    # NOTE: %-formatted line -> literal Maple specifier doubled
-    A('        printf("REC|saved|text|%%s\\n", "%s"):'
-      % mstr(xml_path.replace("\\", "/")))
+    A('        NODEXML:-XMLFileInOut("export", WhateverYouNeed, "' +
+      mstr(fwd_xml_path) + '"):')
+    A('        printf("REC|saved|text|%s\\n", "' + mstr(fwd_xml_path) + '"):')
     A('    catch:')
     A('        printf("ERR|XML export failed: %a\\n", [lastexception]):')
     A('    end try:')
@@ -484,6 +598,7 @@ else:
     lc_eta = {}      # {name: [(check, value), ...]}
     lc_code = {}
     lc_echo = {}
+    blk_echo = {}
     summary_max = None
     gov_lc = ""
     gov_code = ""
@@ -493,7 +608,9 @@ else:
     for line in raw.splitlines():
         s = line.strip()
         parts = s.split("|")
-        if s.startswith("DBG|lc|") and len(parts) >= 4:
+        if s.startswith("DBG|block|") and len(parts) >= 4:
+            blk_echo[parts[2]] = "|".join(parts[3:])
+        elif s.startswith("DBG|lc|") and len(parts) >= 4:
             lc_echo[parts[2]] = parts[3]
         elif s.startswith("REC|lc|") and len(parts) == 5:
             try:
@@ -524,8 +641,6 @@ else:
 
     loadcase_list = [n for n, _ in cases]
 
-    # trees: branch i = loadcase i; eta values sorted ascending,
-    # check_tree carries the matching check code per value
     eta_tree = Grasshopper.DataTree[object]()
     check_tree = Grasshopper.DataTree[object]()
     etamax_tree = Grasshopper.DataTree[object]()
@@ -550,9 +665,16 @@ else:
 
     debug = ("material : %s\nsection  : %s\n"
              "loadcases: %s\nxml_path : %s\n"
+             "structure blocks in use     : %s\n"
+             "structure blocks on defaults: %s\n"
              "parsed %d loadcase results, %d check records\n"
              % (material_name, section_name, ", ".join(loadcase_list),
-                xml_path, len(lc_max), sum(len(v) for v in lc_eta.values())))
+                xml_path,
+                ", ".join(blk_echo.get(k, "?")
+                          for k in ("code_64", "buckling", "code_615",
+                                    "code_622", "code_652")),
+                "; ".join(blocks_defaults) or "none",
+                len(lc_max), sum(len(v) for v in lc_eta.values())))
     for cname in loadcase_list:
         debug += "forces %-12s: %s\n" % (cname,
                                          lc_echo.get(cname, "<no echo>"))
