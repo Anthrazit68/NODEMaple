@@ -20,7 +20,7 @@ NODEXML := module()
 	option package;
 	export XMLFileInOut;
 	local XMLWrite, XMLImport, XMLMaterialTimber, XMLMaterialConcrete, XMLMaterialSteel, XMLSectionSteel, XMLSectionTimber, XMLCalculations,
-		 XMLRead, GetStoreitemsCalculations, runAfterXMLImport, checkBeforeWriteout, SafeXMLParse;
+		 XMLRead, GetStoreitemsCalculations, runAfterXMLImport, checkBeforeWriteout, SafeXMLParse, AttributeString;
 
 	checkBeforeWriteout := proc(items, WhateverYouNeed::table)
 		uses DocumentTools;
@@ -303,7 +303,8 @@ NODEXML := module()
 										
 										if type(item3, string) or type(item3, numeric) then
 											if dummy3 <> "name" then
-												xmlLevel2 := AddAttribute(xmlLevel2, dummy3, convert(item3, string));
+												# xmlLevel2 := AddAttribute(xmlLevel2, dummy3, convert(item3, string));
+												xmlLevel2 := AddAttribute(xmlLevel2, dummy3, AttributeString(item3));
 											end if;
 
 										else
@@ -320,7 +321,8 @@ NODEXML := module()
 									if dummy2 <> "name" then
 										
 										# direct writeout after readin might give strange Units conversions 'Units:-Simple:-`-`(Units:-Simple:-`*`(75.8,Units:-Unit(kN)))
-										xmlLevel1 := AddAttribute(xmlLevel1, dummy2, convert(eval(item2), string));	
+										# xmlLevel1 := AddAttribute(xmlLevel1, dummy2, convert(eval(item2), string));	
+										xmlLevel1 := AddAttribute(xmlLevel1, dummy2, AttributeString(item2));
 
 									end if;									
 																		
@@ -332,7 +334,8 @@ NODEXML := module()
 
 						else
 
-							xmlLevel0 := AddAttribute(xmlLevel0, dummy1, convert(item1, string));
+							# xmlLevel0 := AddAttribute(xmlLevel0, dummy1, convert(item1, string));
+							xmlLevel0 := AddAttribute(xmlLevel0, dummy1, AttributeString(item1));
 						
 						end if;
 
@@ -343,7 +346,8 @@ NODEXML := module()
 										
 				else
 					
-					xmlcalculation := AddAttribute(xmlcalculation, dummy, convert(item, string));				
+					# xmlcalculation := AddAttribute(xmlcalculation, dummy, convert(item, string));
+					xmlcalculation := AddAttribute(xmlcalculation, dummy, AttributeString(item));
 							
 				end if;
 				
@@ -1573,6 +1577,19 @@ NODEXML := module()
 		parsedXmlTree := XMLTools:-CleanXML(XMLTools:-ParseString(sanitized));
 
 		return parsedXmlTree;
+	end proc:
+
+
+	AttributeString := proc(expr)
+		description "Value -> XML attribute string. Restores the explicit "
+					"coefficient when automatic simplification collapsed "
+					"1*Unit(x) to the bare unit call.";
+		local res;
+		res := eval(expr);
+		if type(res, 'specfunc(anything, Units:-Unit)') then
+			return cat("1*", convert(res, string));
+		end if;
+		return convert(res, string);
 	end proc:
 
 # $include "NODEXML.mm";

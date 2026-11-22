@@ -481,8 +481,12 @@ else:
     A('try')
     A('    NODETimberEN1995:-calculate_k_64():')
     A('catch:')
-    A('    printf("ERR|calculate_k_64 failed: %a\\n", lastexception):')
+    A('        printf("ERR|calculate_k_64 failed: %a\\n", [lastexception]):')
     A('end try:')
+    A('printf("DBG|k_64|k_m_alpha=%a,k_r=%a,k_l=%a\\n", '
+      'WhateverYouNeed["results"]["k_64"]["k_m_alpha"], '
+      'WhateverYouNeed["results"]["k_64"]["k_r"], '
+      'WhateverYouNeed["results"]["k_64"]["k_l"]):')
     A('if not assigned(WhateverYouNeed["results"]["k_64"]["k_m_alpha"]) then')
     A('    WhateverYouNeed["results"]["k_64"] := table(')
     A('        ["k_m_alpha" = 1, "k_r" = 1, "k_l" = 1]):')

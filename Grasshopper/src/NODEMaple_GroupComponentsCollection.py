@@ -259,34 +259,88 @@ angle_compression = json.dumps({
 
 # ---------------------------------------------------------------------
 # COMPONENT 7: NODEMaple_TaperedCurved   (EC5 6.4)
-# Inputs (Item access):
-#   construction_type : "glulam with constant lamination thickness"
-#                       | "LVL with constant lamination thickness"
-#                       | "glulam with varying lamination thickness"
-#                       | "-"  (prismatic - the default)
-#   alpha_ap          : [deg] aperture angle of the apex zone
-#   tapered_side      : "compression" | "tension"
-#                       (tapered side in compression -> "false" in
-#                       the library's tapered_N field, and vice versa
-#                       - VERIFY against your library's convention)
-#   r_in              : [m] inner radius (curved beams)
-#   l_curve           : [m] length of curved section
-#   t_lam             : [mm] lamination thickness
-# Output: tapered_curved
 # ---------------------------------------------------------------------
 """
-NODEMaple_TaperedCurved
+NODEMaple_TaperedCurved   (EC5 6.4 - Members with varying
+cross-section or curved shape)
 
-6.4 Members with varying cross-section or curved shape (page 3).
-Writes structure["code_64"] = {ConstructionType, alpha_ap, tapered_N,
-r_in, l_curve, t_lam}. Optional input: unconnected -> prismatic
-defaults (ConstructionType "-", all values 0), matching the current
-runner behaviour. Leave all zeros for straight beams.
+Produces the JSON block for the runner input "tapered_curved",
+which is written to structure["code_64"] in Maple.
+
+-----------------------------------------------------------------------
+INPUTS (all Item access)
+-----------------------------------------------------------------------
+construction_type : string, the library's exact enum (use a Value
+    List fed with these five strings, no free text):
+      "-"                     prismatic beam (default)
+      "Single tapered beam"
+      "Double tapered beam"
+      "Curved beam"           requires r_in > 0 and l_curve > 0
+      "Pitched cambered beam" requires r_in > 0 and l_curve > 0
+    Sourced from the worksheet's ComboBox_ConstructionType.
+
+alpha_ap : number, degrees. Apex angle of the tapered/curved
+    section. Only meaningful for the two tapered types and
+    "Pitched cambered beam"; the worksheet forces 0 for "-" and
+    "Curved beam" - this component passes the value through
+    unchanged, so set 0 for those two yourself (or leave
+    unconnected).
+
+tapered_side : string, only meaningful for "Single tapered beam".
+    Forwarded VERBATIM to the library's tapered_N field:
+      "compression" - tapered side in compression
+      "tension"     - tapered side in tension
+        (this is the case that activates the k_m,alpha reduction
+        of 6.4.2; deciding which side is which is the designer's
+        call, as in the worksheet)
+    For every other construction type the library expects the
+    string "false" (= no taper check active) - this component
+    sends "false" automatically, the input is then ignored.
+    A hard ValueError is raised for: unknown construction_type,
+    or missing/invalid tapered_side when a single tapered beam
+    is selected (silent wrong values here caused the 0.9136-instead-of-
+    0.98 result traced on 22 Nov 2026).
+
+r_in : number, metres. Inner radius of curved/pitched cambered
+    beams (Figur 6.2 b/c). 0 for all other types. The worksheet
+    validates r_in > 0 for curved types; the library raises an
+    Alert if not.
+
+l_curve : number, metres. Length of the curved section. Must be
+    > 0 (and < 2/3 of member length) for curved types, 0 otherwise.
+
+t_lam : number, millimetres. Lamination thickness. Only relevant
+    for "Curved beam" and "Pitched cambered beam"; the worksheet
+    validates 6 mm < t_lam < 45 mm for those. 0 for tapered types.
+
+-----------------------------------------------------------------------
+OUTPUT
+-----------------------------------------------------------------------
+tapered_curved : JSON string, e.g.
+    {"construction_type": "Single tapered beam", "alpha_ap": 3.6,
+     "tapered_N": "tension", "r_in": 0.0, "l_curve": 0.0,
+     "t_lam": 0.0}
+    Connect to the runner's "tapered_curved" input (List access,
+    flatten - standard for all block components).
+
+    Unconnected on the runner -> prismatic defaults
+    (ConstructionType "-", all zeros, k_64 factors = 1), and the
+    runner's debug echoes DBG|block|code_64|default_prismatic so
+    the default state is always visible.
+
+-----------------------------------------------------------------------
+UNITS NOTE: alpha_ap is degrees, r_in/l_curve metres, t_lam
+millimetres - the runner attaches the Maple units
+(*Unit(degrees)/Unit(m)/Unit(mm)), the component deals in plain
+numbers, matching how every other block component works.
 """
 import json
 
+VALID_TYPES = ["-", "Single tapered beam", "Double tapered beam",
+               "Curved beam", "Pitched cambered beam"]
+
 def _s(v):
-    return "" if v is None else str(v).strip().lower()
+    return "" if v is None else str(v).strip()
 
 def _f(v):
     try:
@@ -294,14 +348,24 @@ def _f(v):
     except (TypeError, ValueError):
         return 0.0
 
-# library stores tapered_N; worksheet wording is "tapered side in
-# compression/tension". Mapping below assumes tapered_N means
-# "tapered side in tension" (compression default -> "false").
-# If results disagree with the worksheet, swap the mapping here.
-tapered_N = "true" if _s(tapered_side) == "tension" else "false"
+ct = _s(construction_type) or "-"
+if ct not in VALID_TYPES:
+    raise ValueError("construction_type '%s' not recognised - use one "
+                      "of: %s" % (ct, "; ".join(VALID_TYPES)))
+
+# forward the side value verbatim for single tapered beams;
+# the library expects "false" for every other construction type
+if ct == "Single tapered beam":
+    ts = _s(tapered_side).lower()
+    if ts not in ("compression", "tension"):
+        raise ValueError("tapered_side must be 'compression' or "
+                          "'tension' for a single tapered beam")
+    tapered_N = ts
+else:
+    tapered_N = "false"
 
 tapered_curved = json.dumps({
-    "construction_type": _s(construction_type) or "-",
+    "construction_type": ct,
     "alpha_ap": _f(alpha_ap),
     "tapered_N": tapered_N,
     "r_in": _f(r_in),
