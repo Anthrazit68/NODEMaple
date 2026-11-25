@@ -702,9 +702,21 @@ NODEFunctions := module()
 		return filename
 	end proc:
 
+
 	HighlightResults := proc(var, action::string)
+		global WhateverYouNeed;
 		description "Highlite detailed results";
-		local dummy, i, fillcolor;
+		local dummy, i, fillcolor, sg;
+
+		# headless flag: true when a session has declared suppress_gui
+		# (Grasshopper/script runs). Missing component is then the normal
+		# condition, not an error. Safe against uninitialized globals.
+		sg := false;
+		if type(WhateverYouNeed, 'table') then
+			if assigned(WhateverYouNeed["calculations"]["suppress_gui"]) then
+				sg := eval(WhateverYouNeed["calculations"]["suppress_gui"]) = true;
+			end if;
+		end if;
 
 		if action = "highlight" then 
 			fillcolor := "Gold"
@@ -723,7 +735,9 @@ NODEFunctions := module()
 						elif ComponentExists(cat("MathContainer_", i)) then
 							SetProperty(cat("MathContainer_", i), 'fillcolor', fillcolor);			
 						else
-							Alert(cat("Component not found for ", i), table(), 1)				
+					        if sg = false then
+            					Alert(cat("Component not found for ", i), table(), 1)
+        					end if;								
 						end if;		
 					end do;	
 				else
@@ -739,7 +753,9 @@ NODEFunctions := module()
 				elif ComponentExists(cat("MathContainer_", i)) then
 					SetProperty(cat("MathContainer_", i), 'fillcolor', fillcolor);			
 				else
-					Alert(cat("Component not found for ", i), table(), 1)				
+					if sg = false then
+						Alert(cat("Component not found for ", i), table(), 1)
+					end if;								
 				end if;		
 			end do;
 
@@ -1814,8 +1830,19 @@ NODEFunctions := module()
 
 
 	ResetComponent := proc(var::set)
+		global WhateverYouNeed;
 		description "Delete results in combobox";
-		local i;
+		local i, sg;
+
+		# headless flag: true when a session has declared suppress_gui
+		# (Grasshopper/script runs). Missing component is then the normal
+		# condition, not an error. Safe against uninitialized globals.
+		sg := false;
+		if type(WhateverYouNeed, 'table') then
+			if assigned(WhateverYouNeed["calculations"]["suppress_gui"]) then
+				sg := eval(WhateverYouNeed["calculations"]["suppress_gui"]) = true;
+			end if;
+		end if;
 
 		for i in var do
 		
@@ -1826,7 +1853,9 @@ NODEFunctions := module()
 			elif ComponentExists(cat("CheckBox_", i)) then
 				# no action
 			else
-				Alert(cat("Component not found for ", i), table(), 1)
+				if sg = false then
+            		Alert(cat("Component not found for ", i), table(), 1)
+        		end if;					
 			end if;
 		end do;
 	end proc:

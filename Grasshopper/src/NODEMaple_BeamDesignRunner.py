@@ -324,6 +324,29 @@ def _validate():
                     "NODEMaple_SupportCheck with the bearing geometry "
                     "(type a/b, a, l, l1). Calculating 6.1.5 on "
                     "undocumented default values is refused.")
+    # 6.2.2 angled compression needs the user-defined load-area height:
+    # h -> section height would silently change the result (confirmed
+    # on example 8: eta 0.91 worksheet vs 0.36 headless on defaults).
+    # Trigger condition: same angled-compression proxy as 6.1.5.
+    if not AC and any(v[1] < 0 and v[0] > 0 for _, v in cases):
+        msgs.append("angle_compression: MISSING - a loadcase has angled "
+                    "compression (F_xd < 0, alpha > 0) which triggers "
+                    "the 6.2.2 check. Connect NODEMaple_AngleCompression "
+                    "with the user-defined load-area height h_622. "
+                    "Calculating 6.2.2 on the section-height default is "
+                    "refused.")
+    # 6.5.2: notched beams need the notch geometry - the library's own
+    # check (h_ef > 0, l_incl >= 0) must not surface as a headless
+    # popup. Refuse here so the error names the component and the
+    # missing wire. Mirror of EC5_652's validation.
+    if en_notched == "true" and _en("h_ef", 0.0) <= 0.0:
+        msgs.append("end_notch: endnotched=true but h_ef <= 0 - connect "
+                    "the h_ef input of NODEMaple_EndNotch (remaining "
+                    "height at the notch, mm). The library refuses "
+                    "h_ef > 0 validation otherwise.")
+    if en_notched == "true" and _en("l_incl", 0.0) < 0.0:
+        msgs.append("end_notch: endnotched=true but l_incl < 0 - "
+                    "invalid notch geometry (l_incl, mm)")
     return msgs
 
 problems = _validate()

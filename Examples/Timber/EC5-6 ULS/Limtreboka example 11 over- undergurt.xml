@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <database version = '2025-01' source_software = 'https://github.com/Anthrazit68/NODEMaple' created = '2026-03-26T21:51:17 CET'>
-  <projectdata projecttitle = 'Limtreboka Beregningseksempler' projectnumber = '0320.03' client = 'NODE rådgivende ingeniører AS'/>
+  <projectdata projecttitle = 'Limtreboka Beregningseksempler' projectnumber = '0320.03' client = 'Anthrazit'/>
   <materials>
     <timber>
       <material material = 'timber' name = 'GL 30c / Service class 1 / Short-term' timbertype = 'Glued laminated timber' strengthclass = 'GL 30c' serviceclass = '1' loaddurationclass = 'Short-term' gamma_M = '1.15' k_mod = '.90'>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <database version = '2023.12' source_software = 'NODE common file format, generated via Maple'>
-  <projectdata projectnumber = '0320.03' client = 'NODE rådgivende ingeniører AS' projecttitle = 'Limtreboka Beregningseksempler'/>
+  <projectdata projectnumber = '0320.03' client = 'Anthrazit' projecttitle = 'Limtreboka Beregningseksempler'/>
   <materials>
     <timber>
       <material material = 'timber' name = 'GL 30c / Service class 1 / Medium-term' timbertype = 'Glued laminated timber' strengthclass = 'GL 30c' serviceclass = '1' loaddurationclass = 'Medium-term' gamma_M = '1.15' k_mod = '.80'>

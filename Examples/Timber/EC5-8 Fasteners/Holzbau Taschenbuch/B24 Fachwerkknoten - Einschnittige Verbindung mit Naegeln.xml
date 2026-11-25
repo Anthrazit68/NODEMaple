@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <database version = '2025-01' source_software = 'https://github.com/Anthrazit68/NODEMaple' created = '2025-01-25T11:45:12 CET'>
-  <projectdata projectnumber = '' projecttitle = 'Holzbau Taschenbuch' client = 'NODE rådgivende ingeniører AS'/>
+  <projectdata projectnumber = '' projecttitle = 'Holzbau Taschenbuch' client = 'Anthrazit'/>
   <materials>
     <timber/>
   </materials>

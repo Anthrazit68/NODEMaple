@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <database version = '2024.11' source_software = 'NODE common file format, generated via Maple'>
-  <projectdata projectnumber = '7204.6' client = 'NODE rådgivende ingeniører AS' projecttitle = 'NTNU beregningseksempler tre'/>
+  <projectdata projectnumber = '7204.6' client = 'Anthrazit' projecttitle = 'NTNU beregningseksempler tre'/>
   <materials>
     <timber/>
   </materials>

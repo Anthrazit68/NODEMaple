@@ -167,13 +167,14 @@ NODETimberGUI := module()
     Main_EC5_6 := proc(action::string)        
         description "Main calculation routine for EC5_6 calculations";        
         local force, activeloadcase, eta, usedcode, comments, structure, warnings, maxindex, usedcodeDescription;
-        local alpha, F_xd, M_yd, M_zd, V_yd, V_zd, M_td;
+        local alpha, F_xd, M_yd, M_zd, V_yd, V_zd, M_td, results;
 
         # declare local variables
         activeloadcase := WhateverYouNeed["calculations"]["activesettings"]["activeloadcase"];
         force := eval(WhateverYouNeed["calculations"]["loadcases"][activeloadcase]);
         structure := WhateverYouNeed["calculations"]["structure"];
         warnings := WhateverYouNeed["warnings"];
+        results := WhateverYouNeed["results"];
 
         # reset eta, usedcode, usedCodeDescription, comments
         eta := table();
@@ -181,10 +182,18 @@ NODETimberGUI := module()
         usedcodeDescription := table();
         comments := table();
         
-        WhateverYouNeed["results"]["eta"] := eta;
-        WhateverYouNeed["results"]["usedcode"] := usedcode;
-        WhateverYouNeed["results"]["usedcodeDescription"] := usedcodeDescription;
-        WhateverYouNeed["results"]["comments"] := comments;
+        results["eta"] := eta;
+        results["usedcode"] := usedcode;
+        results["usedcodeDescription"] := usedcodeDescription;
+        results["comments"] := comments;
+
+        # 6.2.2 load area - derived from the user's h_622, not read from
+        # the GUI (previously a side effect of ReadComponentsSpecific_EC5_6;
+        # computed here so the calculation is self-sufficient for headless
+        # callers - Grasshopper bridge, scripts, other worksheets)
+        if assigned(structure["code_622"]["h_622"]) then
+            results["A_622"] := eval(WhateverYouNeed["sectiondata"]["b"] * structure["code_622"]["h_622"])
+        end if;
 
         if action = "CalculateAllLoadcases" or action = "calculateAllLoadcasesCleanup" then		# don't reset calculated values
 
@@ -425,8 +434,7 @@ NODETimberGUI := module()
             end if;
             code_622 := table();
             code_622["h_622"] := parse(GetProperty("TextArea_h_622", value)) * Unit('mm');
-            WhateverYouNeed["results"]["A_622"] := eval(WhateverYouNeed["sectiondata"]["b"] * code_622["h_622"]);
-            
+            # A_622 derivation moved to Main_EC5_6 - it is a derived value, not a GUI-read value (needed also by headless callers)
             structure["code_622"] := eval(code_622);
         end if;
 
@@ -589,8 +597,8 @@ NODETimberGUI := module()
 
     Main_EC5_8 := proc(action::string)        
         description "Main calculation routine for EC5_8 calculations";
-        local calculations, activesettings, structure, comments, chosenFastener, fastener, calculatedFastener, d, warnings, fastenervalues, eta, usedcode, checkPassed,
-                force, maxindex, usedcodeDescription;
+        local calculations, activesettings, structure, comments, chosenFastener, fastener, calculatedFastener, d, warnings,
+            fastenervalues, eta, usedcode, checkPassed, force, maxindex, usedcodeDescription, results;
 
         # declare local variables
         calculations := WhateverYouNeed["calculations"];	
@@ -600,6 +608,7 @@ NODETimberGUI := module()
         fastener := structure["fastener"];
         fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
         force := WhateverYouNeed["calculations"]["loadcases"][activesettings["activeloadcase"]];
+        results := WhateverYouNeed["results"];
 
         # reset eta, usedcode, usedCodeDescription, comments
         eta := table();
@@ -609,10 +618,10 @@ NODETimberGUI := module()
 
         # updateComponents := true;		# update results to Maple components
         
-        WhateverYouNeed["results"]["eta"] := eta;
-        WhateverYouNeed["results"]["usedcode"] := usedcode;
-        WhateverYouNeed["results"]["usedcodeDescription"] := usedcodeDescription;
-        WhateverYouNeed["results"]["comments"] := comments;
+        results["eta"] := eta;
+        results["usedcode"] := usedcode;
+        results["usedcodeDescription"] := usedcodeDescription;
+        results["comments"] := comments;
         
         # local variables for metal fasteners
         chosenFastener := fastener["chosenFastener"];
@@ -1156,7 +1165,8 @@ NODETimberGUI := module()
     # in case of calculateAllLoadcases this routine is run partly, but at the end a full calculation with the active loadcase is run in addition
     Main_Opening := proc()
         description "Main calculation procedure, calculates values for each force";
-        local calculations, activesettings, structure, comments, chosenFastener, fastener, calculatedFastener, warnings, fastenervalues, eta, usedcode, checkPassed, maxindex, usedcodeDescription, openingResult;
+        local calculations, activesettings, structure, comments, chosenFastener, fastener, calculatedFastener, warnings,
+            fastenervalues, eta, usedcode, checkPassed, maxindex, usedcodeDescription, openingResult, results;
 
         # declare local variables
         calculations := WhateverYouNeed["calculations"];	
@@ -1166,9 +1176,10 @@ NODETimberGUI := module()
         fastener := structure["fastener"];
         fastenervalues := WhateverYouNeed["calculatedvalues"]["fastenervalues"];
         # force := WhateverYouNeed["calculations"]["loadcases"][activesettings["activeloadcase"]];
+        results := WhateverYouNeed["results"];
         
         openingResult := table();
-        WhateverYouNeed["results"]["opening"] := openingResult;
+        results["opening"] := openingResult;
 
         # reset eta, usedcode, usedCodeDescription, comments
         eta := table();
@@ -1176,10 +1187,10 @@ NODETimberGUI := module()
         usedcodeDescription := table();
         comments := table();
         
-        WhateverYouNeed["results"]["eta"] := eta;
-        WhateverYouNeed["results"]["usedcode"] := usedcode;
-        WhateverYouNeed["results"]["usedcodeDescription"] := usedcodeDescription;
-        WhateverYouNeed["results"]["comments"] := comments;
+        results["eta"] := eta;
+        results["usedcode"] := usedcode;
+        results["usedcodeDescription"] := usedcodeDescription;
+        results["comments"] := comments;
         
         # local variables for metal fasteners
         chosenFastener := fastener["chosenFastener"];
